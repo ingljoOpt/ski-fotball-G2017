@@ -69,7 +69,7 @@ Ved 28 spillere bruker fire grupper på fem firkant og to grupper på fire treka
 #### Læringspunkter og tilpasning
 Se opp før mottaket, vend mot neste spiller og tilpass kraften i pasningen. Bytt retning og prøv begge føtter. Bruk kortere avstand ved behov.
 </div>
-{% include taktikk.html src="/media/taktikk/firkant-pasning.json" title="Firkant: pasning og vending" description="Lokalt illustrasjonseksempel: A spiller til B. B mottar foran kjeglen, runder den med ball og spiller videre til C." %}
+{% include taktikk.html src="/media/taktikk/firkant-pasning.json?v=2" title="Firkant: pasning og vending" description="Lokalt illustrasjonseksempel: A spiller til B. B mottar foran kjeglen, runder den med ball og spiller videre til C." %}
 </details>
 
 <details class="exercise" id="spill">
