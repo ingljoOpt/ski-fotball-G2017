@@ -8,4 +8,4 @@ Filnavn: `AAAA-MM-DD-onsdag-tema.md` eller `AAAA-MM-DD-sondag-tema.md`. Bruk kor
 
 Periodeplaner kan lagres i samme årsmappe som `periode-AAAA-MM-DD-til-AAAA-MM-DD.md`, kopiert fra [periodemalen](../maler/periodeplan.md).
 
-Ingen konkrete økter er opprettet ennå.
+En udatert plan kan midlertidig lagres med tydelig udatert navn og ID når kilden ikke oppgir en bestemt treningsdato. Når datoene bekreftes, opprettes én ny datert øktfil per trening med referanse til den udaterte planen; ikke registrer uavklarte datoer som faktiske gjennomføringer.

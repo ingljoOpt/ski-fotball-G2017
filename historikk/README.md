@@ -6,6 +6,7 @@ Ingen tidligere treninger er registrert per 4. november 2026. Legg inn eldre øk
 
 | Dato | Økt-ID og lenke til øktfil | Type | Status | Tema | Faktisk spillere og trenere | Faktisk brukte øvelses-ID og varianter | GitHub Pages-lenke og publiseringsstatus | Gjenbruk og neste justering |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Ikke oppgitt; kilden viser uke 45–47 uten år | [G2017-udatert-uke-45-46-47](../okter/udatert-uke-45-46-47.md) (midlertidig ID) | Ikke oppgitt | planlagt; dato uavklart | Pasning, mottak, vending og avslutning | — | — | Ikke publisert | Én udatert planregistrering fra Tiim; opprett egne rader ved bekreftede datoer |
 
 ## Slik oppdateres registeret
 
