@@ -1,13 +1,13 @@
-# G2017 – uke 45, 46 og 47 i 2026
+# G2017 – onsdag 4. november 2026
 
 ## Grunnlag
 
 | Felt | Verdi |
 | --- | --- |
-| Økt-ID | G2017-udatert-uke-45-46-47 (midlertidig) |
-| Dato og tidspunkt | Uke 45–47 i 2026, oppgitt av treneren; konkrete datoer og tidspunkt er ikke oppgitt |
-| Type | Ikke oppgitt |
-| Status | planlagt, dato og praktiske rammer må avklares |
+| Økt-ID | G2017-2026-11-04-onsdag |
+| Dato og tidspunkt | Onsdag 4. november 2026; tidspunkt ikke oppgitt |
+| Type | Onsdag |
+| Status | planlagt, tidspunkt og praktiske rammer må avklares |
 | Hovedtema | Pasning, mottak og vending for å spille fremover og komme til avslutning |
 | Læringsmål | Orientere seg før mottak og bevege seg etter pasning; spille fremover og avslutte når muligheten oppstår |
 | Alder og Tiim-filter | 8–9 år i kildeøkten |
@@ -15,15 +15,15 @@
 | Forventet oppmøte | Kildeøkten er satt opp for ca. 28 spillere; trenere ikke oppgitt |
 | Tilgjengelig utstyr | Ikke bekreftet. Kilden oppgir baller, kjegler, vester og mål |
 | Øktansvarlig og trenerroller | Ikke oppgitt |
-| Forutsetninger som må sjekkes | Dato og type; spillere og trenere; baller, mål og vester; plass, underlag og lys |
+| Forutsetninger som må sjekkes | Tidspunkt; spillere og trenere; baller, mål og vester; plass, underlag og lys |
 | Gjenbruk fra | Ingen tidligere gjennomførte økter registrert i prosjektet |
 | Hva som videreføres og endres | Registrert fra kildeøkten; ingen faktiske gjennomføringer eller lokale endringer er dokumentert |
 | Kilde | [G2017, Uke 45, 46, 47 i Tiim](https://tiim.no/trenerskapt/okt/a8f324d9-67fa-463d-89b6-de2a6889cc7a), kontrollert 4. november 2026 |
-| Offentlig øktlenke | [G2017 – uke 45, 46 og 47](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html) |
-| Publiseringsstatus | offentlig kontrollert |
-| Offentlig tilgang kontrollert | 4. november 2026: siden og oppføringen på forsiden lest uten innlogging |
+| Offentlig øktlenke | [G2017 – onsdag 4. november 2026](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html) |
+| Publiseringsstatus | publisert ikke kontrollert etter endring |
+| Offentlig tilgang kontrollert | Tidligere versjon kontrollert 4. november 2026; ny dato må kontrolleres |
 
-Treneren har opplyst at kildetittelens tre uker er i 2026. Konkrete datoer og antall gjennomføringer er ikke oppgitt. Dette er derfor én udatert planregistrering, ikke tre registrerte treninger. Opprett en egen datert øktfil og historikkrad per bekreftet trening.
+Treneren har opplyst at kildetittelens tre uker er i 2026 og angitt 4. november for denne planen. Dette er én planlagt trening; datoer og gjennomføring i uke 46 og 47 er ikke oppgitt. Opprett en egen øktfil og historikkrad per eventuelt bekreftet trening.
 
 ## Tidsplan
 
@@ -67,10 +67,10 @@ Største samtidige behov er seks aktive baller og fire mål i ulike blokker, i t
 
 - [x] Blokkene summerer til 90 minutter.
 - [x] Kilden og oppgitte grupper for 28 spillere er registrert.
-- [ ] Dato, tidspunkt, type, treneroppmøte og roller er bekreftet.
+- [ ] Tidspunkt, treneroppmøte og roller er bekreftet.
 - [ ] Plass, underlag og utstyr er kontrollert for alle samtidige grupper.
 - [ ] Alternativer ved annet oppmøte og færre baller eller mål er ferdigstilt.
-- [x] GitHub Pages-lenke og offentlig tilgang er kontrollert.
+- [ ] Oppdatert GitHub Pages-side og offentlig tilgang er kontrollert.
 
 ## Faktisk gjennomføring og evaluering
 

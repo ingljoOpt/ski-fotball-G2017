@@ -1,6 +1,6 @@
 ---
 layout: okt
-title: "G2017 – uke 45, 46 og 47 i 2026"
+title: "G2017 – onsdag 4. november 2026"
 status: "Planlagt økt"
 intro: "Pasning, mottak og vending som verktøy for å spille fremover og komme til avslutning."
 duration: "90 minutter"
@@ -9,7 +9,7 @@ players: "ca. 28 spillere"
 ---
 
 <div class="notice" markdown="1">
-Planlagt for uke 45–47 i 2026. Konkrete datoer og tidspunkt er ikke avklart. Antall trenere, baller og mål må bekreftes før gjennomføring.
+Planlagt onsdag 4. november 2026. Tidspunkt, antall trenere, baller og mål må bekreftes før gjennomføring. Kildeopplegget viser også til uke 46 og 47; andre treningsdatoer er ikke oppgitt.
 </div>
 
 ## Tema og læringsmål

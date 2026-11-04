@@ -6,7 +6,7 @@ Ingen tidligere treninger er registrert per 4. november 2026. Legg inn eldre øk
 
 | Dato | Økt-ID og lenke til øktfil | Type | Status | Tema | Faktisk spillere og trenere | Faktisk brukte øvelses-ID og varianter | GitHub Pages-lenke og publiseringsstatus | Gjenbruk og neste justering |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Uke 45–47 i 2026; datoer ikke oppgitt | [G2017-udatert-uke-45-46-47](../okter/udatert-uke-45-46-47.md) (midlertidig ID) | Ikke oppgitt | planlagt; dato uavklart | Pasning, mottak, vending og avslutning | — | — | [Øktbeskrivelse](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html), offentlig kontrollert 4. november 2026 | Én udatert planregistrering fra Tiim; opprett egne rader ved bekreftede datoer |
+| 4. november 2026 | [G2017-2026-11-04-onsdag](../okter/2026/2026-11-04-onsdag-tema.md) | Onsdag | planlagt | Pasning, mottak, vending og avslutning | — | — | [Øktbeskrivelse](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html), publisert ikke kontrollert etter endring | Kildeøkten viser også til uke 46 og 47; separate treninger er ikke bekreftet |
 
 ## Slik oppdateres registeret
 
