@@ -18,8 +18,8 @@
 | Forutsetninger som må sjekkes | Fyll inn |
 | Gjenbruk fra | Økt-ID eller ingen registrert historikk |
 | Hva som videreføres og endres | Fyll inn med begrunnelse |
-| Tiim-lenke | Faktisk lenke eller ikke opprettet |
-| Publiseringsstatus | ikke opprettet / lagret / publisert ikke kontrollert / offentlig kontrollert |
+| Offentlig øktlenke | Faktisk GitHub Pages-lenke eller ikke publisert |
+| Publiseringsstatus | ikke opprettet / lokalt utkast / publisert ikke kontrollert / offentlig kontrollert |
 | Offentlig tilgang kontrollert | Dato, metode og resultat eller ikke kontrollert |
 
 ## Tidsplan
@@ -59,7 +59,7 @@ Største samtidige behov: fyll inn. Beskriv om utstyr flyttes mellom blokkene og
 - [ ] Samtidig utstyrsbehov er innenfor bekreftet beholdning.
 - [ ] Kilder og lokale varianter er tydelige.
 - [ ] Historikken er sjekket og variasjon vurdert.
-- [ ] Tiim-lenke og offentlig tilgang er kontrollert hvis publisering inngår.
+- [ ] GitHub Pages-lenke og offentlig tilgang er kontrollert hvis publisering inngår.
 
 ## Faktisk gjennomføring og evaluering
 

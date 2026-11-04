@@ -21,24 +21,48 @@ Bruk gjerne en kjent øvelse som spillerne forstår. Som lokal standard bør nes
 
 La gjerne samme tema gå over flere treninger med progresjon. Noter forrige økt-ID og hva som videreføres eller endres. Gjenta en hel økt når det er et bevisst valg, og forklar hvorfor. Juster etter evaluering og unngå å endre alle reglene på én gang.
 
-## Opprett og publiser i Tiim
+## Publiser med GitHub Pages
 
-Tiim beskriver at egne økter lages fra «Min side», lagres der og kan deles. Se [veiledningen til øktplanleggeren](https://tiim.no/artikkel/na-kan-du-lage-dine-egne-okter-pa-tiim). Egne tilpassede øvelser kan også legges inn, ifølge [Tiims veiledning fra 2026](https://tiim.no/artikkel/na-kan-du-ha-med-egne-ovelser-i-tiim).
+Tiim er fortsatt kilde for øvelser, men økter opprettes ikke i Tiim for deling. Den offentlige nettsiden bygges bare fra `publiserte/`; kildefilene og hele resten av GitHub-repositoriet er likevel offentlig lesbare. Ikke lagre opplysninger om enkeltbarn, interne evalueringer eller annet ikke-offentlig innhold i repositoriet.
 
-Ved bestilling av en ferdig Tiim-økt:
+### Oppsett én gang
 
-1. Ferdigstill planen lokalt og opprett økten fra Min side i riktig konto.
-2. Bruk samme tittel, rekkefølge, varighet og læringsmål som i øktfilen. Ta med lokale tilpasninger i relevante beskrivelsesfelt.
-3. Lagre økten og bruk tilgjengelig publiserings- eller delingsvalg for offentlig tilgang. Kontroller den aktuelle grensesnittteksten; en bestemt knappetekst er ikke lagt til grunn her.
-4. Kopier den faktiske delingslenken til øktfilen og historikken.
-5. Åpne lenken i en nettleserøkt uten innlogging og kontroller at hele økten kan leses. Først da settes publiseringsstatus til `offentlig kontrollert` med kontrolldato.
+1. Legg prosjektendringene på GitHub i `main`. I repositoriets **Settings → Pages**, velg **GitHub Actions** som kilde. Dette krever passende tilgang til repositoriet.
+2. Kjør arbeidsflyten **Publiser økter** manuelt under Actions hvis den ikke allerede har kjørt etter at Pages ble konfigurert.
+3. Kontroller at bygg og publisering lykkes. Bruk den faktiske nettstedadressen fra Pages-innstillingene eller arbeidsflyten; ikke anta at en adresse er aktiv før den er kontrollert.
 
-Hvis tilgang eller publisering ikke kan fullføres, behold den ferdige lokale planen og registrer nøyaktig hva som gjenstår. Bruk aldri en konstruert Tiim-lenke eller anta at «lagret» betyr offentlig. Denne prosjektopprettelsen omfatter dokumentasjon, ikke publisering av en konkret trening.
+Arbeidsflyten `pages.yml` bygger Markdown og HTML i `publiserte/` med Jekyll og publiserer bare det ferdige nettstedet. Endringer i denne mappen på `main` starter en ny publisering. Se [GitHubs dokumentasjon om Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
 
-Den offentlige økten skal inneholde treningsopplegget. Oppmøte, interne evalueringer og eventuelle opplysninger om enkeltspillere hører ikke hjemme i offentlig økttekst.
+### For hver økt
+
+1. Ferdigstill øktplanen i `okter/` og kopier `maler/offentlig-okt.md` til `publiserte/okter/AAAA/AAAA-MM-DD-onsdag-tema.md` eller tilsvarende for søndag. Behold YAML-feltene øverst og oppgi en beskrivende tittel.
+2. Ta med treningsinnhold, læringsmål, rekkefølge, varighet, organisering, lokale tilpasninger og lenker til Tiim-kildene. Ikke ta med faktisk oppmøte eller evaluering i den offentlige øktbeskrivelsen. Oppdater beskrivelsen hvis planen endres før trening; bevar den historiske planen og evalueringen ved senere gjenbruk.
+3. Legg til eventuelle medier som beskrevet nedenfor. Når endringene er lagt på `main`, kontroller arbeidsflyten i GitHub Actions. Finn økten fra nettstedets forside.
+4. Lagre den **faktiske** GitHub Pages-lenken og publiseringsstatusen i øktfilen og historikken. Åpne lenken uten innlogging og kontroller tekst, lenker og eventuelle medier. Først da settes status til `offentlig kontrollert` med kontrolldato.
+
+Hvis tilgang, bygging eller publisering ikke lykkes, behold planen og beskriv konkret hva som gjenstår. En lokal fil eller en lagret commit er ikke en kontrollert offentlig økt. Ikke finn på lenker.
+
+### Bilder, animasjoner og video
+
+Lagre egne medier eller medier med uttrykkelig tillatelse under `publiserte/media/`, og lenk til dem relativt fra øktfilen. For en økt i `publiserte/okter/AAAA/` kan for eksempel en animasjon legges inn slik:
+
+```markdown
+![Beskrivelse av øvelsen](../../media/ovelse.gif)
+```
+
+Video kan spilles av på Pages-siden med HTML i Markdown. Velg en faktisk fil og gi også en vanlig lenke:
+
+```html
+<video controls preload="metadata" width="640">
+  <source src="../../media/ovelse.mp4" type="video/mp4">
+  Nettleseren støtter ikke video. <a href="../../media/ovelse.mp4">Åpne videoen</a>.
+</video>
+```
+
+En ekstern video kan eventuelt bygges inn med leverandørens `iframe` hvis leverandøren tillater det; legg til tittel og en vanlig lenke som alternativ, og test visningen. GitHubs vanlige Markdown-visning og Pages kan håndtere HTML ulikt; kontroller derfor den publiserte Pages-siden. Ikke kopier Tiim-videoer eller andre medier uten nødvendige rettigheter; lenk heller til kilden. Ta hensyn til personvern og samtykke ved opptak.
 
 ## Etter trening
 
 Behold planlagt innhold og før faktisk oppmøte, hvilke aktiviteter som ble gjennomført, tidsendringer og erfaringer i evalueringsdelen. Sett status til `gjennomført` og oppdater historikken. Ved avlysning brukes `avlyst` med kort årsak.
 
-En gjennomført økt skal beholde innholdet som faktisk ble brukt. Ved gjenbruk kopieres den til ny dato og får ny ID med referanse til originalen. Dersom en offentlig Tiim-økt senere endres, skal den lokale filen fortsatt vise den historiske gjennomføringen.
+En gjennomført økt skal beholde innholdet som faktisk ble brukt. Ved gjenbruk kopieres den til ny dato og får ny ID med referanse til originalen. Den historiske øktfilen skal fortsatt vise den faktiske gjennomføringen.

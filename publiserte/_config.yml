@@ -1,0 +1,7 @@
+title: Treningsøkter for G2017
+description: Økter for Ski fotball G2017
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default

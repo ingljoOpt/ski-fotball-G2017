@@ -4,7 +4,7 @@
 
 Trenergruppen skal kunne bestille en økt og få en plan som passer dagens oppmøte, utstyr og baneforhold. Spillerne skal møte varierte aktiviteter med mye deltakelse, mestring og spill. Gode øvelser skal kunne gjenbrukes med progresjon uten at hele økter gjentas uendret hver gang.
 
-Prosjektet er et arbeidsgrunnlag for trenere og en assistent som planlegger økter. Første versjon består av dokumentasjon, maler og et øktarkiv i prosjektmappen, med Tiim som ekstern øktplanlegger.
+Prosjektet er et arbeidsgrunnlag for trenere og en assistent som planlegger økter. Det består av dokumentasjon, maler og et øktarkiv i GitHub, med Tiim som øvelseskilde og GitHub Pages som delingsflate.
 
 ## Behov som skal dekkes
 
@@ -15,7 +15,7 @@ Prosjektet er et arbeidsgrunnlag for trenere og en assistent som planlegger økt
 | Halv 11-bane | Beskriv soner, målretninger og plass til bytter mellom aktiviteter |
 | Begrenset antall vinterballer | Tell samtidig ballbehov og legg ved en variant med færre baller |
 | Alderstilpasset innhold | Bruk Tiim og aldersfilter som følger årskullet |
-| Deling av ferdige økter | Opprett økten i Tiim ved bestilling av dette, publiser offentlig og lagre kontrollert lenke |
+| Deling av ferdige økter | Lag en offentlig Markdown-beskrivelse for GitHub Pages med mulighet for bilder, animasjon og video; lagre kontrollert lenke |
 | Gjenbruk og variasjon | Les historikken, registrer øvelses-ID og noter hva som endres fra forrige bruk |
 | Erfaring fra gjennomføring | Behold plan og registrer faktisk gjennomføring separat i samme øktfil |
 
@@ -33,6 +33,7 @@ Prosjektet omfatter enkeltøkter, periodeplaner, øvelsesbank, organisering, pub
 - Økten har enklere og vanskeligere variant samt alternativ ved færre baller eller endret oppmøte.
 - Valg av gjenbruk og variasjon er vurdert mot nylige økter.
 - Hvis publisering inngår: offentlig lenke og dato for tilgangskontroll er lagret. En lagret økt alene regnes ikke som kontrollert offentlig.
+- Offentlig økttekst inneholder bare treningsinnhold. Hele repositoriet er offentlig; ikke-offentlige opplysninger skal ikke lagres her.
 - Etter trening er faktisk oppmøte, vesentlige endringer og en kort evaluering ført.
 
 ## Praktiske kvalitetsmål
