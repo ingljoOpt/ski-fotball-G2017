@@ -2,6 +2,15 @@
 
 Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkter for gutter født i 2017. Tiim brukes som øvelseskilde; øktene lagres i GitHub og kan deles via GitHub Pages. Denne prosjektmappen samler rammer, lokale tilpasninger og historikk.
 
+## Publiserte økter og verktøy
+
+- [Alle publiserte økter](https://ingljoopt.github.io/ski-fotball-G2017/)
+- [Planlagt økt: onsdag 4. november 2026](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html)
+- [Rediger taktikktavler](https://ingljoopt.github.io/ski-fotball-G2017/rediger-taktikk.html) – opprett en tavle eller åpne en JSON-fil.
+- [Rediger firkantanimasjonen fra økten](https://ingljoopt.github.io/ski-fotball-G2017/rediger-taktikk.html?src=%2Fski-fotball-G2017%2Fmedia%2Ftaktikk%2Ffirkant-pasning.json%3Fv%3D4) – åpner den eksisterende tavlen.
+
+Endringer i redigereren må lastes ned og legges i prosjektet før de kan publiseres. Se [arbeidsflyten for taktikktavler](docs/arbeidsflyt.md#taktikktavler).
+
 ## Start her
 
 1. Les [prosjektbeskrivelsen](docs/produktbeskrivelse.md) og [lagets rammer](docs/rammer.md).
