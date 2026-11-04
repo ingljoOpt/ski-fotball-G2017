@@ -19,9 +19,9 @@
 | Gjenbruk fra | Ingen tidligere gjennomførte økter registrert i prosjektet |
 | Hva som videreføres og endres | Registrert fra kildeøkten; ingen faktiske gjennomføringer eller lokale endringer er dokumentert |
 | Kilde | [G2017, Uke 45, 46, 47 i Tiim](https://tiim.no/trenerskapt/okt/a8f324d9-67fa-463d-89b6-de2a6889cc7a), kontrollert 4. november 2026 |
-| Offentlig øktlenke | Ikke publisert |
-| Publiseringsstatus | lokalt utkast |
-| Offentlig tilgang kontrollert | Ikke kontrollert for GitHub Pages |
+| Offentlig øktlenke | [G2017 – uke 45, 46 og 47](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html) |
+| Publiseringsstatus | offentlig kontrollert |
+| Offentlig tilgang kontrollert | 4. november 2026: siden og oppføringen på forsiden lest uten innlogging |
 
 Kildetittelen viser til tre uker, men fastslår ikke dato, år eller antall konkrete gjennomføringer. Dette er derfor én udatert planregistrering, ikke tre registrerte treninger. Opprett en egen datert øktfil og historikkrad per bekreftet trening.
 
@@ -70,7 +70,7 @@ Største samtidige behov er seks aktive baller og fire mål i ulike blokker, i t
 - [ ] Dato, tidspunkt, type, treneroppmøte og roller er bekreftet.
 - [ ] Plass, underlag og utstyr er kontrollert for alle samtidige grupper.
 - [ ] Alternativer ved annet oppmøte og færre baller eller mål er ferdigstilt.
-- [ ] GitHub Pages-lenke og offentlig tilgang er kontrollert.
+- [x] GitHub Pages-lenke og offentlig tilgang er kontrollert.
 
 ## Faktisk gjennomføring og evaluering
 
