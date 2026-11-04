@@ -1,5 +1,5 @@
 {
-  "description": "Eksempel på én firkant med fire kjegler og fem spillere. A spiller til B. B mottar foran kjeglen, fører ballen rundt den og spiller videre til C.",
+  "description": "Eksempel på én firkant med fire kjegler og fem spillere. A spiller til B og følger pasningen til Bs utgangsposisjon. B mottar foran kjeglen, fører ballen rundt den og spiller videre til C.",
   "durationMs": 1800,
   "objects": [
     { "id": "k1", "type": "cone" },
@@ -29,59 +29,59 @@
       }
     },
     {
-      "caption": "B fører ballen mot utsiden av kjeglen. A følger pasningen.",
+      "caption": "B fører ballen til venstre for kjeglen. A følger pasningen.",
       "positions": {
         "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
-        "a": [55, 42], "b": [91, 29], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [85, 29]
+        "a": [48, 42], "b": [67, 32], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [61, 32]
       }
     },
     {
-      "caption": "B fører ballen langs utsiden av kjeglen.",
+      "caption": "B fører ballen videre langs venstre side av kjeglen.",
       "positions": {
         "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
-        "a": [60, 45], "b": [91, 14], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [85, 14]
+        "a": [58, 42], "b": [67, 14], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [61, 14]
       }
     },
     {
       "caption": "B runder kjeglen med ballen.",
       "positions": {
         "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
-        "a": [60, 45], "b": [78, 8], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [72, 8]
+        "a": [68, 40], "b": [78, 8], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [72, 8]
       }
     },
     {
-      "caption": "B fortsetter rundt kjeglen med kontroll på ballen.",
+      "caption": "B fortsetter rundt kjeglen. A kommer til Bs utgangsposisjon.",
       "positions": {
         "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
-        "a": [60, 45], "b": [67, 14], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [61, 14]
+        "a": [78, 35], "b": [91, 14], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [85, 14]
       }
     },
     {
       "caption": "B vender tilbake på andre siden av kjeglen.",
       "positions": {
         "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
-        "a": [60, 45], "b": [67, 32], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [61, 32]
+        "a": [78, 35], "b": [91, 29], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [85, 29]
       }
     },
     {
       "caption": "B er rundt kjeglen og gjør seg klar til å spille til C.",
       "positions": {
         "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
-        "a": [60, 45], "b": [78, 35], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [72, 35]
+        "a": [78, 35], "b": [90, 43], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [84, 43]
       }
     },
     {
       "caption": "B spiller videre til C.",
       "positions": {
         "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
-        "a": [60, 45], "b": [78, 35], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [78, 61]
+        "a": [78, 35], "b": [90, 43], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [78, 61]
       }
     },
     {
-      "caption": "B følger pasningen mot C.",
+      "caption": "B følger pasningen mot C. A står klar ved Bs utgangsposisjon.",
       "positions": {
         "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
-        "a": [60, 45], "b": [74, 54], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [78, 61]
+        "a": [78, 35], "b": [74, 54], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [78, 61]
       }
     }
   ]

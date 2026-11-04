@@ -20,7 +20,7 @@ test('posisjoner interpoleres og begrenses ved start og slutt', () => {
   assert.deepEqual(positionAt(example, -1).positions.ball, [27, 31]);
   assert.deepEqual(positionAt(example, 900).positions.ball, [49.5, 33]);
   assert.deepEqual(positionAt(example, 1800).positions.ball, [72, 35]);
-  assert.deepEqual(positionAt(example, 99999).positions.a, [60, 45]);
+  assert.deepEqual(positionAt(example, 99999).positions.a, [78, 35]);
   assert.deepEqual(positionAt(example, 99999).positions.ball, [78, 61]);
   assert.equal(positionAt(example, 3600).index, 2);
 });
@@ -32,10 +32,20 @@ test('B mottar, runder kjeglen med ball og spiller videre til C', () => {
 
   assert.ok(pitchDistance(frames[1].positions.b, frames[1].positions.ball) <= 6);
   assert.ok(frames[1].positions.b[1] > cone[1]);
-  assert.ok(frames[3].positions.b[0] > cone[0]);
+  assert.ok(frames[3].positions.b[0] < cone[0]);
   assert.ok(frames[4].positions.b[1] < cone[1]);
-  assert.ok(frames[5].positions.b[0] < cone[0]);
+  assert.ok(frames[5].positions.b[0] > cone[0]);
   assert.ok(frames[7].positions.b[1] > cone[1]);
+
+  for (let index = 1; index < 7; index++) {
+    for (const id of ['b', 'ball']) {
+      const current = frames[index].positions[id];
+      const next = frames[index + 1].positions[id];
+      const cross = (current[0] - cone[0]) * (next[1] - cone[1]) -
+        (current[1] - cone[1]) * (next[0] - cone[0]);
+      assert.ok(cross > 0, `${id} runder feil vei i steg ${index + 1}`);
+    }
+  }
 
   for (let time = example.durationMs; time <= 7 * example.durationMs; time += 90) {
     const positions = positionAt(example, time).positions;
@@ -49,6 +59,12 @@ test('B mottar, runder kjeglen med ball og spiller videre til C', () => {
     pitchDistance(frames[7].positions.ball, frames[7].positions.c));
   assert.ok(pitchDistance(frames[9].positions.b, frames[9].positions.c) <
     pitchDistance(frames[8].positions.b, frames[8].positions.c));
+  assert.deepEqual(frames[9].positions.a, frames[0].positions.b);
+  for (let time = example.durationMs; time <= 9 * example.durationMs; time += 90) {
+    const positions = positionAt(example, time).positions;
+    assert.ok(pitchDistance(positions.a, positions.b) >= 7, `A og B overlapper ved ${time} ms`);
+    assert.ok(pitchDistance(positions.a, positions.ball) >= 5.3, `A og ballen overlapper ved ${time} ms`);
+  }
 });
 
 test('ufullstendige eller ugyldige tavler avvises med forklaring', () => {
