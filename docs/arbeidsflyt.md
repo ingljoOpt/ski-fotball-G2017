@@ -36,7 +36,7 @@ Arbeidsflyten `pages.yml` bygger Markdown og HTML i `publiserte/` med Jekyll og 
 ### For hver økt
 
 1. Ferdigstill øktplanen i `okter/` og kopier `maler/offentlig-okt.md` til `publiserte/okter/AAAA/AAAA-MM-DD-onsdag-tema.md` eller tilsvarende for søndag. Behold YAML-feltene øverst og oppgi en beskrivende tittel.
-2. Ta med treningsinnhold, læringsmål, rekkefølge, varighet, organisering, lokale tilpasninger og lenker til Tiim-kildene. Ikke ta med faktisk oppmøte eller evaluering i den offentlige øktbeskrivelsen. Oppdater beskrivelsen hvis planen endres før trening; bevar den historiske planen og evalueringen ved senere gjenbruk.
+2. Ta med treningsinnhold, læringsmål, rekkefølge, varighet, organisering, lokale tilpasninger og lenker til Tiim-kildene. Malen gir økten en topp med nøkkelinformasjon, oversikt og utfellbare øvelseskort. Fyll inn feltene i toppen og bruk en unik `id` per kort som lenkene i oversikten peker til. Kopier kort og øktdeler ved behov. Ikke ta med faktisk oppmøte eller evaluering i den offentlige øktbeskrivelsen. Oppdater beskrivelsen hvis planen endres før trening; bevar den historiske planen og evalueringen ved senere gjenbruk.
 3. Legg til eventuelle medier som beskrevet nedenfor. Når endringene er lagt på `main`, kontroller arbeidsflyten i GitHub Actions. Finn økten fra nettstedets forside.
 4. Lagre den **faktiske** GitHub Pages-lenken og publiseringsstatusen i øktfilen og historikken. Åpne lenken uten innlogging og kontroller tekst, lenker og eventuelle medier. Først da settes status til `offentlig kontrollert` med kontrolldato.
 

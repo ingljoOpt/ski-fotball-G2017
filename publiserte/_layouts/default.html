@@ -4,21 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page.title | default: site.title | escape }} | {{ site.title | escape }}</title>
-  <style>
-    body { font: 1.05rem/1.6 system-ui, sans-serif; color: #17232c; margin: 0; }
-    header { background: #123954; padding: 1rem; }
-    header a { color: white; font-weight: 700; text-decoration: none; }
-    main { max-width: 55rem; margin: auto; padding: 1rem; overflow-wrap: anywhere; }
-    a { color: #005b9c; }
-    img, video, iframe { max-width: 100%; }
-    video { height: auto; }
-    iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; }
-    table { border-collapse: collapse; display: block; overflow-x: auto; }
-    th, td { padding: .5rem; border: 1px solid #aebcc4; text-align: left; }
-  </style>
+  <link rel="stylesheet" href="{{ '/assets/site.css' | relative_url }}">
 </head>
 <body>
-  <header><a href="{{ '/' | relative_url }}">{{ site.title | escape }}</a></header>
-  <main>{{ content }}</main>
+  <a class="skip-link" href="#innhold">Hopp til innhold</a>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="site-brand" href="{{ '/' | relative_url }}"><span class="brand-mark" aria-hidden="true">S</span><span>Ski fotball <small>G2017</small></span></a>
+      <a class="site-nav" href="{{ '/' | relative_url }}">Alle økter <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main id="innhold">{{ content }}</main>
+  <footer class="site-footer">Ski fotball G2017 · Treningsøkter</footer>
 </body>
 </html>
