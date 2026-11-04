@@ -18,53 +18,72 @@ test('eksempelet har gyldige objekter og steg', () => {
 
 test('posisjoner interpoleres og begrenses ved start og slutt', () => {
   assert.deepEqual(positionAt(example, -1).positions.ball, [27, 31]);
-  assert.deepEqual(positionAt(example, 900).positions.ball, [49.5, 33]);
-  assert.deepEqual(positionAt(example, 1800).positions.ball, [72, 35]);
-  assert.deepEqual(positionAt(example, 99999).positions.a, [78, 35]);
-  assert.deepEqual(positionAt(example, 99999).positions.ball, [78, 61]);
+  assert.deepEqual(positionAt(example, 900).positions.ball, [34.5, 30]);
+  assert.deepEqual(positionAt(example, 1800).positions.ball, [42, 29]);
+  assert.deepEqual(positionAt(example, 99999).positions.a, [90, 23]);
+  assert.deepEqual(positionAt(example, 99999).positions.ball, [28, 69]);
   assert.equal(positionAt(example, 3600).index, 2);
 });
 
-test('B mottar, runder kjeglen med ball og spiller videre til C', () => {
+test('B og C møter pasningene, vender rundt kjeglene og spiller videre', () => {
   const frames = example.frames;
-  const cone = frames[1].positions.k2;
+  const bCone = frames[0].positions.k2;
+  const cCone = frames[0].positions.k3;
   const pitchDistance = (a, b) => Math.hypot(a[0] - b[0], (a[1] - b[1]) * 0.7);
 
-  assert.ok(pitchDistance(frames[1].positions.b, frames[1].positions.ball) <= 6);
-  assert.ok(frames[1].positions.b[1] > cone[1]);
-  assert.ok(frames[3].positions.b[0] < cone[0]);
-  assert.ok(frames[4].positions.b[1] < cone[1]);
-  assert.ok(frames[5].positions.b[0] > cone[0]);
-  assert.ok(frames[7].positions.b[1] > cone[1]);
+  assert.ok(frames[0].positions.b[0] > bCone[0]);
+  assert.ok(frames[3].positions.b[0] < bCone[0]);
+  assert.ok(frames[5].positions.b[1] < bCone[1]);
+  assert.ok(frames[8].positions.b[1] > bCone[1]);
+  assert.ok(frames[0].positions.c[1] > cCone[1]);
+  assert.ok(frames[11].positions.c[1] < cCone[1]);
+  assert.ok(frames[13].positions.c[0] > cCone[0]);
+  assert.ok(frames[14].positions.c[1] > cCone[1]);
+  assert.ok(frames[15].positions.c[0] < cCone[0]);
 
-  for (let index = 1; index < 7; index++) {
-    for (const id of ['b', 'ball']) {
-      const current = frames[index].positions[id];
-      const next = frames[index + 1].positions[id];
-      const cross = (current[0] - cone[0]) * (next[1] - cone[1]) -
-        (current[1] - cone[1]) * (next[0] - cone[0]);
-      assert.ok(cross > 0, `${id} runder feil vei i steg ${index + 1}`);
+  for (const [first, last, player, cone] of [[3, 8, 'b', bCone], [11, 15, 'c', cCone]]) {
+    for (let index = first; index < last; index++) {
+      for (const id of [player, 'ball']) {
+        const current = frames[index].positions[id];
+        const next = frames[index + 1].positions[id];
+        const cross = (current[0] - cone[0]) * (next[1] - cone[1]) -
+          (current[1] - cone[1]) * (next[0] - cone[0]);
+        assert.ok(cross > 0, `${id} runder feil vei i steg ${index + 1}`);
+      }
+    }
+    for (let time = first * example.durationMs; time <= last * example.durationMs; time += 90) {
+      const positions = positionAt(example, time).positions;
+      const distance = pitchDistance(positions[player], positions.ball);
+      assert.ok(distance >= 5.3 && distance <= 6.1, `${player} har ikke ballen nær seg ved ${time} ms`);
+      assert.ok(pitchDistance(positions.ball, cone) > 4.8, `Ballen passerer gjennom kjeglen ved ${time} ms`);
     }
   }
 
-  for (let time = example.durationMs; time <= 7 * example.durationMs; time += 90) {
+  for (let time = 0; time <= 17 * example.durationMs; time += 90) {
     const positions = positionAt(example, time).positions;
-    assert.ok(pitchDistance(positions.b, positions.ball) >= 5.3 && pitchDistance(positions.b, positions.ball) <= 6.1,
-      `Ballen er ikke synlig nær B ved ${time} ms`);
-    assert.ok(pitchDistance(positions.b, cone) > 6.5, `B passerer gjennom kjeglen ved ${time} ms`);
-    assert.ok(pitchDistance(positions.ball, cone) > 4.8, `Ballen passerer gjennom kjeglen ved ${time} ms`);
+    const players = ['a', 'b', 'c', 'd', 'e'];
+    for (let i = 0; i < players.length; i++) {
+      for (let j = i + 1; j < players.length; j++) {
+        assert.ok(pitchDistance(positions[players[i]], positions[players[j]]) >= 7,
+          `${players[i]} og ${players[j]} overlapper ved ${time} ms`);
+      }
+    }
+    for (const id of ['a', 'b', 'c']) {
+      for (const cone of [bCone, cCone]) {
+        assert.ok(pitchDistance(positions[id], cone) > 6.5, `${id} passerer gjennom kjeglen ved ${time} ms`);
+      }
+    }
+    for (const cone of [bCone, cCone]) {
+      assert.ok(pitchDistance(positions.ball, cone) > 4.8, `Ballen passerer gjennom kjeglen ved ${time} ms`);
+    }
   }
-  assert.ok(pitchDistance(frames[8].positions.ball, frames[8].positions.c) < 6);
-  assert.ok(pitchDistance(frames[8].positions.ball, frames[8].positions.c) <
-    pitchDistance(frames[7].positions.ball, frames[7].positions.c));
-  assert.ok(pitchDistance(frames[9].positions.b, frames[9].positions.c) <
-    pitchDistance(frames[8].positions.b, frames[8].positions.c));
-  assert.deepEqual(frames[9].positions.a, frames[0].positions.b);
-  for (let time = example.durationMs; time <= 9 * example.durationMs; time += 90) {
-    const positions = positionAt(example, time).positions;
-    assert.ok(pitchDistance(positions.a, positions.b) >= 7, `A og B overlapper ved ${time} ms`);
-    assert.ok(pitchDistance(positions.a, positions.ball) >= 5.3, `A og ballen overlapper ved ${time} ms`);
-  }
+  assert.ok(pitchDistance(frames[3].positions.ball, frames[3].positions.b) <= 6);
+  assert.ok(pitchDistance(frames[11].positions.ball, frames[11].positions.c) < 6);
+  assert.ok(pitchDistance(frames[16].positions.ball, frames[16].positions.d) < 7);
+  assert.ok(pitchDistance(frames[17].positions.c, frames[17].positions.d) <
+    pitchDistance(frames[16].positions.c, frames[16].positions.d));
+  assert.deepEqual(frames[17].positions.a, frames[0].positions.b);
+  assert.deepEqual(frames[17].positions.b, frames[0].positions.c);
 });
 
 test('ufullstendige eller ugyldige tavler avvises med forklaring', () => {
@@ -145,19 +164,19 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
   assert.equal(nodes.play.attributes['data-playing'], 'true');
   tick(0);
   tick(900);
-  assert.equal(ball.attributes.transform, 'translate(49.5 23.099999999999998)');
+  assert.equal(ball.attributes.transform, 'translate(34.5 21)');
   nodes.play.listeners.click();
   assert.equal(callbacks.size, 0);
   assert.equal(nodes.play.attributes['aria-label'], 'Spill av animasjonen');
   nodes.reset.listeners.click();
   assert.equal(ball.attributes.transform, 'translate(27 21.7)');
-  assert.match(nodes.step.textContent, /^Steg 1 av 10:/);
+  assert.match(nodes.step.textContent, /^Steg 1 av 18:/);
   nodes.play.listeners.click();
   tick(1000);
   tick(1000 + (example.frames.length - 1) * example.durationMs);
   assert.equal(callbacks.size, 0);
   assert.equal(nodes.play.attributes['data-playing'], 'false');
-  assert.match(nodes.step.textContent, /^Steg 10 av 10:/);
+  assert.match(nodes.step.textContent, /^Steg 18 av 18:/);
   nodes.play.listeners.click();
   assert.equal(ball.attributes.transform, 'translate(27 21.7)');
   nodes.reset.listeners.click();
