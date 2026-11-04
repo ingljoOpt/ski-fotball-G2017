@@ -1,10 +1,10 @@
 ---
-title: "G2017 – uke 45, 46 og 47"
+title: "G2017 – uke 45, 46 og 47 i 2026"
 ---
 
-# G2017 – uke 45, 46 og 47
+# G2017 – uke 45, 46 og 47 i 2026
 
-**Status:** Planlagt opplegg; dato og tidspunkt er ikke avklart. Tittelen i kilden viser til uke 45–47, men oppgir ikke år eller konkrete treningsdatoer.
+**Status:** Planlagt opplegg for uke 45–47 i 2026; konkrete datoer og tidspunkt er ikke avklart.
 
 - **Varighet:** 90 minutter
 - **Tema:** Pasning, mottak og vending for å spille fremover og komme til avslutning.

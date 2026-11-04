@@ -1,11 +1,11 @@
-# G2017 – uke 45, 46 og 47
+# G2017 – uke 45, 46 og 47 i 2026
 
 ## Grunnlag
 
 | Felt | Verdi |
 | --- | --- |
 | Økt-ID | G2017-udatert-uke-45-46-47 (midlertidig) |
-| Dato og tidspunkt | Ikke oppgitt; ukene er oppgitt uten år eller konkrete datoer |
+| Dato og tidspunkt | Uke 45–47 i 2026, oppgitt av treneren; konkrete datoer og tidspunkt er ikke oppgitt |
 | Type | Ikke oppgitt |
 | Status | planlagt, dato og praktiske rammer må avklares |
 | Hovedtema | Pasning, mottak og vending for å spille fremover og komme til avslutning |
@@ -15,7 +15,7 @@
 | Forventet oppmøte | Kildeøkten er satt opp for ca. 28 spillere; trenere ikke oppgitt |
 | Tilgjengelig utstyr | Ikke bekreftet. Kilden oppgir baller, kjegler, vester og mål |
 | Øktansvarlig og trenerroller | Ikke oppgitt |
-| Forutsetninger som må sjekkes | År, dato og type; spillere og trenere; baller, mål og vester; plass, underlag og lys |
+| Forutsetninger som må sjekkes | Dato og type; spillere og trenere; baller, mål og vester; plass, underlag og lys |
 | Gjenbruk fra | Ingen tidligere gjennomførte økter registrert i prosjektet |
 | Hva som videreføres og endres | Registrert fra kildeøkten; ingen faktiske gjennomføringer eller lokale endringer er dokumentert |
 | Kilde | [G2017, Uke 45, 46, 47 i Tiim](https://tiim.no/trenerskapt/okt/a8f324d9-67fa-463d-89b6-de2a6889cc7a), kontrollert 4. november 2026 |
@@ -23,7 +23,7 @@
 | Publiseringsstatus | offentlig kontrollert |
 | Offentlig tilgang kontrollert | 4. november 2026: siden og oppføringen på forsiden lest uten innlogging |
 
-Kildetittelen viser til tre uker, men fastslår ikke dato, år eller antall konkrete gjennomføringer. Dette er derfor én udatert planregistrering, ikke tre registrerte treninger. Opprett en egen datert øktfil og historikkrad per bekreftet trening.
+Treneren har opplyst at kildetittelens tre uker er i 2026. Konkrete datoer og antall gjennomføringer er ikke oppgitt. Dette er derfor én udatert planregistrering, ikke tre registrerte treninger. Opprett en egen datert øktfil og historikkrad per bekreftet trening.
 
 ## Tidsplan
 
