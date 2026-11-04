@@ -61,6 +61,23 @@ Video kan spilles av på Pages-siden med HTML i Markdown. Velg en faktisk fil og
 
 En ekstern video kan eventuelt bygges inn med leverandørens `iframe` hvis leverandøren tillater det; legg til tittel og en vanlig lenke som alternativ, og test visningen. GitHubs vanlige Markdown-visning og Pages kan håndtere HTML ulikt; kontroller derfor den publiserte Pages-siden. Ikke kopier Tiim-videoer eller andre medier uten nødvendige rettigheter; lenk heller til kilden. Ta hensyn til personvern og samtykke ved opptak.
 
+### Taktikktavler
+
+Taktikktavlene er egne illustrasjoner, ikke kopier av Tiims medier. De bygges fra JSON-filer og kan vise spillere, kjegler og ball i ett stillbilde eller i flere animerte steg. De starter ikke automatisk. Lesere kan spille av, pause og starte på nytt; ved innstillingen redusert bevegelse vises stegene ett om gangen. Oppgi alltid en tekstlig øvelsesbeskrivelse, også for lesere som ikke kan se tavlen eller bruke JavaScript.
+
+1. Kopier [eksempelfilen](../publiserte/media/taktikk/firkant-pasning.json) til en ny JSON-fil i `publiserte/media/taktikk/`. Tilpass den til øvelsen og merk eventuelle lokale illustrasjonsvalg. Ikke bruk navn på enkeltbarn.
+2. Skriv en `description` som forklarer illustrasjonen, og sett `durationMs` til tiden **per overgang** i millisekunder, fra 100 til 60000. Legg inn `objects` med unik `id`, `type` (`player`, `cone` eller `ball`) og valgfri kort `label` på opptil tre tegn.
+3. Legg inn `frames` i ønsket rekkefølge. Hvert steg trenger en `caption` og `positions` med `[x, y]` for **alle** objekt-ID-er. Koordinater er tall fra 0 til 100: `x` øker mot høyre og `y` nedover. Figurene flyttes rett mellom punktene. Ett steg gir en statisk tavle; flere gir animasjon.
+4. Legg følgende inn i Markdown-filen på ønsket sted, for eksempel inne i et øvelseskort. Bytt ut datafil, tittel og beskrivelse:
+
+```liquid
+{% include taktikk.html src="/media/taktikk/min-ovelse.json" title="Pasning og bevegelse" description="Forklar illustrasjonen kort." %}
+```
+
+Stien begynner med `/media/`, men komponenten legger selv til GitHub Pages-prosjektets basesti. Lagre JSON-filen under `publiserte/media/` og bruk en fil som faktisk finnes. Flere tavler på samme side kan bruke forskjellige filer. Dette er et databasert rammeverk, ikke en grafisk redigerer.
+
+Kjør `node --test tests\taktikk.test.cjs` for å kontrollere validering og interpolering. Etter publisering må du åpne økten, kontrollere at tavlen vises og at avspilling og pause fungerer. Feil i data eller manglende fil vises i stedet for tavlen; kontroller nettleserkonsollen for detaljer.
+
 ## Etter trening
 
 Behold planlagt innhold og før faktisk oppmøte, hvilke aktiviteter som ble gjennomført, tidsendringer og erfaringer i evalueringsdelen. Sett status til `gjennomført` og oppdater historikken. Ved avlysning brukes `avlyst` med kort årsak.

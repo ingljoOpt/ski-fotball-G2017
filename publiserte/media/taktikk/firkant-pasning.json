@@ -1,0 +1,39 @@
+{
+  "description": "Eksempel på én firkant med fire kjegler og fem spillere. Spilleren med ballen passer til neste hjørne og følger etter pasningen.",
+  "durationMs": 1800,
+  "objects": [
+    { "id": "k1", "type": "cone" },
+    { "id": "k2", "type": "cone" },
+    { "id": "k3", "type": "cone" },
+    { "id": "k4", "type": "cone" },
+    { "id": "a", "type": "player", "label": "A" },
+    { "id": "b", "type": "player", "label": "B" },
+    { "id": "c", "type": "player", "label": "C" },
+    { "id": "d", "type": "player", "label": "D" },
+    { "id": "e", "type": "player", "label": "E" },
+    { "id": "ball", "type": "ball" }
+  ],
+  "frames": [
+    {
+      "caption": "A har ballen. E venter ved startkjeglen.",
+      "positions": {
+        "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
+        "a": [22, 31], "b": [78, 31], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [27, 31]
+      }
+    },
+    {
+      "caption": "A spiller ballen til B.",
+      "positions": {
+        "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
+        "a": [22, 31], "b": [78, 31], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [73, 31]
+      }
+    },
+    {
+      "caption": "A følger etter pasningen mot neste kjegle.",
+      "positions": {
+        "k1": [22, 23], "k2": [78, 23], "k3": [78, 77], "k4": [22, 77],
+        "a": [65, 40], "b": [78, 31], "c": [78, 69], "d": [22, 69], "e": [13, 23], "ball": [73, 31]
+      }
+    }
+  ]
+}

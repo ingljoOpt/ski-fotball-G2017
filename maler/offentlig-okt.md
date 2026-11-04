@@ -45,7 +45,7 @@ Beskriv læringspunkter og lokale tilpasninger.
 </div>
 </details>
 
-Kopier øktdeler og øvelseskort etter behov, gi hvert kort en unik `id`, og oppdater øktoversikten. Forklar hvordan aktivitetene bygger på samme tema. Legg inn relevante medier som det er tillatt å dele.
+Kopier øktdeler og øvelseskort etter behov, gi hvert kort en unik `id`, og oppdater øktoversikten. Forklar hvordan aktivitetene bygger på samme tema. Legg inn relevante medier som det er tillatt å dele. Se `docs/arbeidsflyt.md` for å legge inn en taktikktavle.
 
 <div class="source-note" markdown="1">
 Fyll inn lenke til Tiim-kilden.

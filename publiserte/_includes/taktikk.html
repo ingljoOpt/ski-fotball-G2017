@@ -1,0 +1,16 @@
+<figure class="tactic-board" data-tactic-src="{{ include.src | relative_url | escape }}">
+  <figcaption class="tactic-title">{{ include.title | escape }}</figcaption>
+  <p class="tactic-description">{{ include.description | escape }}</p>
+  <div class="tactic-canvas" data-tactic-canvas></div>
+  <div class="tactic-legend" aria-label="Tegnforklaring">
+    <span><i class="legend-player" aria-hidden="true"></i> Spiller</span>
+    <span><i class="legend-cone" aria-hidden="true"></i> Kjegle</span>
+    <span><i class="legend-ball" aria-hidden="true"></i> Ball</span>
+  </div>
+  <div class="tactic-controls" data-tactic-controls hidden>
+    <button type="button" data-tactic-play>Spill av</button>
+    <button type="button" data-tactic-reset>Start på nytt</button>
+    <span class="tactic-step" data-tactic-step aria-live="polite"></span>
+  </div>
+  <p class="tactic-message" data-tactic-message role="status">Tavlen krever JavaScript. Øvelsen er også beskrevet i teksten over.</p>
+</figure>

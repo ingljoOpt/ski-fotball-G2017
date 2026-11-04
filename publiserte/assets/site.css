@@ -12,7 +12,7 @@
 body { margin: 0; background: #f5f8f4; color: var(--ink); font: 1rem/1.65 system-ui, sans-serif; }
 a { color: #0b6758; text-underline-offset: .18em; }
 a:hover { color: #073f36; }
-a:focus-visible, summary:focus-visible { outline: 3px solid #c78029; outline-offset: 3px; }
+a:focus-visible, summary:focus-visible, button:focus-visible { outline: 3px solid #c78029; outline-offset: 3px; }
 .skip-link { position: absolute; top: -5rem; left: 1rem; z-index: 3; background: white; padding: .5rem; }
 .skip-link:focus { top: .5rem; }
 .site-header { background: var(--green-dark); color: white; }
@@ -63,6 +63,27 @@ main { max-width: 68rem; margin: auto; padding: 2rem 1.5rem 5rem; overflow-wrap:
 .exercise-content h4 { display: flex; align-items: center; gap: .55rem; margin: 1.2rem 0 .25rem; font-size: .95rem; }
 .exercise-content h4::before { content: ""; width: .45rem; height: .45rem; flex: none; border-radius: 50%; background: var(--green); }
 .exercise-content p { margin: .25rem 0 .8rem; }
+.tactic-board { margin: 0 1.25rem 1.25rem; padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: #f7faf7; }
+.tactic-title { color: var(--ink); font-weight: 750; }
+.tactic-description, .tactic-message { margin: .35rem 0 .8rem; color: var(--muted); font-size: .9rem; }
+.tactic-pitch { display: block; width: 100%; max-height: 28rem; border-radius: .5rem; }
+.pitch-background { fill: #176f50; }
+.pitch-line { fill: none; stroke: #c9ead4; stroke-width: .5; opacity: .8; }
+.tactic-player circle { fill: #194a83; stroke: white; stroke-width: .8; }
+.tactic-player text { fill: white; font: bold 3px system-ui, sans-serif; }
+.tactic-cone path { fill: #ffb149; stroke: #6b3809; stroke-width: .5; }
+.tactic-ball circle { fill: white; stroke: #263d32; stroke-width: .65; }
+.tactic-legend { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; margin-top: .65rem; color: var(--muted); font-size: .8rem; }
+.tactic-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.tactic-legend i { display: inline-block; width: .75rem; height: .75rem; }
+.legend-player { border-radius: 50%; background: #194a83; }
+.legend-cone { background: #e68816; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.legend-ball { border: 1px solid #263d32; border-radius: 50%; background: white; }
+.tactic-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .8rem; }
+.tactic-controls[hidden], .tactic-message[hidden] { display: none; }
+.tactic-controls button { border: 1px solid var(--green); border-radius: .45rem; background: white; color: var(--green-dark); padding: .5rem .75rem; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
+.tactic-controls button:hover { background: #e3f0e5; }
+.tactic-step { flex-basis: 100%; color: var(--muted); font-size: .85rem; }
 .source-note { margin-top: 2.5rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); }
 img, video, iframe { max-width: 100%; }
 video { height: auto; }

@@ -23,6 +23,7 @@ Agentferdigheten [Øktplanlegger](.claude/skills/oktplanlegger/SKILL.md) følger
 | `ovelsesbank/README.md` | Verifiserte Tiim-lenker og lokale vurderinger |
 | `maler/okt.md` | Plan, utstyrsregnskap og evaluering i én fil |
 | `maler/offentlig-okt.md` | Mal for offentlig øktbeskrivelse |
+| `publiserte/media/taktikk/` | Datafiler for taktikktavler og animasjoner |
 | `maler/periodeplan.md` | Tema og progresjon over flere uker |
 | `okter/README.md` | Navngiving og lagring av økter |
 | `historikk/README.md` | Register over planlagte og gjennomførte økter |
@@ -30,5 +31,7 @@ Agentferdigheten [Øktplanlegger](.claude/skills/oktplanlegger/SKILL.md) følger
 | `.claude/skills/oktplanlegger/SKILL.md` | Felles agentferdighet for temabasert øktplanlegging |
 | `publiserte/` | Markdown og medier for GitHub Pages |
 | `.github/workflows/pages.yml` | Bygging og publisering av nettstedet |
+
+Se [arbeidsflyten](docs/arbeidsflyt.md#taktikktavler) for å legge inn egne taktikktavler med spillere, kjegler og ball.
 
 Repositoriet er offentlig: også filer utenfor nettstedet kan leses på GitHub. Ikke lagre opplysninger om enkeltbarn eller annet ikke-offentlig innhold her. Ingen tidligere treninger er registrert per 4. november 2026.
