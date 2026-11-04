@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { validateScene, positionAt } = require('../publiserte/assets/taktikk.js');
+const { validateScene, positionAt, mount } = require('../publiserte/assets/taktikk.js');
 
 const example = JSON.parse(fs.readFileSync(path.join(__dirname, '../publiserte/media/taktikk/firkant-pasning.json'), 'utf8'));
 const copy = () => structuredClone(example);
@@ -75,4 +75,75 @@ test('én ramme fungerer som en statisk tavle', () => {
   validateScene(still);
   assert.equal(positionAt(still, 90000).index, 0);
   assert.deepEqual(positionAt(still, 90000).positions.ball, [27, 31]);
+});
+
+test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse', async (t) => {
+  const saved = new Map(['document', 'window', 'fetch', 'requestAnimationFrame', 'cancelAnimationFrame']
+    .map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  t.after(() => {
+    for (const [key, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  });
+
+  function element() {
+    return {
+      attributes: {}, children: [], listeners: {},
+      setAttribute(name, value) { this.attributes[name] = value; },
+      appendChild(child) { this.children.push(child); },
+      replaceChildren(child) { this.children = [child]; },
+      addEventListener(name, callback) { this.listeners[name] = callback; }
+    };
+  }
+  const nodes = Object.fromEntries(['message', 'canvas', 'controls', 'play', 'reset', 'step']
+    .map((name) => [name, element()]));
+  const board = {
+    dataset: { tacticSrc: '/example.json' },
+    querySelector(selector) { return nodes[selector.slice('[data-tactic-'.length, -1)]; },
+    closest() { return null; }
+  };
+  const callbacks = new Map();
+  let nextId = 0;
+  globalThis.document = { createElementNS: () => element(), addEventListener() {} };
+  globalThis.window = { matchMedia: () => ({ matches: true }) };
+  globalThis.fetch = async () => ({ ok: true, json: async () => example });
+  globalThis.requestAnimationFrame = (callback) => {
+    const id = ++nextId;
+    callbacks.set(id, callback);
+    return id;
+  };
+  globalThis.cancelAnimationFrame = (id) => callbacks.delete(id);
+  const tick = (time) => {
+    const [id, callback] = callbacks.entries().next().value;
+    callbacks.delete(id);
+    callback(time);
+  };
+
+  await mount(board);
+  const ball = nodes.canvas.children[0].children.find((child) => child.attributes.class === 'tactic-ball');
+  assert.equal(callbacks.size, 0, 'animasjonen skal ikke starte automatisk');
+  assert.equal(ball.attributes.transform, 'translate(27 21.7)');
+  nodes.play.listeners.click();
+  assert.equal(nodes.play.attributes['aria-label'], 'Pause animasjonen');
+  assert.equal(nodes.play.attributes['data-playing'], 'true');
+  tick(0);
+  tick(900);
+  assert.equal(ball.attributes.transform, 'translate(49.5 23.099999999999998)');
+  nodes.play.listeners.click();
+  assert.equal(callbacks.size, 0);
+  assert.equal(nodes.play.attributes['aria-label'], 'Spill av animasjonen');
+  nodes.reset.listeners.click();
+  assert.equal(ball.attributes.transform, 'translate(27 21.7)');
+  assert.match(nodes.step.textContent, /^Steg 1 av 10:/);
+  nodes.play.listeners.click();
+  tick(1000);
+  tick(1000 + (example.frames.length - 1) * example.durationMs);
+  assert.equal(callbacks.size, 0);
+  assert.equal(nodes.play.attributes['data-playing'], 'false');
+  assert.match(nodes.step.textContent, /^Steg 10 av 10:/);
+  nodes.play.listeners.click();
+  assert.equal(ball.attributes.transform, 'translate(27 21.7)');
+  nodes.reset.listeners.click();
+  assert.equal(callbacks.size, 0);
 });

@@ -121,7 +121,6 @@
     const scene = validateScene(await response.json());
     const elements = renderPitch(scene, canvas);
     const total = (scene.frames.length - 1) * scene.durationMs;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     let elapsed = 0;
     let animation = null;
     let previousTime = null;
@@ -142,7 +141,9 @@
       if (animation !== null) cancelAnimationFrame(animation);
       animation = null;
       previousTime = null;
-      playButton.textContent = reducedMotion.matches ? 'Neste steg' : 'Spill av';
+      playButton.setAttribute('data-playing', 'false');
+      playButton.setAttribute('aria-label', 'Spill av animasjonen');
+      playButton.setAttribute('title', 'Spill av');
     }
 
     function tick(time) {
@@ -158,14 +159,11 @@
         stop();
         return;
       }
-      if (reducedMotion.matches) {
-        elapsed = elapsed >= total ? 0 : Math.min(total, (Math.floor(elapsed / scene.durationMs) + 1) * scene.durationMs);
-        render();
-        return;
-      }
       if (elapsed >= total) elapsed = 0;
       render();
-      playButton.textContent = 'Pause';
+      playButton.setAttribute('data-playing', 'true');
+      playButton.setAttribute('aria-label', 'Pause animasjonen');
+      playButton.setAttribute('title', 'Pause');
       animation = requestAnimationFrame(tick);
     });
     resetButton.addEventListener('click', () => {
@@ -180,13 +178,8 @@
     if (container) container.addEventListener('toggle', () => {
       if (!container.open && animation !== null) stop();
     });
-    reducedMotion.addEventListener('change', () => {
-      if (animation !== null) stop();
-      else playButton.textContent = reducedMotion.matches ? 'Neste steg' : 'Spill av';
-    });
     render();
     if (scene.frames.length > 1) {
-      playButton.textContent = reducedMotion.matches ? 'Neste steg' : 'Spill av';
       controls.hidden = false;
     } else {
       message.textContent = scene.frames[0].caption;

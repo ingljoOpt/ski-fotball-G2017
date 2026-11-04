@@ -63,7 +63,7 @@ En ekstern video kan eventuelt bygges inn med leverandørens `iframe` hvis lever
 
 ### Taktikktavler
 
-Taktikktavlene er egne illustrasjoner, ikke kopier av Tiims medier. De bygges fra JSON-filer og kan vise spillere, kjegler og ball i ett stillbilde eller i flere animerte steg. De starter ikke automatisk. Lesere kan spille av, pause og starte på nytt; ved innstillingen redusert bevegelse vises stegene ett om gangen. Oppgi alltid en tekstlig øvelsesbeskrivelse, også for lesere som ikke kan se tavlen eller bruke JavaScript.
+Taktikktavlene er egne illustrasjoner, ikke kopier av Tiims medier. De bygges fra JSON-filer og kan vise spillere, kjegler og ball i ett stillbilde eller i flere animerte steg. De starter ikke automatisk. Lesere kan bruke ikonknappene til å spille av, pause og starte på nytt. Også ved innstillingen redusert bevegelse spilles animasjonen av når leseren aktivt velger det. Oppgi alltid en tekstlig øvelsesbeskrivelse, også for lesere som ikke kan se tavlen eller bruke JavaScript.
 
 1. Kopier [eksempelfilen](../publiserte/media/taktikk/firkant-pasning.json) til en ny JSON-fil i `publiserte/media/taktikk/`. Tilpass den til øvelsen og merk eventuelle lokale illustrasjonsvalg. Ikke bruk navn på enkeltbarn.
 2. Skriv en `description` som forklarer illustrasjonen, og sett `durationMs` til tiden **per overgang** i millisekunder, fra 100 til 60000. Legg inn `objects` med unik `id`, `type` (`player`, `cone` eller `ball`) og valgfri kort `label` på opptil tre tegn.

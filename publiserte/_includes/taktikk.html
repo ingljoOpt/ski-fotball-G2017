@@ -8,8 +8,13 @@
     <span><i class="legend-ball" aria-hidden="true"></i> Ball</span>
   </div>
   <div class="tactic-controls" data-tactic-controls hidden>
-    <button type="button" data-tactic-play>Spill av</button>
-    <button type="button" data-tactic-reset>Start på nytt</button>
+    <button type="button" data-tactic-play data-playing="false" aria-label="Spill av animasjonen" title="Spill av">
+      <svg class="tactic-icon-play" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5v14l11-7z" /></svg>
+      <svg class="tactic-icon-pause" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 5h4v14H7zM14 5h4v14h-4z" /></svg>
+    </button>
+    <button type="button" data-tactic-reset aria-label="Start animasjonen på nytt" title="Start på nytt">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5v5h5M4.5 10a8 8 0 1 1 1.1 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </button>
     <span class="tactic-step" data-tactic-step aria-live="polite"></span>
   </div>
   <p class="tactic-message" data-tactic-message role="status">Tavlen krever JavaScript. Øvelsen er også beskrevet i teksten over.</p>

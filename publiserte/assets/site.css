@@ -81,8 +81,10 @@ main { max-width: 68rem; margin: auto; padding: 2rem 1.5rem 5rem; overflow-wrap:
 .legend-ball { border: 1px solid #263d32; border-radius: 50%; background: white; }
 .tactic-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .8rem; }
 .tactic-controls[hidden], .tactic-message[hidden] { display: none; }
-.tactic-controls button { border: 1px solid var(--green); border-radius: .45rem; background: white; color: var(--green-dark); padding: .5rem .75rem; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
+.tactic-controls button { display: inline-grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--green); border-radius: .45rem; background: white; color: var(--green-dark); cursor: pointer; }
 .tactic-controls button:hover { background: #e3f0e5; }
+.tactic-controls button svg { width: 1.35rem; height: 1.35rem; fill: currentColor; }
+.tactic-controls [data-playing="false"] .tactic-icon-pause, .tactic-controls [data-playing="true"] .tactic-icon-play { display: none; }
 .tactic-step { flex-basis: 100%; color: var(--muted); font-size: .85rem; }
 .source-note { margin-top: 2.5rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); }
 img, video, iframe { max-width: 100%; }
