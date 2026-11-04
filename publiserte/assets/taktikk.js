@@ -2,6 +2,7 @@
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (typeof document !== 'undefined') {
+    globalThis.TacticBoard = api;
     document.querySelectorAll('[data-tactic-src]').forEach((board) => {
       api.mount(board).catch((error) => {
         console.error('Kunne ikke laste taktikktavlen:', error);
@@ -187,5 +188,5 @@
     if (scene.frames.length > 1) message.hidden = true;
   }
 
-  return { validateScene, positionAt, mount };
+  return { validateScene, positionAt, renderPitch, mount };
 });

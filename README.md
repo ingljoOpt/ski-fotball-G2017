@@ -32,6 +32,6 @@ Agentferdigheten [Øktplanlegger](.claude/skills/oktplanlegger/SKILL.md) følger
 | `publiserte/` | Markdown og medier for GitHub Pages |
 | `.github/workflows/pages.yml` | Bygging og publisering av nettstedet |
 
-Se [arbeidsflyten](docs/arbeidsflyt.md#taktikktavler) for å legge inn egne taktikktavler med spillere, kjegler og ball.
+Se [arbeidsflyten](docs/arbeidsflyt.md#taktikktavler) for å redigere og publisere egne taktikktavler med spillere, kjegler og ball. Fra en offentlig tavle kan du åpne den visuelle redigereren, laste ned JSON og legge filen i prosjektet.
 
 Repositoriet er offentlig: også filer utenfor nettstedet kan leses på GitHub. Ikke lagre opplysninger om enkeltbarn eller annet ikke-offentlig innhold her. Ingen tidligere treninger er registrert per 4. november 2026.

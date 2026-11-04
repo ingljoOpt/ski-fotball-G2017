@@ -65,6 +65,19 @@ En ekstern video kan eventuelt bygges inn med leverandørens `iframe` hvis lever
 
 Taktikktavlene er egne illustrasjoner, ikke kopier av Tiims medier. De bygges fra JSON-filer og kan vise spillere, kjegler og ball i ett stillbilde eller i flere animerte steg. De starter ikke automatisk. Lesere kan bruke ikonknappene til å spille av, pause og starte på nytt. Også ved innstillingen redusert bevegelse spilles animasjonen av når leseren aktivt velger det. Oppgi alltid en tekstlig øvelsesbeskrivelse, også for lesere som ikke kan se tavlen eller bruke JavaScript.
 
+#### Rediger en tavle visuelt
+
+1. Åpne den offentlige økten, utvid øvelsen og velg **Rediger denne tavlen**. Redigereren åpner den aktuelle JSON-filen. For en ny tavle kan du åpne [redigereren på Pages](https://ingljoopt.github.io/ski-fotball-G2017/rediger-taktikk.html) og velge **Ny tavle**. Du kan også åpne en tidligere nedlastet JSON-fil fra enheten.
+2. Velg et steg og en figur. Dra figuren på banen, bruk piltastene når den er valgt på banen, eller endre koordinatene. Shift og piltast flytter fem enheter. Flyttingen gjelder bare det valgte steget; figurer som legges til eller slettes, endres i alle steg.
+3. Velg **Kopier til nytt steg**, flytt figurene og beskriv det nye steget. Legg inn mellomsteg for svinger: figurene beveger seg rett mellom punktene. Gjenta etter behov, og bruk forhåndsvisningen til å kontrollere hele animasjonen. Sletting av steg og figurer krever bekreftelse.
+4. Fyll ut beskrivelsen og tid per overgang, og velg **Last ned JSON**. Endringene er ikke lagret i prosjektet eller publisert. Kopier den nedlastede filen til `publiserte/media/taktikk/`, og erstatt en eksisterende fil bare når dette er tilsiktet. En nedlastet fil kan åpnes igjen for videre redigering.
+5. Oppdater tavlens tekstbeskrivelse i den offentlige øktfilen. For en ny tavle, legg inn taktikk-komponenten som vist nedenfor. Når en eksisterende datafil endres, øk versjonen i `src`-parameteren, for eksempel fra `?v=4` til `?v=5`, slik at nettlesere ikke bruker en gammel hurtigbufret fil.
+6. Commit og push til GitHub, kontroller Pages-jobben og test den offentlige økten uten innlogging. Ingen GitHub-innlogging, opplasting eller automatisk publisering utføres av redigereren.
+
+Redigereren lagrer ikke endringene automatisk. Last ned før du forlater siden; ved utskifting av en tavle eller når du forlater siden, varsles du om endringer som ikke er publisert. Ikke legg inn navn på enkeltbarn.
+
+#### Rediger JSON direkte
+
 1. Kopier [eksempelfilen](../publiserte/media/taktikk/firkant-pasning.json) til en ny JSON-fil i `publiserte/media/taktikk/`. Tilpass den til øvelsen og merk eventuelle lokale illustrasjonsvalg. Ikke bruk navn på enkeltbarn.
 2. Skriv en `description` som forklarer illustrasjonen, og sett `durationMs` til tiden **per overgang** i millisekunder, fra 100 til 60000. Legg inn `objects` med unik `id`, `type` (`player`, `cone` eller `ball`) og valgfri kort `label` på opptil tre tegn.
 3. Legg inn `frames` i ønsket rekkefølge. Hvert steg trenger en `caption` og `positions` med `[x, y]` for **alle** objekt-ID-er. Koordinater er tall fra 0 til 100: `x` øker mot høyre og `y` nedover. Figurene flyttes rett mellom punktene. Ett steg gir en statisk tavle; flere gir animasjon.
@@ -74,9 +87,9 @@ Taktikktavlene er egne illustrasjoner, ikke kopier av Tiims medier. De bygges fr
 {% include taktikk.html src="/media/taktikk/min-ovelse.json" title="Pasning og bevegelse" description="Forklar illustrasjonen kort." %}
 ```
 
-Stien begynner med `/media/`, men komponenten legger selv til GitHub Pages-prosjektets basesti. Lagre JSON-filen under `publiserte/media/` og bruk en fil som faktisk finnes. Flere tavler på samme side kan bruke forskjellige filer. Dette er et databasert rammeverk, ikke en grafisk redigerer.
+Stien begynner med `/media/`, men komponenten legger selv til GitHub Pages-prosjektets basesti. Lagre JSON-filen under `publiserte/media/` og bruk en fil som faktisk finnes. Flere tavler på samme side kan bruke forskjellige filer.
 
-Kjør `node --test tests\taktikk.test.cjs` for å kontrollere validering og interpolering. Etter publisering må du åpne økten, kontrollere at tavlen vises og at avspilling og pause fungerer. Feil i data eller manglende fil vises i stedet for tavlen; kontroller nettleserkonsollen for detaljer.
+Kjør `node --test tests\taktikk.test.cjs tests\taktikk-rediger.test.cjs` for å kontrollere tavleformatet og redigeringsoperasjonene. Etter publisering må du åpne økten, kontrollere at tavlen vises og at avspilling og pause fungerer. Feil i data eller manglende fil vises i stedet for tavlen; kontroller nettleserkonsollen for detaljer.
 
 ## Etter trening
 
