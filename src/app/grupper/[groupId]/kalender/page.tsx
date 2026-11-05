@@ -9,7 +9,7 @@ import { formatTimeRange } from "@/lib/validation";
 import { newTrainingEvent } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubIdentity, ClubTheme } from "@/app/club-theme";
-import { AppLink, Card, Chip, NativeInput, SubmitButton, TextInput, TextAreaInput } from "@/app/ui";
+import { AppLink, Card, Chip, SubmitButton } from "@/app/ui";
 import { eventStatusLabels, formatDate, months, PlanningNavigation, planningSelection, YearPicker } from "@/app/planning-components";
 
 export default async function Calendar({ params, searchParams }: {
@@ -34,7 +34,8 @@ export default async function Calendar({ params, searchParams }: {
     <PlanningNavigation groupId={groupId} year={year} />
     <h1>Kalender · {details.group.name}</h1>
     <YearPicker year={year} /><Notices searchParams={searchParams} />
-    <p className="muted">Europe/Oslo · Faste tider vises som forventede treninger, ikke som ferdige øktplaner. Alle gruppens trenere kan planlegge. Faste tider endres i grupperommet av hovedtrener eller klubbadministrator.</p>
+    <div className="row section-title"><AppLink href={`/grupper/${groupId}/okter/ny?year=${year}&month=${month}`}>+ Ny enkeltøkt</AppLink><small>Europe/Oslo</small></div>
+    <details className="calendar-year-picker"><summary>Velg måned · {months[month - 1]} {year}</summary>
     <div className="year-grid" aria-label={`Årsoversikt ${year}`}>
       {months.map((label, index) => {
         const monthEntries = details.entries.filter((event) => Number(event.date.slice(5, 7)) === index + 1);
@@ -47,7 +48,7 @@ export default async function Calendar({ params, searchParams }: {
           <span>{periods.map((period) => period.theme).join(" · ") || "Tema ikke satt"}</span>
         </Card>;
       })}
-    </div>
+    </div></details>
     <h2 className="section-title">{months[month - 1]} {year}</h2>
     <div className="calendar-grid" aria-label={`${months[month - 1]} ${year}`}>
       {["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"].map((day) => <strong key={day}>{day}</strong>)}
@@ -57,7 +58,8 @@ export default async function Calendar({ params, searchParams }: {
         const entries = selected.filter((event) => event.date === date);
         const period = periodsOnDate(details.periods, date)[0];
         return <div className={`calendar-day ${date === osloToday() ? "today" : ""}`} key={date}>
-          <a href={`#dag-${date}`} aria-label={`${formatDate(date)}${period ? `: ${period.theme}` : ""}`}>{index + 1}</a>
+          <a href={entries.length ? `#dag-${date}` : undefined} aria-label={`${formatDate(date)}${period ? `: ${period.theme}` : ""} · ${entries.length} treninger`}>{index + 1}</a>
+          {entries.length > 0 && <span className="calendar-count">{entries.length} økt{entries.length === 1 ? "" : "er"}</span>}
           {period && <span className="calendar-theme">{period.theme}</span>}
           {entries.map((event) => <small key={event.id ?? event.recurrenceKey}>
             {formatTimeRange(event.startTime, event.endTime)} · {eventStatusLabels[event.status]}
@@ -65,10 +67,10 @@ export default async function Calendar({ params, searchParams }: {
         </div>;
       })}
     </div>
-    <div className="columns">
+    <div className="page-content">
       <section className="stack" aria-label="Treninger i valgt måned">
         <h2>Treninger og øktplaner</h2>
-        {selected.length === 0 && <Card className="app-card"><p>Ingen treninger denne måneden. Legg til faste tider i grupperommet eller opprett en enkeltøkt.</p></Card>}
+        {selected.length === 0 && <Card className="app-card"><p>Ingen treninger denne måneden. Legg til faste tider i innstillingene eller opprett en enkeltøkt.</p></Card>}
         {selected.map((event, index) => <Card className="app-card" id={index === 0 || selected[index - 1].date !== event.date ? `dag-${event.date}` : undefined} key={event.id ?? event.recurrenceKey}>
           <div className="row"><strong>{formatDate(event.date)} kl. {formatTimeRange(event.startTime, event.endTime)}</strong><Chip>{eventStatusLabels[event.status]}</Chip></div>
           <h3>{event.title}</h3>
@@ -84,22 +86,6 @@ export default async function Calendar({ params, searchParams }: {
           </form> : <AppLink href={`/grupper/${groupId}/okter/${event.id}`}>Åpne øktplan →</AppLink>}
         </Card>)}
       </section>
-      <Card className="app-card">
-        <h2>Ny enkeltøkt</h2>
-        <p>Opprett en ekstra trening uten å endre den faste rytmen.</p>
-        <form action={newTrainingEvent}>
-          <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={year} />
-          <TextInput label="Økttittel" name="title" isRequired minLength={2} maxLength={150} defaultValue={`${details.group.name} – trening`} />
-          <NativeInput label="Dato" name="date" type="date" required defaultValue={`${prefix}-01`} />
-          <NativeInput label="Fra" name="startTime" type="time" required />
-          <NativeInput label="Til" name="endTime" type="time" required />
-          <small>Varigheten beregnes fra tidsrommet (15–240 minutter). En tidligere til-tid betyr neste dag.</small>
-          <TextInput label="Tema (valgfritt)" name="theme" maxLength={150} />
-          <TextAreaInput label="Øvingsmål (valgfritt)" name="objectives" rows={3} maxLength={8000} />
-          <SubmitButton>Opprett øktutkast</SubmitButton>
-        </form>
-        <p className="notice">AI-generering, NFF-temaforslag og automatiske kladder er ikke aktivert. Ingen økter markeres som gjennomført her.</p>
-      </Card>
     </div>
   </ClubTheme>;
 }

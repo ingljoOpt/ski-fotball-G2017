@@ -69,6 +69,7 @@ small { color: var(--muted); }
 .calendar-day > a { display: inline-block; font-weight: bold; }
 .calendar-day small, .calendar-theme { display: block; font-size: .75rem; }
 .calendar-theme { color: var(--club-primary); font-weight: bold; }
+.calendar-count { display: none; }
 .calendar-day.today { border: 2px solid var(--club-primary); }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 1rem; }
 .exercise-detail { border: 1px solid var(--line); border-radius: .5rem; padding: 1rem; margin: .75rem 0; background: white; min-width: 0; overflow-wrap: anywhere; }
@@ -84,12 +85,83 @@ summary { cursor: pointer; }
 .plan-editor-details > summary h2 { display: inline; }
 .session-editor { margin-top: 1.5rem; }
 .session-editor textarea { width: 100%; }
+.site-header { position: sticky; top: 0; z-index: 30; min-height: 72px; padding-block: .75rem; flex-direction: row; align-items: center; }
+.main-menu { display: flex; align-items: center; gap: .6rem; min-height: 44px; padding: .5rem .85rem; border: 1px solid var(--line); border-radius: .6rem; font-weight: 700; background: white; color: var(--ink); cursor: pointer; }
+.hamburger { display: grid; gap: 4px; width: 20px; }
+.hamburger i { display: block; height: 2px; background: currentColor; }
+.mobile-drawer { position: fixed; inset: 0 auto 0 0; margin: 0; width: min(320px, calc(100vw - 3rem)); max-width: none; height: 100dvh; max-height: none; padding: 1rem; background: white; color: var(--ink); overflow-y: auto; box-shadow: 8px 0 30px #173a3020; }
+.mobile-drawer[open] { animation: drawer-in .2s ease-out; }
+.mobile-drawer::backdrop { background: #10251dcc; }
+.mobile-drawer .section-navigation { display: grid; margin: 0 0 .75rem; padding: .75rem 0; gap: .25rem; }
+.mobile-drawer .section-navigation a { white-space: normal; overflow-wrap: anywhere; }
+.drawer-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.drawer-heading h2 { margin: 0; }
+.drawer-heading button { min-width: 44px; min-height: 44px; font-size: 1.75rem; cursor: pointer; }
+body:has(.mobile-drawer[open]) { overflow: hidden; }
+@keyframes drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .mobile-drawer[open] { animation: none; } }
+.section-navigation { display: flex; flex-wrap: wrap; gap: .35rem; padding: .5rem 0; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line); }
+.context-navigation { display: none; }
+.section-navigation a { display: flex; align-items: center; min-height: 44px; padding: .55rem .85rem; border-radius: .5rem; text-decoration: none; white-space: nowrap; font-size: .95rem; }
+.section-navigation a[aria-current="page"] { color: white; background: var(--green); font-weight: bold; }
+.section-navigation a:not([aria-current]):hover { background: #eaf3e9; }
+.page-content { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
+.settings-content { max-width: 760px; margin-top: 1.5rem; }
+.quick-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.calendar-year-picker { margin-top: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: .6rem; background: white; }
+.calendar-year-picker > summary { min-height: 28px; font-weight: bold; }
+.calendar-year-picker .year-grid { margin-top: 1rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.header-controls { margin-right: 60px; }
+.account-menu { position: fixed; top: 13px; right: 24px; z-index: 40; margin: 0; }
+.account-menu > summary { display: grid; place-items: center; width: 44px; height: 44px; list-style: none; border-radius: 50%; cursor: pointer; }
+.account-menu > summary::-webkit-details-marker { display: none; }
+.account-avatar { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--green); color: white; font-weight: 700; font-size: 1.1rem; border: 2px solid white; box-shadow: 0 0 0 1px var(--line); }
+.account-panel { position: absolute; top: calc(100% + .75rem); right: 0; width: min(280px, calc(100vw - 2rem)); display: grid; gap: .75rem; padding: 1rem; background: white; border: 1px solid var(--line); border-radius: .75rem; text-align: left; overflow-wrap: anywhere; box-shadow: 0 12px 30px #173a3020; color: var(--ink); }
+.desktop-sidebar { display: none; }
+@media (min-width: 1000px) {
+  .site-header { padding-inline: 1.5rem; }
+  .main-menu { display: none; }
+  .desktop-sidebar { display: flex; flex-direction: column; position: fixed; left: 0; top: 73px; bottom: 0; width: 240px; padding: 1.75rem 1rem; background: white; border-right: 1px solid var(--line); overflow-y: auto; z-index: 20; }
+  .desktop-sidebar .section-navigation { display: grid; gap: .3rem; padding: 1rem 0; border: 0; overflow: visible; }
+  .desktop-sidebar .section-navigation a { white-space: normal; }
+  .desktop-sidebar > small { margin-top: auto; }
+  .context-navigation { position: fixed; top: 200px; left: 16px; width: 208px; z-index: 21; display: grid; padding: 1rem 0; border-top: 1px solid var(--line); border-bottom: 0; overflow-y: auto; max-height: calc(100dvh - 270px); }
+  .context-navigation a { white-space: normal; }
+  main { margin-left: 240px; margin-right: auto; max-width: 1440px; padding: 2rem clamp(1.5rem, 3vw, 3rem) 4rem; }
+  footer { margin-left: 240px; }
+}
+@media (max-width: 359px) {
+  .main-menu > span:last-child { display: none; }
+}
+.club-identity { padding: .65rem .85rem; font-size: 1rem; gap: .75rem; }
+.club-identity .club-logo { width: 48px; height: 48px; }
 @media (max-width: 600px) {
-  .calendar-day { min-height: 64px; padding: .2rem; }
-  .calendar-day small, .calendar-theme { font-size: .6rem; }
+  main { padding: 1.25rem 1rem 3rem; }
+  h1 { font-size: 2rem; margin: .75rem 0 1rem; }
+  h2 { font-size: 1.35rem; }
+  .site-header { padding-inline: 1rem; }
+  .account-menu { right: 16px; }
+  .brand { font-size: 1.1rem; }
+  .main-menu { padding-inline: .6rem; }
+  .app-card { padding: 1rem; border-radius: .75rem; }
+  .quick-links { grid-template-columns: 1fr; }
+  .section-navigation { gap: .1rem; }
+  .section-navigation a { padding-inline: .65rem; }
+  .clean .row { align-items: flex-start; }
+  .row > span { overflow-wrap: anywhere; min-width: 0; }
+  .inline-form .app-field { min-width: 120px; }
+  .button { min-height: 44px; }
+  input, textarea, select { font-size: 16px; }
+  .profile-colors { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .calendar-day { min-height: 72px; padding: .2rem; text-align: center; }
+  .calendar-day > a { display: grid; place-items: center; min-height: 40px; }
+  .calendar-day small, .calendar-theme { display: none; }
+  .calendar-count { display: block; font-size: .65rem; font-weight: bold; color: var(--club-primary); }
   .calendar-grid { gap: .15rem; }
 }
 footer { border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: .85rem; padding: 1.5rem; }
 .skip { position: absolute; left: 1rem; top: -100px; background: white; z-index: 10; padding: .5rem; }
 .skip:focus { top: 1rem; }
-@media (max-width: 800px) { .hero, .columns { grid-template-columns: 1fr; gap: 1.5rem; } .grid { grid-template-columns: 1fr; } .site-header { flex-direction: column; align-items: start; } main { padding-top: 2rem; } nav { gap: .8rem; } .hero { padding-top: 0; } }
+@media (max-width: 800px) { .hero, .columns { grid-template-columns: 1fr; gap: 1.5rem; } .grid { grid-template-columns: 1fr; } main { padding-top: 2rem; } .hero { padding-top: 0; } }

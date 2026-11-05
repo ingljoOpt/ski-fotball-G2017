@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { osloToday, yearSchema } from "@/lib/planning";
-import { AppLink, NativeInput, SubmitButton } from "./ui";
+import { NativeInput, SubmitButton } from "./ui";
 import type { SearchParams } from "./components";
+import { NavigationLinks } from "./navigation";
 
 export const months = ["Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember"];
 export const eventStatusLabels = { scheduled: "Fast trening · ingen kladd", draft: "Utkast", planned: "Planlagt", cancelled: "Avlyst" };
@@ -16,11 +17,13 @@ export async function planningSelection(searchParams: SearchParams) {
   return { year: year.data, month: month.data };
 }
 export function PlanningNavigation({ groupId, year }: { groupId: string; year: number }) {
-  return <nav className="planning-nav" aria-label="Gruppeplanlegging">
-    <AppLink href={`/grupper/${groupId}`}>Grupperom</AppLink>
-    <AppLink href={`/grupper/${groupId}/kalender?year=${year}`}>Kalender</AppLink>
-    <AppLink href={`/grupper/${groupId}/arsplan?year=${year}`}>Årsplan og temaer</AppLink>
-  </nav>;
+  return <NavigationLinks className="context-navigation" label="Gruppeplanlegging" items={[
+    { href: `/grupper/${groupId}`, label: "Oversikt" },
+    { href: `/grupper/${groupId}/kalender?year=${year}`, label: "Kalender" },
+    { href: `/grupper/${groupId}/arsplan?year=${year}`, label: "Årsplan" },
+    { href: `/grupper/${groupId}/brukere`, label: "Brukere" },
+    { href: `/grupper/${groupId}/innstillinger`, label: "Innstillinger" },
+  ]} />;
 }
 export function YearPicker({ year }: { year: number }) {
   return <form method="get" className="inline-form">

@@ -26,13 +26,25 @@ Velg innlogging med e-post. En engangslenke vises i **serverterminalen**, ikke i
 
 PGlite skal bare åpnes av én prosess om gangen. Appen deler én instans mellom forespørsler og hot reload, og en fillås hindrer andre app-/migreringsprosesser i å åpne den samme mappen. Stopp appen før du kjører separat lokal migrering. Etter en brå avslutning kan en gammel lås bruke omtrent ti sekunder på å utløpe; ikke slett databasefiler for å løse en låsefeil.
 
+### Navigasjon og mobil
+
+På desktop (fra 1000 piksler) vises hovedmenyen og klubb-/gruppevalgene i en fast sidemeny til venstre. På mindre skjermer åpner hamburgerknappen **Meny** én samlet meny som glir inn fra venstre, med både hovedvalg og klubb-/gruppevalg. Ingen ekstra faner eller sidemenyer vises i sideinnholdet på mobil. Menyen markerer aktiv side, holder tastaturfokus inne og lukkes med Escape, lukkeknappen, valg av lenke eller trykk på bakgrunnen. Bakgrunnssiden kan ikke rulles mens menyen er åpen. Redusert bevegelse respekteres.
+
+- **Mine klubber** viser klubbene; **Opprett klubb** har egen side.
+- **Klubb → Grupper** viser gruppene; oppretting av gruppe, **Brukere** (klubbadministratorer) og **Innstillinger** (logo/farger) har egne sider.
+- **Gruppe → Oversikt** viser snarveier til kalender/årsplan og faste tider uten administrasjonsskjemaer. **Brukere** samler trenere, invitasjoner og rolleoverføring. **Innstillinger** samler treningstider og automatiseringsrammer.
+- **Kalender** viser valgt måned. Årsoversikten åpnes med **Velg måned**, og **Ny enkeltøkt** åpner et separat skjema. På mobil viser kalenderdagene antall økter; klokkeslett, tema og handlinger finnes i listen under.
+- **Kontoavataren** øverst til høyre viser brukerens forbokstav og åpner en egen meny med innloggingsinformasjon og **Logg ut**. Escape lukker menyen og flytter fokus tilbake til avataren.
+
+Administratorsider og redigeringshandlinger beholder eksisterende tilgangskontroll. Lagring og valideringsfeil returnerer til den aktuelle administrasjonssiden.
+
 ### Administrere roller
 
-På klubbsiden kan en klubbadministrator invitere flere administratorer, tilbakekalle invitasjoner og fjerne administratorroller. Mottakeren må logge inn med riktig e-postadresse og eksplisitt akseptere før tilgangen gis. En ny invitasjon erstatter en eventuell ubenyttet invitasjon til samme mottaker. Invitasjoner varer i sju dager.
+Under **Klubb → Brukere** kan en klubbadministrator invitere flere administratorer, tilbakekalle invitasjoner og fjerne administratorroller. Mottakeren må logge inn med riktig e-postadresse og eksplisitt akseptere før tilgangen gis. En ny invitasjon erstatter en eventuell ubenyttet invitasjon til samme mottaker. Invitasjoner varer i sju dager.
 
 Den siste administratoren kan ikke fjernes eller fratre før en annen har akseptert. Administratorendringer serialiseres i en databasetransaksjon. Fjerning bevarer eventuelle gruppemedlemskap, men tilbakekaller ubrukte administratorinvitasjoner til eller opprettet av personen.
 
-På gruppesiden kan klubbadministrator overføre hovedtrenerrollen til en eksisterende trener i samme gruppe. Tidligere hovedtrener blir vanlig trener, og ubrukte hovedtrenerinvitasjoner trekkes tilbake. Rollebyttet skjer samlet; vanlige trenere og hovedtrenere kan ikke utføre overføringen.
+Under **Gruppe → Brukere** kan klubbadministrator overføre hovedtrenerrollen til en eksisterende trener i samme gruppe. Tidligere hovedtrener blir vanlig trener, og ubrukte hovedtrenerinvitasjoner trekkes tilbake. Rollebyttet skjer samlet; vanlige trenere og hovedtrenere kan ikke utføre overføringen.
 
 ### Tidligere lokal database
 
@@ -40,7 +52,7 @@ Tidligere Docker-data flyttes ikke automatisk til PGlite. Eventuelle eksisterend
 
 ### Klubbens farger og logo
 
-Klubbadministrator kan redigere klubbprofilen på klubbsiden. Velg primær-/aksentfarge og last opp en statisk PNG, JPEG eller WebP. Forhåndsvisning endrer ikke lagret profil før **Lagre klubbprofil** velges. Primærfargen må ha minst 4,5:1 kontrast mot både hvitt og sidens lyse bakgrunn; aksentfargen får automatisk svart eller hvit tekst med minst samme kontrast.
+Klubbadministrator kan redigere klubbprofilen under **Klubb → Innstillinger**. Velg primær-/aksentfarge og last opp en statisk PNG, JPEG eller WebP. Forhåndsvisning endrer ikke lagret profil før **Lagre klubbprofil** velges. Primærfargen må ha minst 4,5:1 kontrast mot både hvitt og sidens lyse bakgrunn; aksentfargen får automatisk svart eller hvit tekst med minst samme kontrast.
 
 Logoen kan være maksimalt 512 KiB og 2048 × 2048 piksler. Serveren kontrollerer faktisk bildeformat, filstørrelse, dimensjoner og at bildet ikke er animert. Bildet skaleres ned til maksimalt 512 × 512 piksler og kodes om til WebP uten opprinnelige metadata. SVG og eksterne logolenker støttes ikke.
 
@@ -50,7 +62,7 @@ Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo
 
 ### Årsplan, kalender og øktplanlegging
 
-Åpne en gruppe og velg **Årsplan og temaer** eller **Kalender**. Alle gruppens trenere og klubbadministratorer kan planlegge; faste treningstider og gruppens standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
+Åpne en gruppe og velg **Årsplan** eller **Kalender**. Alle gruppens trenere og klubbadministratorer kan planlegge; faste treningstider og gruppens standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
 
 - Lagre planår, eventuelt fødselsår, og årsmål. Legg til daterte temaperioder med øvingsmål og progresjon. Perioder kan gå over flere måneder innenfor samme år, men ikke overlappe.
 - Kalenderen har årsoversikt og månedsvisning. Faste uketider vises som forventede treninger uten å fylle databasen med tomme øktplaner. Velg **Planlegg denne treningen**, avlys en enkeltforekomst eller opprett en ekstra enkeltøkt.

@@ -6,6 +6,8 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 - [x] Next.js med TypeScript, norsk grensesnitt og responsiv navigasjon.
 - [x] HeroUI v3 og Tailwind CSS v4 på eksisterende sider, med tilgjengelige skjemaetiketter og innsendingstilstand.
+- [x] Hamburgermeny, aktive menyvalg og mobiltilpasning. Egne sider for klubb-/gruppebrukere og innstillinger, samt oppretting av klubb, gruppe og enkeltøkt. Oversikter uten administrasjonsskjemaer.
+- [x] Fast venstre sidemeny på desktop, hamburgermeny bare på smale skjermer og kontoavatar øverst til høyre med egen utloggingsmeny. Nettleserkontroll ved 320, 375 og 1280 piksler, inkludert Escape og fokusretur.
 - [x] Lokal PGlite med diskbasert lagring uten Docker eller egen databaseserver.
 - [x] Postgres-skjema og versjonerte Drizzle-migreringer. Neon-tilkobling verifiseres i produksjonssteget.
 - [x] Oppstart som åpner PGlite og migrerer før Next.js starter, med fillås mot samtidige prosesser.
@@ -66,6 +68,10 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [ ] Dokumentert oppstart, backup/gjenoppretting og deploy.
 
 ## Leveransestatus
+
+Navigasjonsoppryddingen skiller oversikter fra administrasjon: klubbens grupper, brukere og profilinnstillinger, og gruppens oversikt, brukere og innstillinger har egne ruter. Oppretting av klubb, gruppe og enkeltøkt har dedikerte sider. Kalenderen starter med valgt måned og sammenleggbar årsoversikt. Konto og utlogging er samlet i en egen meny.
+
+Verifisert med 30 enhets-/animasjonstester, 26 databasekontroller, typekontroll, lint og produksjonsbygg. Nettleserkontrollen dekker seks hoved-/administrasjonssider ved 375 pikslers bredde, kalender, profil og enkeltøktskjema ved 320 piksler og klubboversikt ved 1280 piksler uten horisontal sideoverløp. Hamburgermenyen er kontrollert med tastatur, Escape, aktivt menyvalg og lukking ved navigasjon. Avviste skjemaer returnerer til riktig underside uten å opprette data.
 
 Den lokale leveransen dekker punkt 1 og avkryssede deler av punkt 2 og 3. Lokal oppstart, engangsinnlogging, oppretting av klubb/gruppe, invitasjonsaksept og lagring av treningstider er testet i nettleser, inkludert mobilbredde og gjenlasting.
 

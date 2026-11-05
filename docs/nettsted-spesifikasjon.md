@@ -127,6 +127,14 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 
 ## Viktige brukerreiser
 
+### Navigasjon og mobilgrensesnitt
+
+- Responsivt grensesnitt med fast sidemeny til venstre på desktop og én samlet slide-in-meny fra venstre på mobil/smale skjermer, åpnet med hamburgerknapp. Hovedvalg og autoriserte klubb-/gruppevalg samles i denne menyen uten ekstra mobilfaner eller duplisert navigasjon i sideinnholdet. Menyen har tastaturbetjening, fokusfelle og fokusretur, bakgrunnsoverlegg, rullelås og markering av aktiv side; den kan lukkes med Escape, lukkeknapp eller bakgrunnstrykk. Redusert bevegelse respekteres. Konto vises som avatar øverst til høyre med egen meny for innloggingsinformasjon og utlogging.
+- Klubbens grupper, brukere/administratorer og innstillinger skal ha egne sider. Gruppens oversikt, kalender, årsplan, brukere/trenere og innstillinger skal også være separate.
+- Oversiktssider skal prioritere innhold og snarveier, ikke samle alle administrasjonsskjemaer. Oppretting av klubb, gruppe og enkeltøkt har dedikerte sider.
+- Kalenderen prioriterer valgt måned og samler årsoversikten i en sammenleggbar månedsvelger. Mobilkalenderen viser antall økter per dag og fullstendige detaljer/handlinger i en liste under.
+- Menyvalg og sider skal følge eksisterende rollegrenser. Direkte URL-tilgang skal kontrolleres på serveren. Lagring og feil skal returnere til riktig underside.
+
 1. **Opprette klubb:** bruker logger inn, oppretter klubb, legger til administratorer, oppretter grupper og registrerer felles sportsplan, veiledning og utstyr.
 2. **Starte gruppe:** klubbadministrator oppretter gruppe og inviterer hovedtrener som første medlem. Hovedtrener aksepterer med magic link og kan invitere gruppens øvrige trenere.
 3. **Administrere gruppemedlemmer:** hovedtrener inviterer eller fjerner trenere i egen gruppe. Klubbadministrator kan også legge til eller fjerne medlemmer i alle grupper.

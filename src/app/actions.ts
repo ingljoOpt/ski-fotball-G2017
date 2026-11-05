@@ -81,7 +81,7 @@ export async function signOut() {
 
 export async function newClub(form: FormData) {
   const user = await requireUser();
-  return run("/oversikt", async () => {
+  return run("/klubber/ny", async () => {
     const club = await createClub(await getDatabase(), user.id, field(form, "name"));
     return `/klubber/${club.id}`;
   });
@@ -89,7 +89,7 @@ export async function newClub(form: FormData) {
 
 export async function newGroup(form: FormData) {
   const user = await requireUser();
-  return run("/oversikt", async () => {
+  return run(`${clubPath(form)}/grupper/ny`, async () => {
     const { group, token, email } = await createGroup(
       await getDatabase(), user.id, field(form, "clubId"), field(form, "name"), field(form, "email"),
     );
@@ -100,10 +100,10 @@ export async function newGroup(form: FormData) {
 
 export async function newCoachInvitation(form: FormData) {
   const user = await requireUser();
-  return run(groupPath(form), async () => {
+  return run(`${groupPath(form)}/brukere`, async () => {
     const { token, email } = await inviteCoach(await getDatabase(), user.id, field(form, "groupId"), field(form, "email"));
     console.log(`[LOKAL INVITASJON til ${email}] ${localConfig().appUrl}/invitasjon/${token}`);
-    return `${groupPath(form)}?melding=${encodeURIComponent("Invitasjonen ligger i serverterminalen og varer i sju dager.")}`;
+    return `${groupPath(form)}/brukere?melding=${encodeURIComponent("Invitasjonen ligger i serverterminalen og varer i sju dager.")}`;
   });
 }
 
@@ -117,46 +117,46 @@ export async function joinGroup(form: FormData) {
 
 export async function deleteMember(form: FormData) {
   const user = await requireUser();
-  return run(groupPath(form), async () => {
+  return run(`${groupPath(form)}/brukere`, async () => {
     await removeMember(await getDatabase(), user.id, field(form, "groupId"), field(form, "userId"));
-    return `${groupPath(form)}?melding=${encodeURIComponent("Medlemmet er fjernet.")}`;
+    return `${groupPath(form)}/brukere?melding=${encodeURIComponent("Medlemmet er fjernet.")}`;
   });
 }
 
 export async function saveGroupSettings(form: FormData) {
   const user = await requireUser();
-  return run(groupPath(form), async () => {
+  return run(`${groupPath(form)}/innstillinger`, async () => {
     await updateGroupSettings(await getDatabase(), user.id, field(form, "groupId"), {
       generationDaysBefore: field(form, "generationDaysBefore"),
     });
-    return `${groupPath(form)}?melding=${encodeURIComponent("Innstillingene er lagret. Automatisk generering er ikke implementert ennå.")}`;
+    return `${groupPath(form)}/innstillinger?melding=${encodeURIComponent("Innstillingene er lagret. Automatisk generering er ikke implementert ennå.")}`;
   });
 }
 
 export async function newTrainingTime(form: FormData) {
   const user = await requireUser();
-  return run(groupPath(form), async () => {
+  return run(`${groupPath(form)}/innstillinger`, async () => {
     await addTrainingTime(await getDatabase(), user.id, field(form, "groupId"), {
       weekday: field(form, "weekday"), startTime: field(form, "startTime"), endTime: field(form, "endTime"),
     });
-    return groupPath(form);
+    return `${groupPath(form)}/innstillinger`;
   });
 }
 
 export async function deleteTrainingTime(form: FormData) {
   const user = await requireUser();
-  return run(groupPath(form), async () => {
+  return run(`${groupPath(form)}/innstillinger`, async () => {
     await removeTrainingTime(await getDatabase(), user.id, field(form, "groupId"), field(form, "timeId"));
-    return groupPath(form);
+    return `${groupPath(form)}/innstillinger`;
   });
 }
 
 export async function newAdminInvitation(form: FormData) {
   const user = await requireUser();
-  return run(clubPath(form), async () => {
+  return run(`${clubPath(form)}/brukere`, async () => {
     const { token, email } = await inviteClubAdmin(await getDatabase(), user.id, field(form, "clubId"), field(form, "email"));
     console.log(`[LOKAL KLUBBADMINISTRATORINVITASJON til ${email}] ${localConfig().appUrl}/klubbinvitasjon/${token}`);
-    return `${clubPath(form)}?melding=${encodeURIComponent("Administratorinvitasjonen ligger i serverterminalen og varer i sju dager. En eventuell tidligere invitasjon er erstattet.")}`;
+    return `${clubPath(form)}/brukere?melding=${encodeURIComponent("Administratorinvitasjonen ligger i serverterminalen og varer i sju dager. En eventuell tidligere invitasjon er erstattet.")}`;
   });
 }
 
@@ -170,45 +170,45 @@ export async function joinClubAdministration(form: FormData) {
 
 export async function deleteClubAdmin(form: FormData) {
   const user = await requireUser();
-  return run(clubPath(form), async () => {
+  return run(`${clubPath(form)}/brukere`, async () => {
     const targetUserId = field(form, "userId");
     await removeClubAdmin(await getDatabase(), user.id, field(form, "clubId"), targetUserId);
-    return `${targetUserId === user.id ? "/oversikt" : clubPath(form)}?melding=${encodeURIComponent("Administratorrollen er fjernet. Eventuelle gruppemedlemskap beholdes.")}`;
+    return `${targetUserId === user.id ? "/oversikt" : `${clubPath(form)}/brukere`}?melding=${encodeURIComponent("Administratorrollen er fjernet. Eventuelle gruppemedlemskap beholdes.")}`;
   });
 }
 
 export async function revokeAdminInvitation(form: FormData) {
   const user = await requireUser();
-  return run(clubPath(form), async () => {
+  return run(`${clubPath(form)}/brukere`, async () => {
     await cancelClubInvitation(await getDatabase(), user.id, field(form, "clubId"), field(form, "invitationId"));
-    return `${clubPath(form)}?melding=${encodeURIComponent("Administratorinvitasjonen er tilbakekalt.")}`;
+    return `${clubPath(form)}/brukere?melding=${encodeURIComponent("Administratorinvitasjonen er tilbakekalt.")}`;
   });
 }
 
 export async function changeHeadCoach(form: FormData) {
   const user = await requireUser();
-  return run(groupPath(form), async () => {
+  return run(`${groupPath(form)}/brukere`, async () => {
     await transferHeadCoach(await getDatabase(), user.id, field(form, "groupId"), field(form, "userId"));
-    return `${groupPath(form)}?melding=${encodeURIComponent("Hovedtrenerrollen er overført. Tidligere hovedtrener er nå trener.")}`;
+    return `${groupPath(form)}/brukere?melding=${encodeURIComponent("Hovedtrenerrollen er overført. Tidligere hovedtrener er nå trener.")}`;
   });
 }
 
 export async function saveClubProfile(form: FormData) {
   const user = await requireUser();
-  return run(clubPath(form), async () => {
+  return run(`${clubPath(form)}/innstillinger`, async () => {
     const logo = logoFromForm(form.get("logo"));
     await updateClubBranding(await getDatabase(), user.id, field(form, "clubId"), {
       primaryColor: field(form, "primaryColor"), accentColor: field(form, "accentColor"),
     }, logo, field(form, "removeLogo") === "on");
-    return `${clubPath(form)}?melding=${encodeURIComponent("Klubbprofilen er lagret.")}`;
+    return `${clubPath(form)}/innstillinger?melding=${encodeURIComponent("Klubbprofilen er lagret.")}`;
   });
 }
 
 export async function resetClubProfile(form: FormData) {
   const user = await requireUser();
-  return run(clubPath(form), async () => {
+  return run(`${clubPath(form)}/innstillinger`, async () => {
     await resetClubBranding(await getDatabase(), user.id, field(form, "clubId"));
-    return `${clubPath(form)}?melding=${encodeURIComponent("Standardfargene er gjenopprettet og logoen fjernet.")}`;
+    return `${clubPath(form)}/innstillinger?melding=${encodeURIComponent("Standardfargene er gjenopprettet og logoen fjernet.")}`;
   });
 }
 
@@ -256,7 +256,10 @@ export async function deleteThemePeriod(form: FormData) {
 
 export async function newTrainingEvent(form: FormData) {
   const user = await requireUser();
-  return run(planningPath(form, "kalender"), async () => {
+  const month = Number(field(form, "month"));
+  const year = yearSchema.safeParse(field(form, "year"));
+  const singlePath = `${groupPath(form)}/okter/ny${year.success && Number.isInteger(month) && month >= 1 && month <= 12 ? `?year=${year.data}&month=${month}` : ""}`;
+  return run(field(form, "singleSession") === "1" ? singlePath : planningPath(form, "kalender"), async () => {
     const eventId = await createTrainingEvent(await getDatabase(), user.id, field(form, "groupId"),
       eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel");
     return `${groupPath(form)}/okter/${eventId}`;
