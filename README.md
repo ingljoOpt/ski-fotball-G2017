@@ -27,6 +27,7 @@ Agentferdigheten [Øktplanlegger](.claude/skills/oktplanlegger/SKILL.md) følger
 | Mappe eller fil | Formål |
 | --- | --- |
 | `docs/produktbeskrivelse.md` | Mål, krav, avgrensning og ferdigkriterier |
+| `docs/nettsted-spesifikasjon.md` | Krav og teknisk retning for den planlagte flerklubb-nettløsningen |
 | `docs/rammer.md` | Spillergruppe, utstyr, årstid og organisering |
 | `docs/arbeidsflyt.md` | Planlegging, kilder, GitHub-publisering og gjenbruk |
 | `ovelsesbank/README.md` | Verifiserte Tiim-lenker og lokale vurderinger |
