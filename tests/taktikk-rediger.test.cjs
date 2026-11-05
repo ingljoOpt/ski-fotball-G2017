@@ -42,7 +42,7 @@ test('figurer legges til og fjernes i alle steg uten å dele koordinater', () =>
 
 test('ugyldige endringer og fjerning av siste figur avvises', () => {
   const scene = model.newScene();
-  assert.throws(() => model.addObject(scene, 'goal', ''), /Ukjent figurtype/);
+  assert.throws(() => model.addObject(scene, 'unknown', ''), /Ukjent figurtype/);
   assert.throws(() => model.addObject(scene, 'player', 'ABCD'), /maks tre tegn/);
   assert.throws(() => model.moveObject(scene, 0, 'ball1', [101, 2]), /mellom 0 og 100/);
   assert.throws(() => model.moveObject(scene, 0, 'mangler', [2, 2]), /finnes ikke/);
@@ -50,5 +50,19 @@ test('ugyldige endringer og fjerning av siste figur avvises', () => {
   model.removeObject(scene, 'ball1');
   model.removeObject(scene, 'kjegle1');
   assert.throws(() => model.removeObject(scene, 'spiller1'), /minst én figur/);
+  validateScene(scene);
+});
+
+test('småmål og store mål legges til og fjernes i alle steg', () => {
+  const scene = model.newScene();
+  model.addFrame(scene, 0);
+  const small = model.addObject(scene, 'smallGoal', '');
+  const large = model.addObject(scene, 'goal', '');
+  scene.objects.find((object) => object.id === small).rotation = 90;
+  scene.objects.find((object) => object.id === large).rotation = 270;
+  assert.ok(scene.frames.every((frame) => frame.positions[small] && frame.positions[large]));
+  validateScene(JSON.parse(JSON.stringify(scene)));
+  model.removeObject(scene, small);
+  assert.ok(scene.frames.every((frame) => !Object.hasOwn(frame.positions, small)));
   validateScene(scene);
 });

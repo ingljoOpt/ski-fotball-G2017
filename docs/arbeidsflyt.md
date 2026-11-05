@@ -63,14 +63,14 @@ En ekstern video kan eventuelt bygges inn med leverandørens `iframe` hvis lever
 
 ### Taktikktavler
 
-Taktikktavlene er egne illustrasjoner, ikke kopier av Tiims medier. De bygges fra JSON-filer og kan vise spillere, kjegler og ball i ett stillbilde eller i flere animerte steg. De starter ikke automatisk. Lesere kan bruke ikonknappene til å spille av, pause og starte på nytt. Også ved innstillingen redusert bevegelse spilles animasjonen av når leseren aktivt velger det. Oppgi alltid en tekstlig øvelsesbeskrivelse, også for lesere som ikke kan se tavlen eller bruke JavaScript.
+Taktikktavlene er egne illustrasjoner, ikke kopier av Tiims medier. De bygges fra JSON-filer og kan vise spillere, kjegler, ball og mål i ett stillbilde eller i flere animerte steg. De starter ikke automatisk. Lesere kan bruke ikonknappene til å spille av, pause og starte på nytt. Også ved innstillingen redusert bevegelse spilles animasjonen av når leseren aktivt velger det. Oppgi alltid en tekstlig øvelsesbeskrivelse, også for lesere som ikke kan se tavlen eller bruke JavaScript.
 
 #### Rediger en tavle visuelt
 
 1. Åpne den offentlige økten, utvid øvelsen og velg **Rediger denne tavlen**. Redigereren åpner den aktuelle JSON-filen. For en ny tavle kan du åpne [redigereren på Pages](https://ingljoopt.github.io/ski-fotball-G2017/rediger-taktikk.html) og velge **Ny tavle**. Du kan også åpne en tidligere nedlastet JSON-fil fra enheten.
-2. Velg et steg og en figur. Dra figuren på banen, bruk piltastene når den er valgt på banen, eller endre koordinatene. Shift og piltast flytter fem enheter. Flyttingen gjelder bare det valgte steget; figurer som legges til eller slettes, endres i alle steg.
-3. Velg **Kopier til nytt steg**, flytt figurene og beskriv det nye steget. Legg inn mellomsteg for svinger: figurene beveger seg rett mellom punktene. Gjenta etter behov, og bruk forhåndsvisningen til å kontrollere hele animasjonen. Sletting av steg og figurer krever bekreftelse.
-4. Fyll ut beskrivelsen og tid per overgang, og velg **Last ned JSON**. Endringene er ikke lagret i prosjektet eller publisert. Kopier den nedlastede filen til `publiserte/media/taktikk/`, og erstatt en eksisterende fil bare når dette er tilsiktet. En nedlastet fil kan åpnes igjen for videre redigering.
+2. Velg horisontal eller vertikal bane og visningsstørrelse liten, medium eller stor. Velg et steg med glidebryteren eller pilknappene, og velg en figur. Dra figuren på banen, bruk piltastene når den er valgt på banen, eller endre koordinatene. Shift og piltast flytter fem enheter. Flyttingen gjelder bare det valgte steget; figurer som legges til eller slettes, endres i alle steg. Småmål og store mål kan roteres i grader; rotasjonen gjelder alle steg.
+3. Velg **Kopier til nytt steg** og flytt figurene. Legg inn mellomsteg for svinger: figurene beveger seg rett mellom punktene. Gjenta etter behov, og bruk avspillingsknappen ved glidebryteren til å kontrollere animasjonen fra valgt steg. Steg og figurer slettes umiddelbart.
+4. Åpne **Vis avansert** for å endre beskrivelsene og tid per overgang, og velg **Last ned JSON**. Beskrivelsene brukes også av den offentlige tavlen og bør tilpasses innholdet. Endringene er ikke lagret i prosjektet eller publisert. Kopier den nedlastede filen til `publiserte/media/taktikk/`, og erstatt en eksisterende fil bare når dette er tilsiktet. En nedlastet fil kan åpnes igjen for videre redigering.
 5. Oppdater tavlens tekstbeskrivelse i den offentlige øktfilen. For en ny tavle, legg inn taktikk-komponenten som vist nedenfor. Når en eksisterende datafil endres, øk versjonen i `src`-parameteren, for eksempel fra `?v=4` til `?v=5`, slik at nettlesere ikke bruker en gammel hurtigbufret fil.
 6. Commit og push til GitHub, kontroller Pages-jobben og test den offentlige økten uten innlogging. Ingen GitHub-innlogging, opplasting eller automatisk publisering utføres av redigereren.
 
@@ -79,7 +79,7 @@ Redigereren lagrer ikke endringene automatisk. Last ned før du forlater siden; 
 #### Rediger JSON direkte
 
 1. Kopier [eksempelfilen](../publiserte/media/taktikk/firkant-pasning.json) til en ny JSON-fil i `publiserte/media/taktikk/`. Tilpass den til øvelsen og merk eventuelle lokale illustrasjonsvalg. Ikke bruk navn på enkeltbarn.
-2. Skriv en `description` som forklarer illustrasjonen, og sett `durationMs` til tiden **per overgang** i millisekunder, fra 100 til 60000. Legg inn `objects` med unik `id`, `type` (`player`, `cone` eller `ball`) og valgfri kort `label` på opptil tre tegn.
+2. Skriv en `description` som forklarer illustrasjonen, og sett `durationMs` til tiden **per overgang** i millisekunder, fra 100 til 60000. Valgfritt `pitch` angir `orientation` (`horizontal` eller `vertical`) og visningsstørrelse `size` (`small`, `medium` eller `large`); uten feltet brukes horisontal og stor. Legg inn `objects` med unik `id`, `type` (`player`, `cone`, `ball`, `smallGoal` eller `goal`) og valgfri kort `label` på opptil tre tegn. Mål kan ha `rotation` i grader fra 0 til under 360, med klokken; rotasjonen gjelder alle steg.
 3. Legg inn `frames` i ønsket rekkefølge. Hvert steg trenger en `caption` og `positions` med `[x, y]` for **alle** objekt-ID-er. Koordinater er tall fra 0 til 100: `x` øker mot høyre og `y` nedover. Figurene flyttes rett mellom punktene. Ett steg gir en statisk tavle; flere gir animasjon.
 4. Legg følgende inn i Markdown-filen på ønsket sted, for eksempel inne i et øvelseskort. Bytt ut datafil, tittel og beskrivelse:
 

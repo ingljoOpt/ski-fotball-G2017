@@ -5,7 +5,7 @@ title: Rediger taktikktavle
 <article class="tactic-editor" data-editor-root data-media-root="{{ '/media/taktikk/' | relative_url }}">
   <a class="back-link" href="{{ '/' | relative_url }}">← Alle økter</a>
   <h1>Rediger taktikktavle</h1>
-  <p>Flytt spillere, kjegler og ball på banen. Lag et nytt steg, flytt figurene igjen og forhåndsvis bevegelsen.</p>
+  <p>Flytt figurer på banen. Lag et nytt steg, flytt figurene igjen og forhåndsvis bevegelsen.</p>
   <p class="notice">Endringene lagres ikke automatisk. Last ned JSON-filen og legg den i prosjektet før den kan publiseres.</p>
 
   <div class="editor-toolbar">
@@ -20,19 +20,22 @@ title: Rediger taktikktavle
     <div class="editor-layout">
       <section aria-labelledby="editor-pitch-title">
         <h2 id="editor-pitch-title">Bane</h2>
+        <div class="editor-coordinates">
+          <div><label for="editor-orientation">Retning</label><select id="editor-orientation"><option value="horizontal">Horisontal</option><option value="vertical">Vertikal</option></select></div>
+          <div><label for="editor-size">Størrelse</label><select id="editor-size"><option value="small">Liten</option><option value="medium">Medium</option><option value="large">Stor</option></select></div>
+        </div>
         <p>Velg en figur og dra den. Du kan også bruke piltastene eller skrive inn koordinatene.</p>
         <div id="editor-canvas" class="editor-canvas"></div>
-        <div class="editor-toolbar">
-          <button type="button" id="editor-preview">Spill av forhåndsvisning</button>
-          <button type="button" id="editor-reset">Tilbake til valgt steg</button>
-        </div>
-        <p id="editor-preview-status" aria-live="polite"></p>
 
         <h2>Steg</h2>
-        <label for="editor-frame">Velg steg</label>
-        <select id="editor-frame"></select>
-        <label for="editor-caption">Beskrivelse av steget</label>
-        <input id="editor-caption" type="text" required>
+        <label for="editor-frame">Velg steg <span id="editor-frame-count"></span></label>
+        <div class="editor-timeline">
+          <button type="button" id="editor-previous" aria-label="Forrige steg" title="Forrige steg">◀</button>
+          <input id="editor-frame" type="range" min="0" max="0" step="1" value="0">
+          <button type="button" id="editor-next" aria-label="Neste steg" title="Neste steg">▶</button>
+          <button type="button" id="editor-preview" aria-label="Spill av forhåndsvisning" title="Spill av forhåndsvisning">⏵</button>
+        </div>
+        <p id="editor-preview-status" aria-live="polite"></p>
         <div class="editor-toolbar">
           <button type="button" id="editor-frame-add">Kopier til nytt steg</button>
           <button type="button" id="editor-frame-remove">Slett steg</button>
@@ -50,19 +53,30 @@ title: Rediger taktikktavle
           <div><label for="editor-x">X (0–100)</label><input id="editor-x" type="number" min="0" max="100" step="0.1"></div>
           <div><label for="editor-y">Y (0–100)</label><input id="editor-y" type="number" min="0" max="100" step="0.1"></div>
         </div>
+        <div id="editor-rotation-container" hidden>
+          <label for="editor-rotation">Roter mål i grader (0–359)</label>
+          <input id="editor-rotation" type="number" min="0" max="359" step="1">
+        </div>
         <div class="editor-toolbar">
           <button type="button" data-editor-add="player">Legg til spiller</button>
           <button type="button" data-editor-add="cone">Legg til kjegle</button>
           <button type="button" data-editor-add="ball">Legg til ball</button>
+          <button type="button" data-editor-add="smallGoal">Legg til småmål</button>
+          <button type="button" data-editor-add="goal">Legg til stort mål</button>
           <button type="button" id="editor-object-remove">Slett valgt figur</button>
         </div>
-        <p>Nye og slettede figurer gjelder alle stegene. Flytting gjelder bare valgt steg.</p>
+        <p>Nye og slettede figurer og målrotasjon gjelder alle stegene. Flytting gjelder bare valgt steg.</p>
 
-        <h2>Beskrivelse og lagring</h2>
-        <label for="editor-description">Beskrivelse av hele tavlen</label>
-        <textarea id="editor-description" rows="3" required></textarea>
-        <label for="editor-duration">Tid per overgang i millisekunder (100–60000)</label>
-        <input id="editor-duration" type="number" min="100" max="60000" step="1" required>
+        <h2>Lagring</h2>
+        <label class="editor-advanced-toggle" for="editor-advanced"><input id="editor-advanced" type="checkbox" role="switch" aria-controls="editor-advanced-settings"><span class="editor-switch" aria-hidden="true"></span> Vis avansert</label>
+        <div id="editor-advanced-settings" hidden>
+          <label for="editor-caption">Beskrivelse av steget</label>
+          <input id="editor-caption" type="text" required>
+          <label for="editor-description">Beskrivelse av hele tavlen</label>
+          <textarea id="editor-description" rows="3" required></textarea>
+          <label for="editor-duration">Tid per overgang i millisekunder (100–60000)</label>
+          <input id="editor-duration" type="number" min="100" max="60000" step="1" required>
+        </div>
         <label for="editor-filename">Filnavn</label>
         <input id="editor-filename" type="text" value="taktikktavle.json" required>
         <button type="button" id="editor-download" class="editor-primary">Last ned JSON</button>
@@ -82,6 +96,6 @@ title: Rediger taktikktavle
     <p>Ikke bruk navn på enkeltbarn. Tavlen og hele repositoriet er offentlige når de publiseres.</p>
   </details>
 </article>
-<script src="{{ '/assets/taktikk.js' | relative_url }}?v=3" defer></script>
-<script src="{{ '/assets/taktikk-rediger-modell.js' | relative_url }}?v=1" defer></script>
-<script src="{{ '/assets/taktikk-rediger.js' | relative_url }}?v=1" defer></script>
+<script src="{{ '/assets/taktikk.js' | relative_url }}?v=4" defer></script>
+<script src="{{ '/assets/taktikk-rediger-modell.js' | relative_url }}?v=2" defer></script>
+<script src="{{ '/assets/taktikk-rediger.js' | relative_url }}?v=3" defer></script>

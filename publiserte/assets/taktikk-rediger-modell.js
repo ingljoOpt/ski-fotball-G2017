@@ -9,6 +9,7 @@
     return {
       description: 'Beskriv hva som skjer i animasjonen.',
       durationMs: 1800,
+      pitch: { orientation: 'horizontal', size: 'large' },
       objects: [
         { id: 'spiller1', type: 'player', label: 'A' },
         { id: 'kjegle1', type: 'cone' },
@@ -40,7 +41,7 @@
   }
 
   function addObject(scene, type, label) {
-    const prefixes = { player: 'spiller', cone: 'kjegle', ball: 'ball' };
+    const prefixes = { player: 'spiller', cone: 'kjegle', ball: 'ball', smallGoal: 'smamal', goal: 'mal' };
     if (!Object.hasOwn(prefixes, type)) throw new Error('Ukjent figurtype.');
     if (typeof label !== 'string' || label.length > 3) throw new Error('Merket kan ha maks tre tegn.');
     let number = 1;

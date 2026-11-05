@@ -15,13 +15,29 @@
   'use strict';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
-  const types = new Set(['player', 'cone', 'ball']);
+  const types = new Set(['player', 'cone', 'ball', 'smallGoal', 'goal']);
+  const goalTypes = new Set(['smallGoal', 'goal']);
+
+  function pitchDimensions(scene) {
+    return scene.pitch && scene.pitch.orientation === 'vertical' ? [70, 100] : [100, 70];
+  }
+
+  function objectTransform(scene, object, point) {
+    const [width, height] = pitchDimensions(scene);
+    const translate = `translate(${point[0] * width / 100} ${point[1] * height / 100})`;
+    return object.rotation ? `${translate} rotate(${object.rotation})` : translate;
+  }
 
   function validateScene(scene) {
     if (!scene || typeof scene !== 'object' || Array.isArray(scene)) throw new Error('Tavlen må være et objekt.');
     if (typeof scene.description !== 'string' || !scene.description.trim()) throw new Error('Tavlen må ha en beskrivelse.');
     if (!Number.isFinite(scene.durationMs) || scene.durationMs < 100 || scene.durationMs > 60000) {
       throw new Error('durationMs må være mellom 100 og 60000 millisekunder.');
+    }
+    if (scene.pitch !== undefined && (!scene.pitch || typeof scene.pitch !== 'object' || Array.isArray(scene.pitch) ||
+        !['horizontal', 'vertical'].includes(scene.pitch.orientation) ||
+        !['small', 'medium', 'large'].includes(scene.pitch.size))) {
+      throw new Error('Banen må ha gyldig retning og størrelse.');
     }
     if (!Array.isArray(scene.objects) || scene.objects.length === 0) throw new Error('Tavlen må ha minst ett objekt.');
     const ids = new Set();
@@ -32,6 +48,10 @@
       if (!types.has(object.type)) throw new Error(`Ukjent objekttype: ${object.type}.`);
       if (object.label !== undefined && (typeof object.label !== 'string' || object.label.length > 3)) {
         throw new Error(`Etiketten for ${object.id} må være tekst på maks tre tegn.`);
+      }
+      if (object.rotation !== undefined && (!goalTypes.has(object.type) ||
+          !Number.isFinite(object.rotation) || object.rotation < 0 || object.rotation >= 360)) {
+        throw new Error(`Rotasjonen for ${object.id} må være et tall fra 0 til under 360 grader for et mål.`);
       }
       ids.add(object.id);
     }
@@ -79,21 +99,29 @@
   }
 
   function renderPitch(scene, canvas) {
+    const [width, height] = pitchDimensions(scene);
+    const vertical = width < height;
     const svg = svgElement('svg', {
-      viewBox: '0 0 100 70',
+      viewBox: `0 0 ${width} ${height}`,
       role: 'img',
       'aria-label': scene.description,
-      class: 'tactic-pitch'
+      class: 'tactic-pitch',
+      'data-size': scene.pitch ? scene.pitch.size : 'large'
     });
-    svg.appendChild(svgElement('rect', { x: 1, y: 1, width: 98, height: 68, rx: 2, class: 'pitch-background' }));
-    svg.appendChild(svgElement('rect', { x: 5, y: 5, width: 90, height: 60, class: 'pitch-line' }));
-    svg.appendChild(svgElement('line', { x1: 50, y1: 5, x2: 50, y2: 65, class: 'pitch-line' }));
-    svg.appendChild(svgElement('circle', { cx: 50, cy: 35, r: 8, class: 'pitch-line' }));
+    svg.appendChild(svgElement('rect', { x: 1, y: 1, width: width - 2, height: height - 2, rx: 2, class: 'pitch-background' }));
+    svg.appendChild(svgElement('rect', { x: 5, y: 5, width: width - 10, height: height - 10, class: 'pitch-line' }));
+    svg.appendChild(svgElement('line', vertical
+      ? { x1: 5, y1: 50, x2: 65, y2: 50, class: 'pitch-line' }
+      : { x1: 50, y1: 5, x2: 50, y2: 65, class: 'pitch-line' }));
+    svg.appendChild(svgElement('circle', { cx: width / 2, cy: height / 2, r: 8, class: 'pitch-line' }));
     const elements = new Map();
     for (const object of scene.objects) {
       const group = svgElement('g', { class: `tactic-${object.type}` });
       if (object.type === 'cone') {
         group.appendChild(svgElement('path', { d: 'M 0 -3 L 3 2.5 L -3 2.5 Z' }));
+      } else if (goalTypes.has(object.type)) {
+        const halfWidth = object.type === 'smallGoal' ? 4 : 7;
+        group.appendChild(svgElement('path', { d: `M ${-halfWidth} 0 L ${-halfWidth} -3 L ${halfWidth} -3 L ${halfWidth} 0 Z` }));
       } else {
         group.appendChild(svgElement('circle', { r: object.type === 'ball' ? 1.8 : 3.5 }));
       }
@@ -130,7 +158,8 @@
     function render() {
       const state = positionAt(scene, elapsed);
       for (const [id, point] of Object.entries(state.positions)) {
-        elements.get(id).setAttribute('transform', `translate(${point[0]} ${point[1] * 0.7})`);
+        const object = scene.objects.find((item) => item.id === id);
+        elements.get(id).setAttribute('transform', objectTransform(scene, object, point));
       }
       if (state.index !== displayedStep) {
         step.textContent = `Steg ${state.index + 1} av ${scene.frames.length}: ${scene.frames[state.index].caption}`;
@@ -188,5 +217,5 @@
     if (scene.frames.length > 1) message.hidden = true;
   }
 
-  return { validateScene, positionAt, renderPitch, mount };
+  return { validateScene, positionAt, pitchDimensions, objectTransform, renderPitch, mount };
 });

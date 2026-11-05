@@ -67,12 +67,16 @@ main { max-width: 68rem; margin: auto; padding: 2rem 1.5rem 5rem; overflow-wrap:
 .tactic-title { color: var(--ink); font-weight: 750; }
 .tactic-description, .tactic-message { margin: .35rem 0 .8rem; color: var(--muted); font-size: .9rem; }
 .tactic-pitch { display: block; width: 100%; max-height: 28rem; border-radius: .5rem; }
+.tactic-pitch[data-size="small"] { width: 50%; }
+.tactic-pitch[data-size="medium"] { width: 75%; }
 .pitch-background { fill: #176f50; }
 .pitch-line { fill: none; stroke: #c9ead4; stroke-width: .5; opacity: .8; }
 .tactic-player circle { fill: #194a83; stroke: white; stroke-width: .8; }
 .tactic-player text { fill: white; font: bold 3px system-ui, sans-serif; }
 .tactic-cone path { fill: #ffb149; stroke: #6b3809; stroke-width: .5; }
 .tactic-ball circle { fill: white; stroke: #263d32; stroke-width: .65; }
+.tactic-smallGoal path, .tactic-goal path { fill: #d7e5df; stroke: #263d32; stroke-width: .7; }
+.tactic-smallGoal text, .tactic-goal text { fill: #19333a; font: bold 3px system-ui, sans-serif; }
 .tactic-cone text, .tactic-ball text { fill: #19333a; font: bold 3px system-ui, sans-serif; }
 .tactic-legend { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; margin-top: .65rem; color: var(--muted); font-size: .8rem; }
 .tactic-legend span { display: inline-flex; align-items: center; gap: .35rem; }
@@ -80,6 +84,7 @@ main { max-width: 68rem; margin: auto; padding: 2rem 1.5rem 5rem; overflow-wrap:
 .legend-player { border-radius: 50%; background: #194a83; }
 .legend-cone { background: #e68816; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .legend-ball { border: 1px solid #263d32; border-radius: 50%; background: white; }
+.legend-goal { border: 1px solid #263d32; background: #d7e5df; }
 .tactic-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .8rem; }
 .tactic-controls[hidden], .tactic-message[hidden] { display: none; }
 .tactic-controls button { display: inline-grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--green); border-radius: .45rem; background: white; color: var(--green-dark); cursor: pointer; }
@@ -109,6 +114,15 @@ main { max-width: 68rem; margin: auto; padding: 2rem 1.5rem 5rem; overflow-wrap:
 .editor-canvas [data-editor-object]:focus-visible { outline: none; }
 .editor-canvas [data-selected="true"] > :first-child { stroke: #ffe15c; stroke-width: 1.4; }
 .editor-coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.editor-timeline { display: flex; align-items: center; gap: .4rem; margin-top: .5rem; }
+.editor-timeline input[type="range"] { flex: 1; min-width: 0; padding: 0; border: 0; }
+.tactic-editor .editor-advanced-toggle { display: flex; align-items: center; gap: .5rem; }
+.tactic-editor .editor-advanced-toggle input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.editor-switch { position: relative; width: 2.5rem; height: 1.4rem; border-radius: 1rem; background: #71847b; }
+.editor-switch::after { content: ""; position: absolute; top: .2rem; left: .2rem; width: 1rem; height: 1rem; border-radius: 50%; background: white; transition: transform .15s; }
+.editor-advanced-toggle input:checked + .editor-switch { background: var(--green); }
+.editor-advanced-toggle input:checked + .editor-switch::after { transform: translateX(1.1rem); }
+.editor-advanced-toggle input:focus-visible + .editor-switch { outline: 2px solid #194a83; outline-offset: 2px; }
 #editor-status[data-error="true"] { color: #a32121; font-weight: 700; }
 .editor-help { padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: white; }
 .editor-help summary { cursor: pointer; font-weight: 700; }

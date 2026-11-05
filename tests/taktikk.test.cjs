@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { validateScene, positionAt, mount } = require('../publiserte/assets/taktikk.js');
+const { validateScene, positionAt, pitchDimensions, objectTransform, renderPitch, mount } = require('../publiserte/assets/taktikk.js');
 
 const example = JSON.parse(fs.readFileSync(path.join(__dirname, '../publiserte/media/taktikk/firkant-pasning.json'), 'utf8'));
 const copy = () => structuredClone(example);
@@ -94,7 +94,7 @@ test('ufullstendige eller ugyldige tavler avvises med forklaring', () => {
   duplicate.objects[1].id = duplicate.objects[0].id;
   assert.throws(() => validateScene(duplicate), /unik id/);
   const invalidType = copy();
-  invalidType.objects[0].type = 'goal';
+  invalidType.objects[0].type = 'unknown';
   assert.throws(() => validateScene(invalidType), /Ukjent objekttype/);
   const invalidPoint = copy();
   invalidPoint.frames[0].positions.ball = [101, 2];
@@ -102,6 +102,57 @@ test('ufullstendige eller ugyldige tavler avvises med forklaring', () => {
   const invalidDuration = copy();
   invalidDuration.durationMs = 0;
   assert.throws(() => validateScene(invalidDuration), /durationMs/);
+});
+
+test('banevalg og målrotasjon valideres og bevares uten å endre eldre tavler', () => {
+  const scene = copy();
+  assert.deepEqual(pitchDimensions(scene), [100, 70]);
+  assert.equal(objectTransform(scene, scene.objects[0], [20, 50]), 'translate(20 35)');
+  scene.pitch = { orientation: 'vertical', size: 'small' };
+  scene.objects[0].type = 'smallGoal';
+  scene.objects[0].rotation = 90;
+  validateScene(scene);
+  assert.deepEqual(pitchDimensions(scene), [70, 100]);
+  assert.equal(objectTransform(scene, scene.objects[0], [20, 50]), 'translate(14 50) rotate(90)');
+  for (const pitch of [{ orientation: 'diagonal', size: 'large' }, { orientation: 'vertical', size: 'huge' }, null]) {
+    scene.pitch = pitch;
+    assert.throws(() => validateScene(scene), /Banen/);
+  }
+  scene.pitch = { orientation: 'horizontal', size: 'medium' };
+  for (const angle of [-1, 360, '90', null]) {
+    scene.objects[0].rotation = angle;
+    assert.throws(() => validateScene(scene), /Rotasjonen/);
+  }
+  scene.objects[0].rotation = 45;
+  scene.objects[0].type = 'player';
+  assert.throws(() => validateScene(scene), /Rotasjonen/);
+});
+
+test('vertikal bane og ulike mål tegnes med valgt størrelse', (t) => {
+  const saved = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  t.after(() => {
+    if (saved) Object.defineProperty(globalThis, 'document', saved);
+    else delete globalThis.document;
+  });
+  function element() {
+    return {
+      attributes: {}, children: [],
+      setAttribute(name, value) { this.attributes[name] = value; },
+      appendChild(child) { this.children.push(child); },
+      replaceChildren(child) { this.children = [child]; }
+    };
+  }
+  globalThis.document = { createElementNS: () => element() };
+  const scene = copy();
+  scene.pitch = { orientation: 'vertical', size: 'medium' };
+  scene.objects[0].type = 'smallGoal';
+  scene.objects[1].type = 'goal';
+  const canvas = element();
+  const elements = renderPitch(scene, canvas);
+  assert.equal(canvas.children[0].attributes.viewBox, '0 0 70 100');
+  assert.equal(canvas.children[0].attributes['data-size'], 'medium');
+  assert.notEqual(elements.get(scene.objects[0].id).children[0].attributes.d,
+    elements.get(scene.objects[1].id).children[0].attributes.d);
 });
 
 test('én ramme fungerer som en statisk tavle', () => {
@@ -179,6 +230,24 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
   assert.match(nodes.step.textContent, /^Steg 18 av 18:/);
   nodes.play.listeners.click();
   assert.equal(ball.attributes.transform, 'translate(27 21.7)');
+  nodes.reset.listeners.click();
+  assert.equal(callbacks.size, 0);
+
+  const vertical = copy();
+  vertical.pitch = { orientation: 'vertical', size: 'small' };
+  vertical.objects[0].type = 'goal';
+  vertical.objects[0].rotation = 90;
+  globalThis.fetch = async () => ({ ok: true, json: async () => vertical });
+  await mount(board);
+  const goal = nodes.canvas.children[0].children.find((child) => child.attributes.class === 'tactic-goal');
+  assert.equal(nodes.canvas.children[0].attributes.viewBox, '0 0 70 100');
+  assert.equal(nodes.canvas.children[0].attributes['data-size'], 'small');
+  assert.equal(goal.attributes.transform, 'translate(15.4 23) rotate(90)');
+  nodes.play.listeners.click();
+  tick(0);
+  tick(900);
+  const expected = positionAt(vertical, 900).positions[vertical.objects[0].id];
+  assert.equal(goal.attributes.transform, objectTransform(vertical, vertical.objects[0], expected));
   nodes.reset.listeners.click();
   assert.equal(callbacks.size, 0);
 });

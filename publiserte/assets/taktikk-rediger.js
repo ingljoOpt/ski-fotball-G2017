@@ -9,6 +9,9 @@
   const status = byId('status');
   const canvas = byId('canvas');
   const frameSelect = byId('frame');
+  const orientation = byId('orientation');
+  const size = byId('size');
+  const rotation = byId('rotation');
   const objectSelect = byId('object');
   const caption = byId('caption');
   const label = byId('label');
@@ -35,7 +38,7 @@
   }
 
   function describeObject(object) {
-    const type = { player: 'Spiller', cone: 'Kjegle', ball: 'Ball' }[object.type];
+    const type = { player: 'Spiller', cone: 'Kjegle', ball: 'Ball', smallGoal: 'Småmål', goal: 'Stort mål' }[object.type];
     return `${type}${object.label ? ` ${object.label}` : ''} (${object.id})`;
   }
 
@@ -43,7 +46,7 @@
     for (const object of scene.objects) {
       const point = positions[object.id];
       const group = elements.get(object.id);
-      group.setAttribute('transform', `translate(${point[0]} ${point[1] * 0.7})`);
+      group.setAttribute('transform', board.objectTransform(scene, object, point));
       group.setAttribute('data-selected', String(object.id === selectedId));
       group.setAttribute('aria-label', `${describeObject(object)}, x ${point[0]}, y ${point[1]}. Bruk piltastene for å flytte.`);
     }
@@ -53,7 +56,9 @@
     if (animation !== null) cancelAnimationFrame(animation);
     animation = null;
     previousTime = null;
-    previewButton.textContent = 'Spill av forhåndsvisning';
+    previewButton.textContent = '⏵';
+    previewButton.setAttribute('aria-label', 'Spill av forhåndsvisning');
+    previewButton.title = 'Spill av forhåndsvisning';
     previewStatus.textContent = '';
     if (scene) drawPositions(scene.frames[frameIndex].positions);
   }
@@ -65,6 +70,8 @@
     label.value = object.label || '';
     x.value = point[0];
     y.value = point[1];
+    byId('rotation-container').hidden = object.type !== 'smallGoal' && object.type !== 'goal';
+    rotation.value = object.rotation || 0;
     drawPositions(scene.frames[frameIndex].positions);
   }
 
@@ -80,15 +87,18 @@
     refreshSelection();
   }
 
-  function refreshFrames() {
-    frameSelect.replaceChildren();
-    scene.frames.forEach((frame, index) => {
-      const option = document.createElement('option');
-      option.value = String(index);
-      option.textContent = `Steg ${index + 1} av ${scene.frames.length}`;
-      frameSelect.appendChild(option);
-    });
+  function refreshFrameControls() {
+    frameSelect.max = String(scene.frames.length - 1);
     frameSelect.value = String(frameIndex);
+    frameSelect.setAttribute('aria-valuetext', `Steg ${frameIndex + 1} av ${scene.frames.length}`);
+    byId('frame-count').textContent = `${frameIndex + 1} av ${scene.frames.length}`;
+    byId('previous').disabled = frameIndex === 0;
+    byId('next').disabled = frameIndex === scene.frames.length - 1;
+    previewButton.disabled = scene.frames.length < 2;
+  }
+
+  function refreshFrames() {
+    refreshFrameControls();
     caption.value = scene.frames[frameIndex].caption;
     byId('frame-remove').disabled = scene.frames.length <= 1;
     refreshSelection();
@@ -138,7 +148,8 @@
         point.y = event.clientY;
         const local = point.matrixTransform(matrix.inverse());
         const clamp = (value) => Math.round(Math.max(0, Math.min(100, value)) * 10) / 10;
-        moveSelected([clamp(local.x), clamp(local.y / 0.7)]);
+        const [width, height] = board.pitchDimensions(scene);
+        moveSelected([clamp(local.x * 100 / width), clamp(local.y * 100 / height)]);
       });
       group.addEventListener('pointerup', (event) => {
         if (pointer === event.pointerId) pointer = null;
@@ -167,6 +178,8 @@
     dirty = changed;
     description.value = scene.description;
     duration.value = scene.durationMs;
+    orientation.value = scene.pitch ? scene.pitch.orientation : 'horizontal';
+    size.value = scene.pitch ? scene.pitch.size : 'large';
     filename.value = name;
     buildPitch();
     refreshObjects();
@@ -184,11 +197,15 @@
     const total = (scene.frames.length - 1) * scene.durationMs;
     elapsed = Math.min(elapsed, total);
     const state = board.positionAt(scene, elapsed);
+    if (frameIndex !== state.index) {
+      frameIndex = state.index;
+      refreshFrames();
+    }
     drawPositions(state.positions);
     previewStatus.textContent = `Steg ${state.index + 1} av ${scene.frames.length}: ${scene.frames[state.index].caption}`;
     if (elapsed >= total) {
       stopPreview();
-      report('Forhåndsvisningen er ferdig. Tavlen viser valgt steg igjen.');
+      report('Forhåndsvisningen er ferdig.');
     } else animation = requestAnimationFrame(tick);
   }
 
@@ -200,16 +217,19 @@
     try {
       board.validateScene(scene);
       if (scene.frames.length < 2) throw new Error('Lag minst to steg for å forhåndsvise animasjonen.');
-      elapsed = 0;
+      if (frameIndex === scene.frames.length - 1) frameIndex = 0;
+      elapsed = frameIndex * scene.durationMs;
       previousTime = null;
-      previewButton.textContent = 'Stopp forhåndsvisning';
+      refreshFrames();
+      previewButton.textContent = '⏸';
+      previewButton.setAttribute('aria-label', 'Pause forhåndsvisning');
+      previewButton.title = 'Pause forhåndsvisning';
       animation = requestAnimationFrame(tick);
       report('Forhåndsvisning startet.');
     } catch (error) {
       report(`Kan ikke forhåndsvise: ${error.message}`, true);
     }
   });
-  byId('reset').addEventListener('click', stopPreview);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && animation !== null) stopPreview();
   });
@@ -218,10 +238,43 @@
     if (dirty) event.returnValue = '';
   });
 
-  frameSelect.addEventListener('change', () => {
+  frameSelect.addEventListener('input', () => {
+    const index = Number(frameSelect.value);
     stopPreview();
-    frameIndex = Number(frameSelect.value);
+    frameIndex = index;
     refreshFrames();
+  });
+  for (const [id, delta] of [['previous', -1], ['next', 1]]) {
+    byId(id).addEventListener('click', () => {
+      stopPreview();
+      frameIndex = Math.max(0, Math.min(scene.frames.length - 1, frameIndex + delta));
+      refreshFrames();
+    });
+  }
+  byId('advanced').addEventListener('change', (event) => {
+    byId('advanced-settings').hidden = !event.target.checked;
+  });
+  for (const input of [orientation, size]) {
+    input.addEventListener('change', () => {
+      stopPreview();
+      scene.pitch = { orientation: orientation.value, size: size.value };
+      dirty = true;
+      buildPitch();
+      refreshSelection();
+    });
+  }
+  rotation.addEventListener('change', () => {
+    stopPreview();
+    const value = rotation.value === '' ? NaN : Number(rotation.value);
+    if (!Number.isInteger(value) || value < 0 || value >= 360) {
+      report('Rotasjonen må være et helt tall mellom 0 og 359 grader.', true);
+      refreshSelection();
+      return;
+    }
+    const object = scene.objects.find((item) => item.id === selectedId);
+    object.rotation = value;
+    dirty = true;
+    refreshSelection();
   });
   objectSelect.addEventListener('change', () => {
     stopPreview();
@@ -273,7 +326,6 @@
     report('Et nytt steg er lagt til. Flytt figurene og beskriv steget.');
   });
   byId('frame-remove').addEventListener('click', () => {
-    if (!window.confirm('Slette det valgte steget?')) return;
     stopPreview();
     frameIndex = model.removeFrame(scene, frameIndex);
     dirty = true;
@@ -293,7 +345,6 @@
     });
   });
   byId('object-remove').addEventListener('click', () => {
-    if (!window.confirm('Slette figuren fra alle stegene?')) return;
     stopPreview();
     model.removeObject(scene, selectedId);
     selectedId = scene.objects[0].id;
