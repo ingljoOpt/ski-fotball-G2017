@@ -66,3 +66,21 @@ test('småmål og store mål legges til og fjernes i alle steg', () => {
   assert.ok(scene.frames.every((frame) => !Object.hasOwn(frame.positions, small)));
   validateScene(scene);
 });
+
+test('markeringskjegler lagres og flyttes mellom steg på samme måte som andre figurer', () => {
+  const scene = model.newScene();
+  model.addFrame(scene, 0);
+  const id = model.addObject(scene, 'markerCone', '');
+  const nextId = model.addObject(scene, 'markerCone', '');
+  assert.equal(id, 'markeringskjegle1');
+  assert.equal(nextId, 'markeringskjegle2');
+  model.moveObject(scene, 1, id, [20, 70]);
+  const reopened = JSON.parse(JSON.stringify(scene));
+  validateScene(reopened);
+  assert.equal(reopened.objects.find((object) => object.id === id).type, 'markerCone');
+  assert.deepEqual(reopened.frames[0].positions[id], [50, 50]);
+  assert.deepEqual(reopened.frames[1].positions[id], [20, 70]);
+  model.removeObject(reopened, id);
+  assert.ok(reopened.frames.every((frame) => !Object.hasOwn(frame.positions, id)));
+  validateScene(reopened);
+});

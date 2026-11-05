@@ -41,7 +41,7 @@
   }
 
   function addObject(scene, type, label) {
-    const prefixes = { player: 'spiller', cone: 'kjegle', ball: 'ball', smallGoal: 'smamal', goal: 'mal' };
+    const prefixes = { player: 'spiller', cone: 'kjegle', markerCone: 'markeringskjegle', ball: 'ball', smallGoal: 'smamal', goal: 'mal' };
     if (!Object.hasOwn(prefixes, type)) throw new Error('Ukjent figurtype.');
     if (typeof label !== 'string' || label.length > 3) throw new Error('Merket kan ha maks tre tegn.');
     let number = 1;

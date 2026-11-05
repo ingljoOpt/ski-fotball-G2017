@@ -38,7 +38,7 @@
   }
 
   function describeObject(object) {
-    const type = { player: 'Spiller', cone: 'Kjegle', ball: 'Ball', smallGoal: 'Småmål', goal: 'Stort mål' }[object.type];
+    const type = { player: 'Spiller', cone: 'Kjegle', markerCone: 'Markeringskjegle', ball: 'Ball', smallGoal: 'Småmål', goal: 'Stort mål' }[object.type];
     return `${type}${object.label ? ` ${object.label}` : ''} (${object.id})`;
   }
 

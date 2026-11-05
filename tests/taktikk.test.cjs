@@ -147,12 +147,31 @@ test('vertikal bane og ulike mål tegnes med valgt størrelse', (t) => {
   scene.pitch = { orientation: 'vertical', size: 'medium' };
   scene.objects[0].type = 'smallGoal';
   scene.objects[1].type = 'goal';
+  scene.objects[2].type = 'markerCone';
   const canvas = element();
   const elements = renderPitch(scene, canvas);
   assert.equal(canvas.children[0].attributes.viewBox, '0 0 70 100');
   assert.equal(canvas.children[0].attributes['data-size'], 'medium');
   assert.notEqual(elements.get(scene.objects[0].id).children[0].attributes.d,
     elements.get(scene.objects[1].id).children[0].attributes.d);
+  for (const object of scene.objects.slice(0, 2)) {
+    assert.deepEqual(elements.get(object.id).children.map((child) => child.attributes.class),
+      ['goal-net-background', 'goal-net-roof', 'goal-net', 'goal-frame']);
+    const [background, roof, net, frame] = elements.get(object.id).children;
+    assert.match(background.attributes.d, /-4\.8/);
+    assert.match(roof.attributes.d, /-4\.8/);
+    assert.match(net.attributes.d, /-0\.3/);
+    assert.match(frame.attributes.d, /1\.7/);
+  }
+  const cone = scene.objects.find((object) => object.type === 'cone');
+  assert.deepEqual(elements.get(cone.id).children.map((child) => child.attributes.class),
+    ['cone-base', 'cone-body', 'cone-band', 'cone-highlight']);
+  const marker = scene.objects.find((object) => object.type === 'markerCone');
+  assert.deepEqual(elements.get(marker.id).children.map((child) => child.attributes.class),
+    ['marker-cone-base', 'marker-cone-body', 'marker-cone-highlight']);
+  const ball = scene.objects.find((object) => object.type === 'ball');
+  assert.deepEqual(elements.get(ball.id).children.map((child) => child.attributes.class),
+    ['ball-surface', 'ball-shade', 'ball-seams', 'ball-panel']);
 });
 
 test('én ramme fungerer som en statisk tavle', () => {
@@ -237,17 +256,21 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
   vertical.pitch = { orientation: 'vertical', size: 'small' };
   vertical.objects[0].type = 'goal';
   vertical.objects[0].rotation = 90;
+  vertical.objects[1].type = 'markerCone';
   globalThis.fetch = async () => ({ ok: true, json: async () => vertical });
   await mount(board);
   const goal = nodes.canvas.children[0].children.find((child) => child.attributes.class === 'tactic-goal');
+  const marker = nodes.canvas.children[0].children.find((child) => child.attributes.class === 'tactic-markerCone');
   assert.equal(nodes.canvas.children[0].attributes.viewBox, '0 0 70 100');
   assert.equal(nodes.canvas.children[0].attributes['data-size'], 'small');
   assert.equal(goal.attributes.transform, 'translate(15.4 23) rotate(90)');
+  assert.equal(marker.attributes.transform, objectTransform(vertical, vertical.objects[1], vertical.frames[0].positions[vertical.objects[1].id]));
   nodes.play.listeners.click();
   tick(0);
   tick(900);
   const expected = positionAt(vertical, 900).positions[vertical.objects[0].id];
   assert.equal(goal.attributes.transform, objectTransform(vertical, vertical.objects[0], expected));
+  assert.equal(marker.attributes.transform, objectTransform(vertical, vertical.objects[1], positionAt(vertical, 900).positions[vertical.objects[1].id]));
   nodes.reset.listeners.click();
   assert.equal(callbacks.size, 0);
 });

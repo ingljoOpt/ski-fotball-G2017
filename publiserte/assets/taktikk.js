@@ -15,7 +15,7 @@
   'use strict';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
-  const types = new Set(['player', 'cone', 'ball', 'smallGoal', 'goal']);
+  const types = new Set(['player', 'cone', 'markerCone', 'ball', 'smallGoal', 'goal']);
   const goalTypes = new Set(['smallGoal', 'goal']);
 
   function pitchDimensions(scene) {
@@ -118,12 +118,55 @@
     for (const object of scene.objects) {
       const group = svgElement('g', { class: `tactic-${object.type}` });
       if (object.type === 'cone') {
-        group.appendChild(svgElement('path', { d: 'M 0 -3 L 3 2.5 L -3 2.5 Z' }));
+        group.appendChild(svgElement('path', { class: 'cone-base', d: 'M -3 2 L 0 0.8 L 3 2 L 3 2.8 L -3 2.8 Z' }));
+        group.appendChild(svgElement('path', { class: 'cone-body', d: 'M 0 -3 L 2.3 2 L 0 2.7 L -2.3 2 Z' }));
+        group.appendChild(svgElement('path', { class: 'cone-band', d: 'M -1.3 -0.2 L 0 0.15 L 1.3 -0.2 L 1.8 0.9 L 0 1.35 L -1.8 0.9 Z' }));
+        group.appendChild(svgElement('path', { class: 'cone-highlight', d: 'M -0.45 -1.8 L -1.45 0.5' }));
+      } else if (object.type === 'markerCone') {
+        group.appendChild(svgElement('ellipse', { class: 'marker-cone-base', cx: 0, cy: 0.45, rx: 2.3, ry: 0.7 }));
+        group.appendChild(svgElement('path', { class: 'marker-cone-body', d: 'M -2 0.35 Q -1.25 -1.2 0 -1.2 Q 1.25 -1.2 2 0.35 Q 0 1 -2 0.35 Z' }));
+        group.appendChild(svgElement('path', { class: 'marker-cone-highlight', d: 'M -1 -0.1 Q -0.6 -0.7 0 -0.8' }));
       } else if (goalTypes.has(object.type)) {
         const halfWidth = object.type === 'smallGoal' ? 4 : 7;
-        group.appendChild(svgElement('path', { d: `M ${-halfWidth} 0 L ${-halfWidth} -3 L ${halfWidth} -3 L ${halfWidth} 0 Z` }));
+        const back = halfWidth - 1;
+        group.appendChild(svgElement('path', {
+          class: 'goal-net-background',
+          d: `M ${-halfWidth} 1.7 L ${-halfWidth} -2.8 L ${-back} -4.8 L ${back} -4.8` +
+            ` L ${halfWidth} -2.8 L ${halfWidth} 1.7 L ${back} -0.3 L ${-back} -0.3 Z`
+        }));
+        group.appendChild(svgElement('path', {
+          class: 'goal-net-roof',
+          d: `M ${-halfWidth} -2.8 L ${-back} -4.8 L ${back} -4.8 L ${halfWidth} -2.8 Z`
+        }));
+        group.appendChild(svgElement('path', {
+          class: 'goal-net',
+          d: `M ${-back} -4.8 L ${-back} -0.3 L ${back} -0.3 L ${back} -4.8` +
+            ` M ${-back} -3.8 L ${back} -3.8 M ${-back} -2.8 L ${back} -2.8` +
+            ` M ${-back} -1.8 L ${back} -1.8 M ${-back} -0.8 L ${back} -0.8` +
+            ` M ${-back / 2} -4.8 L ${-back / 2} -0.3 M 0 -4.8 L 0 -0.3 M ${back / 2} -4.8 L ${back / 2} -0.3` +
+            ` M ${-halfWidth / 2} -2.8 L ${-back / 2} -4.8 M 0 -2.8 L 0 -4.8 M ${halfWidth / 2} -2.8 L ${back / 2} -4.8` +
+            ` M ${-halfWidth} -0.5 L ${-back} -2.5 M ${halfWidth} -0.5 L ${back} -2.5` +
+            ` M ${-halfWidth} 1.7 L ${-back} -0.3 M ${halfWidth} 1.7 L ${back} -0.3`
+        }));
+        group.appendChild(svgElement('path', {
+          class: 'goal-frame',
+          d: `M ${-halfWidth} 1.7 L ${-halfWidth} -2.8 L ${halfWidth} -2.8 L ${halfWidth} 1.7`
+        }));
+      } else if (object.type === 'ball') {
+        group.appendChild(svgElement('circle', { class: 'ball-surface', r: 1.8 }));
+        group.appendChild(svgElement('path', { class: 'ball-shade', d: 'M -1.7 0.45 Q -1.3 1.8 0 1.8 Q 1.3 1.8 1.7 0.45 Q 0 1.2 -1.7 0.45 Z' }));
+        group.appendChild(svgElement('path', { class: 'ball-seams', d: 'M 0 -0.7 L 0 -1.42 M 0.67 -0.22 L 1.3 -0.44 M 0.42 0.58 L 0.83 1.15 M -0.42 0.58 L -0.83 1.15 M -0.67 -0.22 L -1.3 -0.44' }));
+        group.appendChild(svgElement('path', {
+          class: 'ball-panel',
+          d: 'M 0 -0.7 L 0.67 -0.22 L 0.42 0.58 L -0.42 0.58 L -0.67 -0.22 Z' +
+            ' M -0.5 -1.7 Q 0 -1.84 0.5 -1.7 L 0.32 -1.42 L -0.32 -1.42 Z' +
+            ' M 1.56 -0.88 Q 1.8 -0.45 1.8 0 L 1.45 0.03 L 1.3 -0.44 Z' +
+            ' M -1.56 -0.88 Q -1.8 -0.45 -1.8 0 L -1.45 0.03 L -1.3 -0.44 Z' +
+            ' M 0.55 1.7 Q 1.15 1.4 1.4 1.12 L 1.1 0.96 L 0.83 1.15 Z' +
+            ' M -0.55 1.7 Q -1.15 1.4 -1.4 1.12 L -1.1 0.96 L -0.83 1.15 Z'
+        }));
       } else {
-        group.appendChild(svgElement('circle', { r: object.type === 'ball' ? 1.8 : 3.5 }));
+        group.appendChild(svgElement('circle', { r: 3.5 }));
       }
       if (object.label) {
         const text = svgElement('text', { x: 0, y: 0, 'text-anchor': 'middle', 'dominant-baseline': 'central' });
