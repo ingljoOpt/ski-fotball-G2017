@@ -127,7 +127,7 @@ export async function saveGroupSettings(form: FormData) {
   const user = await requireUser();
   return run(groupPath(form), async () => {
     await updateGroupSettings(await getDatabase(), user.id, field(form, "groupId"), {
-      durationMinutes: field(form, "durationMinutes"), generationDaysBefore: field(form, "generationDaysBefore"),
+      generationDaysBefore: field(form, "generationDaysBefore"),
     });
     return `${groupPath(form)}?melding=${encodeURIComponent("Innstillingene er lagret. Automatisk generering er ikke implementert ennå.")}`;
   });
@@ -137,7 +137,7 @@ export async function newTrainingTime(form: FormData) {
   const user = await requireUser();
   return run(groupPath(form), async () => {
     await addTrainingTime(await getDatabase(), user.id, field(form, "groupId"), {
-      weekday: field(form, "weekday"), startTime: field(form, "startTime"),
+      weekday: field(form, "weekday"), startTime: field(form, "startTime"), endTime: field(form, "endTime"),
     });
     return groupPath(form);
   });
@@ -217,7 +217,7 @@ const planningPath = (form: FormData, page: "arsplan" | "kalender") => {
   return `${groupPath(form)}/${page}${year.success ? `?year=${year.data}` : ""}`;
 };
 const eventFields = (form: FormData) => ({
-  date: field(form, "date"), startTime: field(form, "startTime"), durationMinutes: field(form, "durationMinutes"),
+  date: field(form, "date"), startTime: field(form, "startTime"), endTime: field(form, "endTime"),
   title: field(form, "title"), theme: field(form, "theme"), objectives: field(form, "objectives"),
 });
 const eventPath = (form: FormData) => {

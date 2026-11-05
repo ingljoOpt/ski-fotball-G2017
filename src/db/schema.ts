@@ -52,6 +52,7 @@ export const trainingEvents = pgTable("training_events", {
   groupId: uuid("group_id").notNull(),
   date: date("date").notNull(),
   startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
   durationMinutes: integer("duration_minutes").notNull(),
   title: text("title").notNull(),
   theme: text("theme").notNull().default(""),
@@ -68,6 +69,8 @@ export const trainingEvents = pgTable("training_events", {
   check("event_duration_range", sql`${table.durationMinutes} between 15 and 240`),
   check("event_status", sql`${table.status} in ('draft', 'planned', 'cancelled')`),
   check("event_time", sql`${table.startTime} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
+  check("event_end_time", sql`${table.endTime} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
+  check("event_time_duration", sql`${table.durationMinutes} = mod((extract(epoch from ${table.endTime}::time)::integer - extract(epoch from ${table.startTime}::time)::integer + 86400), 86400) / 60`),
 ]);
 
 export const sessionVersions = pgTable("session_versions", {
@@ -78,7 +81,7 @@ export const sessionVersions = pgTable("session_versions", {
   version: integer("version").notNull(),
   createdBy: uuid("created_by").notNull().references(() => users.id),
   origin: text("origin", { enum: ["manual", "ai"] }).notNull(),
-  eventSnapshot: jsonb("event_snapshot").$type<{ date: string; startTime: string; durationMinutes: number; title: string; theme: string; objectives: string; status: "draft" | "planned" }>().notNull(),
+  eventSnapshot: jsonb("event_snapshot").$type<{ date: string; startTime: string; endTime: string; durationMinutes: number; title: string; theme: string; objectives: string; status: "draft" | "planned" }>().notNull(),
   plan: jsonb("plan").$type<SessionPlan>().notNull(),
   planningContext: jsonb("planning_context").$type<PlanningSnapshot>().notNull(),
   createdAt: createdAt(),
@@ -131,12 +134,13 @@ export const groups = pgTable("groups", {
   id: uuid("id").defaultRandom().primaryKey(),
   clubId: uuid("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  durationMinutes: integer("duration_minutes").notNull().default(60),
+  // Retained only to migrate existing weekly times without discarding the old duration.
+  legacyDurationMinutes: integer("duration_minutes").notNull().default(60),
   generationDaysBefore: integer("generation_days_before").notNull().default(3),
   createdAt: createdAt(),
 }, (table) => [
   unique("groups_club_id_id_unique").on(table.clubId, table.id),
-  check("duration_range", sql`${table.durationMinutes} between 15 and 240`),
+  check("duration_range", sql`${table.legacyDurationMinutes} between 15 and 240`),
   check("generation_days_range", sql`${table.generationDaysBefore} between 0 and 30`),
 ]);
 
@@ -176,6 +180,7 @@ export const trainingTimes = pgTable("training_times", {
   groupId: uuid("group_id").notNull(),
   weekday: integer("weekday").notNull(),
   startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
   timezone: text("timezone").notNull().default("Europe/Oslo"),
   enabled: boolean("enabled").notNull().default(true),
 }, (table) => [
@@ -186,4 +191,6 @@ export const trainingTimes = pgTable("training_times", {
   unique("training_times_slot").on(table.groupId, table.weekday, table.startTime),
   check("weekday_range", sql`${table.weekday} between 1 and 7`),
   check("time_format", sql`${table.startTime} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
+  check("training_end_time", sql`${table.endTime} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
+  check("training_time_duration", sql`mod((extract(epoch from ${table.endTime}::time)::integer - extract(epoch from ${table.startTime}::time)::integer + 86400), 86400) / 60 between 15 and 240`),
 ]);

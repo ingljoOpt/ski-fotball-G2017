@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Database } from "../db/index.ts";
 import { annualPlans, clubs, groups, planPeriods, sessionVersions, trainingEvents, trainingTimes } from "../db/schema.ts";
 import { DomainError, getGroupAccess } from "./domain.ts";
-import { idSchema } from "./validation.ts";
+import { idSchema, minutesBetween } from "./validation.ts";
 import {
   annualPlanSchema, checkSessionPlan, datesInYear, emptySessionPlan, eventSchema, NFF_SOURCE, nffAgeSource,
   periodSchema, periodsOnDate, sessionPlanSchema, slotKey, weekdayFor, yearSchema,
@@ -112,8 +112,8 @@ export async function groupCalendar(db: Database, userId: string, groupId: strin
     .filter((time) => !hiddenSlots.has(slotKey(date, time.startTime))).map((time) => {
       const period = periodsOnDate(annual.periods, date)[0];
       return {
-        id: null, clubId: annual.group.clubId, groupId, date, startTime: time.startTime,
-        durationMinutes: annual.group.durationMinutes, title: `${annual.group.name} – trening`,
+        id: null, clubId: annual.group.clubId, groupId, date, startTime: time.startTime, endTime: time.endTime,
+        durationMinutes: minutesBetween(time.startTime, time.endTime), title: `${annual.group.name} – trening`,
         theme: period?.theme ?? "", objectives: period?.objectives ?? "",
         recurrenceKey: slotKey(date, time.startTime), status: "scheduled" as const, revision: 0, virtual: true,
       };
@@ -124,11 +124,12 @@ export async function groupCalendar(db: Database, userId: string, groupId: strin
 export async function createTrainingEvent(
   db: Database, userId: string, groupId: string, input: unknown, recurrenceKey: string | null = null, cancelled = false,
 ) {
-  const data = eventSchema.parse(input);
+  let data = eventSchema.parse(input);
   return db.transaction(async (tx) => {
     const { group } = await lockGroup(tx, userId, groupId);
     const times = await tx.select().from(trainingTimes).where(and(eq(trainingTimes.groupId, groupId), eq(trainingTimes.enabled, true)));
-    const isRecurring = times.some((time) => time.weekday === weekdayFor(data.date) && time.startTime === data.startTime);
+    const recurringTime = times.find((time) => time.weekday === weekdayFor(data.date) && time.startTime === data.startTime);
+    const isRecurring = !!recurringTime;
     const effectiveKey = recurrenceKey ?? (isRecurring ? slotKey(data.date, data.startTime) : null);
     if (recurrenceKey !== null) {
       if (recurrenceKey !== slotKey(data.date, data.startTime)) throw new DomainError("Den faste treningstiden stemmer ikke med dato og klokkeslett.");
@@ -137,6 +138,7 @@ export async function createTrainingEvent(
       if (!isRecurring) {
         throw new DomainError("Den faste treningstiden finnes ikke lenger. Opprett eventuelt en enkeltøkt.");
       }
+      data = eventSchema.parse({ ...data, endTime: recurringTime.endTime });
     }
     if (effectiveKey) {
       const [reserved] = await tx.select().from(trainingEvents).where(and(eq(trainingEvents.groupId, groupId), eq(trainingEvents.recurrenceKey, effectiveKey)));

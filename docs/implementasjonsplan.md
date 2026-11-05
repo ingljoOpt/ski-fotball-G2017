@@ -18,7 +18,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [x] Opprette gruppe og invitere hovedtrener som første medlem.
 - [x] Hovedtrener kan invitere og fjerne trenere i egen gruppe.
 - [x] Klubbadministrator kan legge til og fjerne gruppemedlemmer.
-- [x] Gruppens faste treningstider, øktlengde og antall dager før automatisk oppretting lagres. Selve automatikkjobben kommer i steg 4.
+- [x] Gruppens faste treningstider med fra-/til-tid og antall dager før automatisk oppretting lagres. Varigheten følger hver trening; ingen gruppefelles standardvarighet. Selve automatikkjobben kommer i steg 4.
 - [x] Flere klubbadministratorer og overføring av hovedtrenerrolle, med e-postbundet invitasjon/tilbakekalling, vern av siste administrator og atomisk rollebytte til eksisterende gruppemedlem.
 - [x] Klubbprofil: klubbadministrator kan laste opp logo og velge primær-/aksentfarger, med forhåndsvisning, validering og tilbakestilling til standard.
 - [x] Bruke klubbprofil på klubbkort, klubb- og gruppesider; kontrollere kontrast, logoens tekstalternativ og isolasjon mellom klubber.
@@ -28,6 +28,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 ## 3. Kalender og manuell øktplanlegging
 
 - [x] Kalender med gjentakende treninger, unntak og enkeltøkter.
+- [x] Fra-/til-tid på hver økt, automatisk beregnet varighet og serverstyrt arv av tidsrom fra valgt trening. Migrere eksisterende tider/økter og historiske snapshots uten å endre tidligere varighet.
 - [x] Års-/periodeplan med tema, øvingsmål, progresjon og eksplisitt fødselsår.
 - [x] Aldersbestemt NFF-kildelenke og lagret årsplankontekst, uten automatisk temagenerering før steg 4.
 - [ ] Klubbfelles sportsplan, veiledning og utstyr med versjonering.
@@ -81,6 +82,8 @@ Nettleserkontrollen av klubbprofilen bruker egen PGlite-database med fiktive klu
 Typekontroll, lint, eksisterende animasjonstester, nye konfigurasjonstester, PGlite-integrasjonstester og produksjonsbygg er kontrollpunkter for leveransen. Databasetestene bruker isolerte midlertidige mapper, uten Docker eller miljøfil, og verifiserer fillås, persistens og at migreringer ikke kjøres på nytt ved omstart. HeroUI erstatter de håndlagde UI-komponentene uten å endre autorisasjonsreglene. `publiserte/assets/package.json` bevarer CommonJS-kompatibiliteten til de eksisterende UMD-baserte animasjonsmodulene mens webappen bruker ES-moduler.
 
 Kalender og manuell øktplanlegging er verifisert med 29 enhets-/animasjonstester, 24 databasekontroller, typekontroll, lint og produksjonsbygg. Databasetestene dekker virtuelle uketider, samtidige/idempotente opprettinger, temaperioder, godkjenning, utdaterte redigeringer, tenant-grenser og sammensatte fremmednøkler. De tester også flytting over årsskiftet, avlysning/gjenåpning, bevaring av opprinnelig årsplankontekst og persistens etter ny åpning.
+
+Fra-/til-tider er kontrollert med 30 enhets-/animasjonstester og 26 databasekontroller, typekontroll, lint og produksjonsbygg. Testene dekker ulike lengder på ukentlige treninger, serverstyrt arv ved kalenderoppretting, automatisk omberegning ved endring, tidsgrenser og midnatt. Oppgradering fra befolket eldre skjema bevarer varigheter og historiske verdier og kan kjøres på nytt uten endringer.
 
 Nettleserkontrollen med en vanlig trener og isolerte, fiktive data dekker årsplan og temaperiode, aldersriktig NFF-lenke, kalender med arvede temaer, utkast og godkjenning, øvelsesrekkefølge/fjerning, versjonshistorikk, flytting og avlysning/gjenåpning. Avvist godkjenning bevarer tekstfelt, tekstområder, tall og øktdel. Årsplan, kalender og åpen øktbygger er kontrollert ved 375 pikslers bredde uten horisontal overløp. Ingen faktiske lagøkter er opprettet i Markdown-historikken.
 

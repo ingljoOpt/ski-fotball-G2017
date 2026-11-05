@@ -83,12 +83,12 @@ test("PGlite: migrations, login, invitations and tenant authorization", async (t
       });
 
       await t.test("settings and multiple training times persist", async () => {
-        await updateGroupSettings(tx, head.id, firstGroup.group.id, { durationMinutes: 75, generationDaysBefore: 4 });
-        await addTrainingTime(tx, head.id, firstGroup.group.id, { weekday: 3, startTime: "18:00" });
-        await addTrainingTime(tx, head.id, firstGroup.group.id, { weekday: 7, startTime: "11:00" });
-        await assert.rejects(addTrainingTime(tx, head.id, firstGroup.group.id, { weekday: 3, startTime: "18:00" }), DomainError);
+        await updateGroupSettings(tx, head.id, firstGroup.group.id, { generationDaysBefore: 4 });
+        await addTrainingTime(tx, head.id, firstGroup.group.id, { weekday: 3, startTime: "18:00", endTime: "19:15" });
+        await addTrainingTime(tx, head.id, firstGroup.group.id, { weekday: 7, startTime: "11:00", endTime: "12:30" });
+        await assert.rejects(addTrainingTime(tx, head.id, firstGroup.group.id, { weekday: 3, startTime: "18:00", endTime: "19:00" }), DomainError);
         const details = await groupDetails(tx, coach.id, firstGroup.group.id);
-        assert.equal(details.group.durationMinutes, 75);
+        assert.deepEqual(details.times.map((time) => time.endTime), ["19:15", "12:30"]);
         assert.equal(details.group.generationDaysBefore, 4);
         assert.equal(details.times.length, 2);
         await assert.rejects(removeTrainingTime(tx, outsider.id, firstGroup.group.id, details.times[0].id), DomainError);

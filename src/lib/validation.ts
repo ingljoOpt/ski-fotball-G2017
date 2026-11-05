@@ -5,12 +5,25 @@ export const emailSchema = z.email("Oppgi en gyldig e-postadresse.").trim().toLo
 export const idSchema = z.uuid("Ugyldig ID.");
 export const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/, "Ugyldig lenke.");
 export const settingsSchema = z.object({
-  durationMinutes: z.coerce.number().int().min(15).max(240),
   generationDaysBefore: z.coerce.number().int().min(0).max(30),
 });
-export const trainingTimeSchema = z.object({
+export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Oppgi klokkeslett som TT:MM.");
+export function minutesBetween(startTime: string, endTime: string) {
+  const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+  return (minutes(endTime) - minutes(startTime) + 1440) % 1440;
+}
+export function formatTimeRange(startTime: string, endTime: string) {
+  return `${startTime}–${endTime}${endTime < startTime ? " (neste dag)" : ""}`;
+}
+export const timeRangeSchema = z.object({
+  startTime: timeSchema,
+  endTime: timeSchema,
+}).refine(({ startTime, endTime }) => {
+  const duration = minutesBetween(startTime, endTime);
+  return duration >= 15 && duration <= 240;
+}, { path: ["endTime"], message: "Tidsrommet må være mellom 15 og 240 minutter. Tidligere til-tid betyr neste dag." });
+export const trainingTimeSchema = timeRangeSchema.safeExtend({
   weekday: z.coerce.number().int().min(1).max(7),
-  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Oppgi klokkeslett som TT:MM."),
 });
 
 export function safeReturnPath(value: unknown): string {

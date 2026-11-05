@@ -1,10 +1,10 @@
 import { z } from "zod";
+import { minutesBetween, timeRangeSchema } from "./validation.ts";
 
 export const NFF_SOURCE = "https://www.fotball.no/barn-og-ungdom/";
 export const yearSchema = z.coerce.number().int().min(2000).max(2100);
 export const dateSchema = z.iso.date("Oppgi en gyldig dato.").refine((value) =>
   Number(value.slice(0, 4)) >= 2000 && Number(value.slice(0, 4)) <= 2100, "Datoen må være mellom 2000 og 2100.");
-export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Oppgi klokkeslett som TT:MM.");
 const text = z.string().trim().max(8000);
 const optionalCount = z.preprocess((value) => value === "" || value === undefined ? null : value,
   z.coerce.number().int().min(0).max(500).nullable());
@@ -33,13 +33,12 @@ export const periodSchema = z.object({
 }).refine((value) => value.endDate >= value.startDate && value.startDate.slice(0, 4) === value.endDate.slice(0, 4),
   "Perioden må ligge innenfor ett kalenderår, med sluttdato etter eller lik startdato.");
 
-export const eventSchema = z.object({
-  date: dateSchema, startTime: timeSchema,
-  durationMinutes: z.coerce.number().int().min(15).max(240),
+export const eventSchema = timeRangeSchema.safeExtend({
+  date: dateSchema,
   title: z.string().trim().min(2).max(150),
   theme: z.string().trim().max(150),
   objectives: text,
-});
+}).transform((data) => ({ ...data, durationMinutes: minutesBetween(data.startTime, data.endTime) }));
 export const stageLabels = {
   warmup: "Oppvarming / sjef over ballen",
   theme: "Temaarbeid / spille med og mot",

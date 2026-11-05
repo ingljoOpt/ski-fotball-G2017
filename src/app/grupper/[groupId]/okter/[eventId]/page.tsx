@@ -11,6 +11,7 @@ import { AppLink, Card, Chip, SubmitButton } from "@/app/ui";
 import { eventStatusLabels, formatDate, PlanningNavigation } from "@/app/planning-components";
 import { SessionPlanEditor } from "@/app/session-plan-editor";
 import { SessionPlanView } from "@/app/session-plan-view";
+import { formatTimeRange } from "@/lib/validation";
 
 export default async function TrainingSession({ params, searchParams }: {
   params: Promise<{ groupId: string; eventId: string }>; searchParams: SearchParams;
@@ -29,7 +30,7 @@ export default async function TrainingSession({ params, searchParams }: {
     <Account email={user.email} /><ClubIdentity club={details.club} />
     <PlanningNavigation groupId={groupId} year={Number(event.date.slice(0, 4))} />
     <span className="eyebrow">{details.group.name} · Øktplan</span><h1>{event.title}</h1>
-    <div className="row"><p>{formatDate(event.date)} kl. {event.startTime} · Europe/Oslo · {event.durationMinutes} minutter</p>
+    <div className="row"><p>{formatDate(event.date)} kl. {formatTimeRange(event.startTime, event.endTime)} · Europe/Oslo · {event.durationMinutes} minutter</p>
       <Chip>{eventStatusLabels[event.status]}</Chip></div>
     <Notices searchParams={searchParams} />
     <Card className="app-card">
@@ -49,7 +50,7 @@ export default async function TrainingSession({ params, searchParams }: {
           {versions.map((version) => <details className="exercise-detail" key={version.id}>
             <summary>Versjon {version.version} · {version.origin === "manual" ? "Manuell" : "AI-utkast"} · {new Intl.DateTimeFormat("nb-NO", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Oslo" }).format(version.createdAt)}</summary>
             <h3>{version.eventSnapshot.title}</h3>
-            <p>{formatDate(version.eventSnapshot.date)} kl. {version.eventSnapshot.startTime} · {version.eventSnapshot.theme || "Tema ikke satt"} · {eventStatusLabels[version.eventSnapshot.status]}</p>
+            <p>{formatDate(version.eventSnapshot.date)} kl. {formatTimeRange(version.eventSnapshot.startTime, version.eventSnapshot.endTime)} · {version.eventSnapshot.theme || "Tema ikke satt"} · {eventStatusLabels[version.eventSnapshot.status]}</p>
             <p className="preserve-lines">{version.eventSnapshot.objectives}</p>
             <p>Årsplankontekst: {version.planningContext.periods.map((period) => period.theme).join(", ") || "Ingen temaperiode"}</p>
             <SessionPlanView plan={version.plan} durationMinutes={version.eventSnapshot.durationMinutes} />

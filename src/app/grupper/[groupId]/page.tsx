@@ -9,6 +9,7 @@ import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubIdentity, ClubTheme } from "@/app/club-theme";
 import { osloToday } from "@/lib/planning";
 import { PlanningNavigation } from "@/app/planning-components";
+import { formatTimeRange } from "@/lib/validation";
 
 const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 const roleName = (role: string) => role === "head_coach" ? "Hovedtrener" : "Trener";
@@ -41,14 +42,16 @@ export default async function Group({ params, searchParams }: {
           <Card className="app-card">
             <h2>Treningstider</h2>
             {details.times.length ? <ul className="clean">{details.times.map((time) => <li className="row" key={time.id}>
-              <span>{weekdays[time.weekday - 1]} kl. {time.startTime} <small>· {time.timezone}</small></span>
+              <span>{weekdays[time.weekday - 1]} kl. {formatTimeRange(time.startTime, time.endTime)} <small>· {time.timezone}</small></span>
               {canManage && <form action={deleteTrainingTime}><input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="timeId" value={time.id} /><SubmitButton variant="danger-soft" size="sm">Fjern tid</SubmitButton></form>}
             </li>)}</ul> : <p className="muted">Ingen faste treningstider registrert.</p>}
             {canManage && <form className="inline-form" action={newTrainingTime}>
               <input type="hidden" name="groupId" value={groupId} />
               <WeekdaySelect />
-              <NativeInput label="Klokkeslett" type="time" name="startTime" required /><SubmitButton>Legg til tid</SubmitButton>
+              <NativeInput label="Fra" type="time" name="startTime" required />
+              <NativeInput label="Til" type="time" name="endTime" required /><SubmitButton>Legg til tid</SubmitButton>
             </form>}
+            <small>Tidsrom: 15–240 minutter. En tidligere til-tid betyr avslutning neste dag.</small>
           </Card>
           <Card className="app-card">
             <h2>Trenergruppen</h2>
@@ -79,10 +82,10 @@ export default async function Group({ params, searchParams }: {
             <h2>Øktrammer</h2>
             {canManage ? <form action={saveGroupSettings}>
               <input type="hidden" name="groupId" value={groupId} />
-              <NativeInput label="Øktlengde i minutter" name="durationMinutes" type="number" min={15} max={240} required defaultValue={group.durationMinutes} />
               <NativeInput label="Dager før trening for nytt utkast" name="generationDaysBefore" type="number" min={0} max={30} required defaultValue={group.generationDaysBefore} />
               <SubmitButton>Lagre rammer</SubmitButton>
-            </form> : <p>{group.durationMinutes} minutter per økt. Ønsket utkast {group.generationDaysBefore} dager før trening.</p>}
+            </form> : <p>Ønsket utkast {group.generationDaysBefore} dager før trening.</p>}
+            <p className="muted">Øktlengden beregnes fra fra- og til-tidspunktet for hver trening. Ingen felles standardvarighet.</p>
             <p className="notice">Innstillingene lagres nå. Automatisk oppretting og AI-planlegging kommer i neste steg og er ikke aktivert.</p>
           </Card>
           <Card className="app-card"><span className="eyebrow">Planlegging</span><h2>Fra rammer til økter</h2>

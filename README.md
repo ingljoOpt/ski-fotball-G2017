@@ -54,6 +54,7 @@ Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo
 
 - Lagre planår, eventuelt fødselsår, og årsmål. Legg til daterte temaperioder med øvingsmål og progresjon. Perioder kan gå over flere måneder innenfor samme år, men ikke overlappe.
 - Kalenderen har årsoversikt og månedsvisning. Faste uketider vises som forventede treninger uten å fylle databasen med tomme øktplaner. Velg **Planlegg denne treningen**, avlys en enkeltforekomst eller opprett en ekstra enkeltøkt.
+- Hver fast treningstid og økt har **Fra** og **Til**. Varighet beregnes automatisk fra tidsrommet (15–240 minutter), og gruppen har ikke en felles standardvarighet. Når en bestemt trening planlegges fra kalenderen, brukes tidsrommet fra den treningstiden, også når gruppens treninger har ulik lengde. Enkeltøkter får egne fra-/til-tider. Tidligere til-tid betyr avslutning neste dag og merkes i visningen.
 - En lagret økt kan flyttes eller avlyses uten å endre ukerytmen. Opprinnelig forekomst dukker ikke opp igjen etter flytting, heller ikke ved flytting til et nytt år. Avlyste økter beholder planen og kan gjenåpnes som utkast. Endret ukerytme påvirker forventede treninger, ikke allerede lagrede økter.
 - Øktbyggeren har tema, mål, rammer og ordnede øvelseskort med oppvarming, temaarbeid, spill og avslutning. Kortene har organisering, instruksjon, læringsmomenter, enklere/vanskeligere variant, kildelenke og lokale tilpasninger. Legg til, flytt og fjern kort etter behov.
 - Oppgi forventet spillerantall, bekreftet treneroppmøte og tilgjengelig utstyr. Ukjente antall står tomme, ikke som null. Hvert kort er en sekvensiell blokk; oppgi **samlet** behov for alle samtidige grupper i blokken, inkludert reserveballer.
@@ -61,6 +62,8 @@ Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo
 - Hver lagring bevarer en ny planversjon med dato, tema, rammer, godkjenningsstatus og årsplankontekst. Senere årsplanendringer endrer ikke lagrede planer. Samtidige redigeringer avvises med beskjed om å laste på nytt; redigeringer beholdes ved avvist lagring. Endring av en planlagt økt krever ny godkjenning, ellers lagres den som utkast.
 
 Dato og klokkeslett er lokale i `Europe/Oslo`. En plan er aldri dokumentasjon på faktisk gjennomføring. Det opprettes ingen økter eller historikk i det eksisterende Markdown-/Pages-arkivet fra disse skjermene.
+
+Ved oppgradering får eksisterende faste treningstider en beregnet til-tid ut fra gruppens tidligere varighet. Eksisterende økter og historiske versjoner får til-tid ut fra sin egen bevarte starttid og varighet, ikke fra dagens gruppedata. Den gamle gruppekolonnen beholdes som migreringsgrunnlag, men brukes ikke til nye økter eller i gruppeinnstillingene.
 
 Fødselsår oppgis eksplisitt, ikke utledet fra gruppenavnet. Årsplanen lenker til [NFFs sportsplan/fagplan](https://www.fotball.no/barn-og-ungdom/) for beregnet alder i planåret. NFF skal være standard faglig kilde til AI-forslag til temaer og øvingsmål i steg 4; **ingen temaer genereres eller forhåndsutfylles fra NFF nå**. Strukturert øktkontrakt, kildefelt og kontekstsnapshots er klare for senere AI-generering og revisjon. Medier og taktikkredigerer integreres i et senere steg.
 

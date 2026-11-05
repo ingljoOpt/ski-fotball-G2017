@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { checkSessionPlan, stageLabels, type EventInput, type Exercise, type SessionPlan } from "@/lib/planning";
 import { saveTrainingPlan } from "./actions";
+import { minutesBetween, timeRangeSchema } from "@/lib/validation";
 import { ActionButton, NativeInput, OptionSelect, SubmitButton, TextAreaInput, TextInput } from "./ui";
 
 const exerciseTexts = [
@@ -32,6 +33,13 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
     return () => form?.removeEventListener("reset", preserveDraft, true);
   }, []);
   const checks = checkSessionPlan(plan, event.durationMinutes);
+  const validTimeRange = timeRangeSchema.safeParse(event).success;
+  function changeTime(field: "startTime" | "endTime", value: string) {
+    setEvent((current) => {
+      const next = { ...current, [field]: value };
+      return { ...next, durationMinutes: timeRangeSchema.safeParse(next).success ? minutesBetween(next.startTime, next.endTime) : 0 };
+    });
+  }
   function changeExercise(index: number, patch: Partial<Exercise>) {
     setPlan((current) => ({ ...current, exercises: current.exercises.map((exercise, i) => i === index ? { ...exercise, ...patch } : exercise) }));
   }
@@ -58,10 +66,11 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
     <TextInput label="Økttittel" name="title" isRequired minLength={2} maxLength={150} value={event.title} onChange={(value) => setEvent({ ...event, title: value })} />
     <div className="form-grid">
       <NativeInput label="Dato" type="date" name="date" required value={event.date} onChange={(e) => setEvent({ ...event, date: e.target.value })} />
-      <NativeInput label="Klokkeslett" type="time" name="startTime" required value={event.startTime} onChange={(e) => setEvent({ ...event, startTime: e.target.value })} />
-      <NativeInput label="Varighet i minutter" type="number" name="durationMinutes" min={15} max={240} required value={event.durationMinutes}
-        onChange={(e) => setEvent({ ...event, durationMinutes: Number(e.target.value) })} />
+      <NativeInput label="Fra" type="time" name="startTime" required value={event.startTime} onChange={(e) => changeTime("startTime", e.target.value)} />
+      <NativeInput label="Til" type="time" name="endTime" required value={event.endTime} onChange={(e) => changeTime("endTime", e.target.value)} />
     </div>
+    <p role="status">{validTimeRange ? `Beregnet øktlengde: ${event.durationMinutes} minutter.` : "Oppgi fra og til med et tidsrom på 15–240 minutter."}</p>
+    <small>En tidligere til-tid betyr neste dag.</small>
     <small>Alle tidspunkt er lokale i Europe/Oslo. Endret dato/tid flytter bare denne treningen, ikke ukerytmen.</small>
     <TextInput label="Hovedtema" name="theme" maxLength={150} value={event.theme} onChange={(value) => setEvent({ ...event, theme: value })} />
     <TextAreaInput label="Øktens øvingsmål" name="objectives" rows={3} maxLength={8000} value={event.objectives} onChange={(e) => setEvent({ ...event, objectives: e.target.value })} />

@@ -29,6 +29,13 @@
       "when": 1793884622035,
       "tag": "0003_loose_betty_brant",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793910550101,
+      "tag": "0004_right_synch",
+      "breakpoints": true
     }
   ]
 }

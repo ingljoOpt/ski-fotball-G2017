@@ -39,7 +39,7 @@ export default async function Club({ params, searchParams }: {
         <section className="stack">
           <h2>Grupper</h2>
           {details.groups.length ? details.groups.map((group) => <Card className="app-card" key={group.id}>
-            <h2>{group.name}</h2><p>{group.durationMinutes} minutter per økt</p><AppLink href={`/grupper/${group.id}`}>Åpne gruppen →</AppLink>
+            <h2>{group.name}</h2><AppLink href={`/grupper/${group.id}`}>Åpne gruppen →</AppLink>
           </Card>) : <Card className="app-card"><p>Ingen grupper tilgjengelig ennå.</p></Card>}
         </section>
         {details.club.isAdmin && <Card className="app-card">

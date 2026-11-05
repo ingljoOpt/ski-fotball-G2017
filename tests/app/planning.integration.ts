@@ -34,10 +34,10 @@ test("calendar, annual themes and immutable session plans", async (t) => {
     await acceptInvitation(db, head.id, token);
     const invitation = await inviteCoach(db, head.id, group.id, coach.email);
     await acceptInvitation(db, coach.id, invitation.token);
-    await addTrainingTime(db, head.id, group.id, { weekday: 3, startTime: "18:00" });
-    await addTrainingTime(db, head.id, group.id, { weekday: 3, startTime: "19:30" });
+    await addTrainingTime(db, head.id, group.id, { weekday: 3, startTime: "18:00", endTime: "19:00" });
+    await addTrainingTime(db, head.id, group.id, { weekday: 3, startTime: "19:30", endTime: "21:00" });
     const periodInput = { startDate: "2026-11-01", endDate: "2026-11-30", theme: "Pasning", objectives: "Se før pasning", progression: "Fra par til spill", sourceUrl: "" };
-    const eventInput = { date: "2026-11-04", startTime: "18:00", durationMinutes: 60, title: "Planøkt", theme: "Pasning", objectives: "Se før pasning" };
+    const eventInput = { date: "2026-11-04", startTime: "18:00", endTime: "19:00", durationMinutes: 60, title: "Planøkt", theme: "Pasning", objectives: "Se før pasning" };
     let eventId: string;
 
     await t.test("all coaches can plan, while outsiders and other clubs are denied", async () => {
@@ -61,6 +61,9 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(calendar.entries.filter((event) => event.date === "2026-11-04").length, 2);
       assert.equal(calendar.entries.find((event) => event.date === "2026-11-04")?.theme, "Pasning");
       assert.equal(calendar.entries.find((event) => event.date === "2026-01-07")?.theme, "");
+      assert.equal(calendar.entries.find((event) => event.startTime === "18:00")?.durationMinutes, 60);
+      assert.equal(calendar.entries.find((event) => event.startTime === "19:30")?.durationMinutes, 90);
+      assert.equal(calendar.entries.find((event) => event.startTime === "19:30")?.endTime, "21:00");
       assert.equal((await db.select().from(trainingEvents)).length, 0);
       await assert.rejects(groupCalendar(db, coach.id, otherGroup.id, 2026), DomainError);
     });
@@ -83,6 +86,29 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       await assert.rejects(createTrainingEvent(db, coach.id, group.id, eventInput), /allerede/);
       await assert.rejects(createTrainingEvent(db, coach.id, group.id, { ...eventInput, date: "2026-11-05" }, "2026-11-04T18:00"), DomainError);
       await assert.rejects(createTrainingEvent(db, coach.id, group.id, { ...eventInput, date: "2026-11-05" }, "2026-11-05T18:00"), DomainError);
+    });
+
+    await t.test("calendar drafts inherit the actual slot and edits derive duration without changing the schedule", async () => {
+      const input = { ...eventInput, date: "2026-11-18", startTime: "19:30", endTime: "20:00", durationMinutes: 30 };
+      const id = await createTrainingEvent(db, coach.id, group.id, input, "2026-11-18T19:30");
+      const initial = await trainingEventDetails(db, coach.id, group.id, id);
+      assert.equal(initial.event.endTime, "21:00", "server uses the weekly time, not stale or forged form values");
+      assert.equal(initial.event.durationMinutes, 90);
+      assert.equal(initial.versions[0].eventSnapshot.durationMinutes, 90);
+      await saveSessionPlan(db, coach.id, group.id, id, { ...input, endTime: "20:45", durationMinutes: 999 }, emptySessionPlan(), 1, "draft");
+      const edited = await trainingEventDetails(db, coach.id, group.id, id);
+      assert.equal(edited.event.durationMinutes, 75);
+      assert.equal(edited.versions[0].eventSnapshot.endTime, "20:45");
+      assert.equal(edited.versions[1].eventSnapshot.endTime, "21:00", "previous timing is retained");
+      const next = (await groupCalendar(db, coach.id, group.id, 2026)).entries
+        .find((event) => event.date === "2026-11-25" && event.startTime === "19:30");
+      assert.equal(next?.durationMinutes, 90);
+      const single = await createTrainingEvent(db, coach.id, group.id, { ...input, date: "2026-11-19", endTime: "20:15" });
+      assert.equal((await trainingEventDetails(db, coach.id, group.id, single)).event.durationMinutes, 45);
+      await assert.rejects(saveSessionPlan(db, coach.id, group.id, single, { ...input, date: "2026-11-19", endTime: "20:45" }, completePlan(), 1, "planned"), /60 minutter.*75/);
+      await assert.rejects(db.transaction(async (tx) => {
+        await tx.update(trainingEvents).set({ durationMinutes: 60 }).where(eq(trainingEvents.id, id));
+      }), (error: unknown) => error instanceof Error && error.cause instanceof Error && "code" in error.cause && error.cause.code === "23514");
     });
 
     await t.test("draft validation, approval, immutable versions and stale-edit protection", async () => {
@@ -117,7 +143,7 @@ test("calendar, annual themes and immutable session plans", async (t) => {
     });
 
     await t.test("moving a recurring event across years suppresses the original without changing weekly times", async () => {
-      await saveSessionPlan(db, coach.id, group.id, eventId, { ...eventInput, date: "2027-01-02", startTime: "12:00" }, completePlan(), 3, "draft");
+      await saveSessionPlan(db, coach.id, group.id, eventId, { ...eventInput, date: "2027-01-02", startTime: "12:00", endTime: "13:00" }, completePlan(), 3, "draft");
       const oldYear = await groupCalendar(db, coach.id, group.id, 2026);
       assert.equal(oldYear.entries.some((event) => event.date === "2026-11-04" && event.startTime === "18:00"), false);
       assert.equal(oldYear.entries.some((event) => event.date === "2026-11-11" && event.startTime === "18:00"), true);

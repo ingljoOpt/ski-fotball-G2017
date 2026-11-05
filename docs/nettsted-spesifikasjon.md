@@ -60,11 +60,11 @@ En bruker kan være medlem av flere klubber og grupper, med forskjellig rolle i 
 ### Kalender og periodeplan
 
 - Trenere kan opprette en kalender for gruppen med treningsdatoer, tema og eventuelle læringsmål.
-- Gruppen kan selv registrere én eller flere faste treningstider, med ukedag og klokkeslett. Trenere kan legge inn unntak eller enkeltøkter uten å endre den faste rytmen.
+- Gruppen kan selv registrere én eller flere faste treningstider, med ukedag, fra-tid og til-tid. Trenere kan legge inn unntak eller enkeltøkter uten å endre den faste rytmen.
 - Kalenderen viser planlagt tema, øktstatus og om et AI-utkast er klart; evaluering og interne notater er ikke synlige offentlig som standard.
 - Planleggeren tar hensyn til tema og progresjon i års-/periodeplanen når den foreslår en økt.
-- Gruppen angir standard varighet for treningene. En trener kan overstyre varighet for en enkelt økt uten å endre standardverdien.
-- En trener kan endre dato, tema, varighet, antall spillere, antall trenere og andre rammer per økt uten å overskrive gruppens standardverdier.
+- Hver økt må ha fra- og til-tidspunkt. Varigheten beregnes fra tidsrommet og kan ikke angis uavhengig. Ved oppretting for en bestemt trening hentes tidene og dermed øktlengden automatisk fra denne treningstiden på serveren. Gruppen skal ikke ha en felles standardvarighet i innstillingene.
+- En trener kan endre dato, fra-/til-tid, tema, antall spillere, antall trenere og andre rammer per økt uten å overskrive gruppens faste treningstider. Enkeltøkter krever egne fra-/til-tider. Tidsrom må være 15–240 minutter; tidligere til-tid betyr neste dag, mens identiske tider er ugyldige.
 - Kalenderen skal kunne deles offentlig med en skrivebeskyttet lenke. Treneren velger hvilke felt og datoer som inngår.
 - Årsplanen har eksplisitt fødselsår, årsmål og daterte, ikke-overlappende temaperioder med øvingsmål og progresjon. Årskull skal ikke utledes fra gruppenavnet.
 - NFFs [sportsplan/fagplan for barn og ungdom](https://www.fotball.no/barn-og-ungdom/) skal være standard faglig utgangspunkt for forslag til temaer og øvingsmål tilpasset alder i planåret. Automatisk forslag utsettes til AI i steg 4; nå tilrettelegges aldersbestemt kildelenke og strukturert kontekst, uten forhåndsutfylte NFF-temaer.
@@ -107,7 +107,7 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 ### Automatisk utkast
 
 - En gruppe kan slå automatisk generering av utkast av eller på.
-- Gruppen angir treningstidene sine, standard øktvarighet og hvor mange dager før en trening et utkast skal opprettes automatisk dersom ingen økt allerede er opprettet manuelt.
+- Gruppen angir treningstidene sine med fra-/til-tid og hvor mange dager før en trening et utkast skal opprettes automatisk dersom ingen økt allerede er opprettet manuelt. Utkastets varighet beregnes fra den aktuelle treningstiden, ikke en gruppefelles standard.
 - Eksempel: Gruppen trener onsdag kl. 18 og setter automatisk oppretting til tre dager før. Hvis ingen økt finnes for onsdagen når fristen nås, oppretter systemet ett AI-utkast basert på kalender, periodeplan, historikk og evalueringer.
 - Gruppen kan også angi hvor mange sammenhengende treninger en plan eller progresjonsblokk skal gjelde. Dette er separat fra lengden på hver treningsøkt.
 - Automatisk generering oppretter bare et utkast. Den skal aldri godkjenne, publisere eller sende ut en offentlig lenke uten menneskelig handling.
@@ -133,7 +133,7 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 4. **Planlegge økt:** trener velger dato og tema i kalenderen, oppgir antall spillere/trenere og rammer, genererer AI-utkast, kontrollerer kilder og utstyrsregnskap, redigerer og godkjenner.
 5. **Gjennomføre og lære:** trener registrerer faktisk gjennomføring og evaluering etter økten. Agenten kan bruke dette ved neste forslag.
 6. **Dele:** trener velger økt eller kalenderinnhold, forhåndsviser offentlig side og oppretter en lenke uten automatisk utløp. Lenken kan kopieres og tilbakekalles.
-7. **Automatisere:** trener konfigurerer treningstidene, øktvarighet og antall dager før trening. Hvis ingen økt er opprettet manuelt innen fristen, systemet lager ett utkast og venter på godkjenning.
+7. **Automatisere:** trener konfigurerer treningstidenes fra-/til-tider og antall dager før trening. Hvis ingen økt er opprettet manuelt innen fristen, systemet lager ett utkast med treningens varighet og venter på godkjenning.
 
 ## Foreslått datamodell
 
@@ -149,8 +149,8 @@ Tabellene implementeres med Drizzle og Neon Postgres. Dette er logiske objekter;
 | `club_documents` | Sportsplan, veiledning og annet klubbfelles innhold med versjoner |
 | `equipment` | Klubbens utstyr og eventuelle gruppejusteringer |
 | `group_plans` | Års-/periodeplan og tema/progresjon |
-| `training_series` | Faste treningstider, standard øktvarighet, dager før automatisk oppretting, blokkvarighet og automatiseringsinnstillinger |
-| `sessions` | Dato, tema, status, varighet, spiller-/trenerantall og rammer |
+| `training_series` | Faste treningstider med fra-/til-tid, dager før automatisk oppretting, blokkvarighet og automatiseringsinnstillinger |
+| `sessions` | Dato, fra-/til-tid, beregnet varighet, tema, status, spiller-/trenerantall og rammer |
 | `session_versions` | Uforanderlige planversjoner, AI-/manuell opprinnelse og godkjenning |
 | `change_history` | Uforanderlige endringsposter med klubb/gruppe, berørt økt/plan, aktør, tidspunkt, handling, opprinnelse og endrede verdier eller versjonsreferanser |
 | `session_activities` | Tidsplan, grupper, øvelser, roller og utstyrsbehov per versjon |
@@ -213,7 +213,7 @@ Den lokale planleggingsleveransen bruker `annual_plans`, `plan_periods`, `traini
 5. Utkastet viser kildelenker og kontrollert aldersmerking når det er tilgjengelig, og viser manglende kildegrunnlag uten å dikte opp opplysninger.
 6. Planen viser tidsregnskap og samtidig behov for grupper, trenere, mål og baller; avvik og ukjente tall får synlige varsler.
 7. Manuell redigering og AI-revisjon oppretter ny versjon og bevarer tidligere godkjent plan og evaluering.
-8. Gruppens faste treningstid, standard varighet og antall dager før økten styrer automatisk utkast. Et manuelt opprettet utkast hindrer duplikat, og automatiseringen publiserer aldri av seg selv.
+8. Gruppens aktuelle faste treningstid med fra-/til-tid og antall dager før økten styrer automatisk utkast. Varigheten følger den aktuelle treningen. Et manuelt opprettet utkast hindrer duplikat, og automatiseringen publiserer aldri av seg selv.
 9. Evaluering etter trening påvirker senere forslag uten at den blir synlig i offentlig deling.
 10. En offentlig øktlenke viser bare valgte, godkjente treningsopplysninger uten innlogging. Lenken er skrivebeskyttet, har ingen automatisk utløpstid og slutter å virke etter tilbakekalling.
 11. En offentlig kalenderlenke viser bare valgte datoer/felter; ingen evalueringer, invitasjoner eller medlemsdata.

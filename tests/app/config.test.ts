@@ -32,12 +32,13 @@ test("only invitation return paths can redirect after login", () => {
   }
 });
 
-test("email, duration, lead time and weekdays are validated", () => {
+test("email, lead time, weekdays and training time ranges are validated", () => {
   assert.equal(emailSchema.parse("COACH@EXAMPLE.INVALID"), "coach@example.invalid");
   assert.deepEqual(settingsSchema.parse({ durationMinutes: "60", generationDaysBefore: "0" }), {
-    durationMinutes: 60, generationDaysBefore: 0,
+    generationDaysBefore: 0,
   });
   assert.equal(settingsSchema.safeParse({ durationMinutes: 0, generationDaysBefore: 31 }).success, false);
   assert.equal(trainingTimeSchema.safeParse({ weekday: 0, startTime: "25:00" }).success, false);
-  assert.deepEqual(trainingTimeSchema.parse({ weekday: "3", startTime: "18:00" }), { weekday: 3, startTime: "18:00" });
+  assert.deepEqual(trainingTimeSchema.parse({ weekday: "3", startTime: "18:00", endTime: "19:15" }), { weekday: 3, startTime: "18:00", endTime: "19:15" });
+  assert.equal(trainingTimeSchema.safeParse({ weekday: 3, startTime: "18:00" }).success, false);
 });

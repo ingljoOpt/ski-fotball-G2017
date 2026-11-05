@@ -5,6 +5,22 @@ import {
   osloToday, periodSchema, sessionPlanSchema, sourceUrlSchema, weekdayFor,
 } from "../../src/lib/planning.ts";
 import { completePlan } from "./planning-fixtures.ts";
+import { formatTimeRange, timeRangeSchema } from "../../src/lib/validation.ts";
+
+test("from/to times determine duration, including boundaries and midnight, never submitted duration", () => {
+  const input = { date: "2026-11-04", startTime: "17:00", endTime: "18:15", durationMinutes: 999, title: "Økt", theme: "", objectives: "" };
+  assert.equal(eventSchema.parse(input).durationMinutes, 75);
+  assert.equal(eventSchema.parse({ ...input, endTime: "18:30" }).durationMinutes, 90);
+  assert.equal(eventSchema.parse({ ...input, startTime: "23:00", endTime: "00:15" }).durationMinutes, 75);
+  assert.equal(formatTimeRange("23:00", "00:15"), "23:00–00:15 (neste dag)");
+  for (const endTime of ["17:00", "17:14", "21:01", "16:59", "24:00", ""]) {
+    assert.equal(timeRangeSchema.safeParse({ startTime: "17:00", endTime }).success, false, endTime);
+  }
+  for (const endTime of ["17:15", "21:00"]) {
+    assert.equal(timeRangeSchema.safeParse({ startTime: "17:00", endTime }).success, true);
+  }
+  assert.equal(eventSchema.safeParse({ ...input, endTime: undefined }).success, false);
+});
 
 test("calendar dates use real ISO dates, Oslo today, leap years and stable local weekdays", () => {
   assert.equal(datesInYear(2028).length, 366);
