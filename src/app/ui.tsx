@@ -2,7 +2,7 @@
 
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { Button, Card, Chip, FieldError, Input, Label, Link, ListBox, Select, TextField } from "@heroui/react";
+import { Button, Card, Chip, FieldError, Input, Label, Link, ListBox, Select, TextArea, TextField } from "@heroui/react";
 
 export { Card, Chip };
 
@@ -31,6 +31,22 @@ export function NativeInput({ label, ...props }: ComponentProps<typeof Input> & 
   return <div className="app-field"><Label htmlFor={id}>{label}</Label><Input {...props} id={id} /></div>;
 }
 
+export function TextAreaInput({ label, ...props }: ComponentProps<typeof TextArea> & { label: string }) {
+  const id = useId();
+  return <div className="app-field"><Label htmlFor={id}>{label}</Label><TextArea {...props} id={id} /></div>;
+}
+
+export function OptionSelect({ label, options, ...props }: ComponentProps<typeof Select> & {
+  label: string; options: { id: string; label: string }[];
+}) {
+  return <Select {...props} className="app-field">
+    <Label>{label}</Label>
+    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Popover><ListBox>{options.map((option) =>
+      <ListBox.Item id={option.id} key={option.id} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>,
+    )}</ListBox></Select.Popover>
+  </Select>;
+}
 const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 
 export function WeekdaySelect() {

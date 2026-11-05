@@ -7,6 +7,8 @@ import { DomainError, groupDetails } from "@/lib/domain";
 import { changeHeadCoach, deleteMember, deleteTrainingTime, newCoachInvitation, newTrainingTime, saveGroupSettings } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubIdentity, ClubTheme } from "@/app/club-theme";
+import { osloToday } from "@/lib/planning";
+import { PlanningNavigation } from "@/app/planning-components";
 
 const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 const roleName = (role: string) => role === "head_coach" ? "Hovedtrener" : "Trener";
@@ -32,6 +34,7 @@ export default async function Group({ params, searchParams }: {
       <span className="eyebrow">Gruppens trenerrom</span>
       <h1>{group.name}</h1>
       <p className="lead">Felles rammer, treningstider og mennesker rundt laget.</p>
+      <PlanningNavigation groupId={groupId} year={Number(osloToday().slice(0, 4))} />
       <Notices searchParams={searchParams} />
       <div className="columns">
         <div className="stack">
@@ -82,7 +85,11 @@ export default async function Group({ params, searchParams }: {
             </form> : <p>{group.durationMinutes} minutter per økt. Ønsket utkast {group.generationDaysBefore} dager før trening.</p>}
             <p className="notice">Innstillingene lagres nå. Automatisk oppretting og AI-planlegging kommer i neste steg og er ikke aktivert.</p>
           </Card>
-          <Card className="app-card"><span className="eyebrow">På vei</span><h2>Fra rammer til økter</h2><p className="muted">Kalender, øktutkast, evaluering og deling er neste del av løsningen.</p></Card>
+          <Card className="app-card"><span className="eyebrow">Planlegging</span><h2>Fra rammer til økter</h2>
+            <AppLink href={`/grupper/${groupId}/kalender`}>Åpne kalender og øktplanlegging →</AppLink>
+            <AppLink href={`/grupper/${groupId}/arsplan`}>Årsplan, temaer og øvingsmål →</AppLink>
+            <p className="muted">AI, automatisk oppretting, evaluering og offentlig deling er ikke aktivert ennå.</p>
+          </Card>
         </div>
       </div>
     </ClubTheme>

@@ -6,7 +6,7 @@ Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkte
 
 Den nye Next.js-appen bygges ved siden av dagens øktarkiv og Pages-nettsted. Se [spesifikasjonen](docs/nettsted-spesifikasjon.md) og [implementasjonsplanen](docs/implementasjonsplan.md).
 
-Første leveranse har lokal magic-link-innlogging, oppretting av klubber og grupper, administrator- og hovedtrenerinvitasjoner, treneradministrasjon, overføring av hovedtrenerrolle, klubbprofil med logo/farger og lagring av faste treningstider/øktrammer. Kalender, AI, automatisk utkast, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
+Den lokale appen har magic-link-innlogging, klubber og grupper, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan, kalender og manuell øktplanlegging med versjonshistorikk. AI, automatiske utkast, faktisk gjennomføring/evaluering, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
 
 ### Start lokalt
 
@@ -48,6 +48,22 @@ Små logoer lagres som normaliserte bildedata i klubbens databasepost, ikke som 
 
 Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo** lagrer standardprofilen umiddelbart. Offentlige økt-/kalendersider er ennå ikke implementert; den delte profilkomponenten skal brukes også der når de bygges.
 
+### Årsplan, kalender og øktplanlegging
+
+Åpne en gruppe og velg **Årsplan og temaer** eller **Kalender**. Alle gruppens trenere og klubbadministratorer kan planlegge; faste treningstider og gruppens standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
+
+- Lagre planår, eventuelt fødselsår, og årsmål. Legg til daterte temaperioder med øvingsmål og progresjon. Perioder kan gå over flere måneder innenfor samme år, men ikke overlappe.
+- Kalenderen har årsoversikt og månedsvisning. Faste uketider vises som forventede treninger uten å fylle databasen med tomme øktplaner. Velg **Planlegg denne treningen**, avlys en enkeltforekomst eller opprett en ekstra enkeltøkt.
+- En lagret økt kan flyttes eller avlyses uten å endre ukerytmen. Opprinnelig forekomst dukker ikke opp igjen etter flytting, heller ikke ved flytting til et nytt år. Avlyste økter beholder planen og kan gjenåpnes som utkast. Endret ukerytme påvirker forventede treninger, ikke allerede lagrede økter.
+- Øktbyggeren har tema, mål, rammer og ordnede øvelseskort med oppvarming, temaarbeid, spill og avslutning. Kortene har organisering, instruksjon, læringsmomenter, enklere/vanskeligere variant, kildelenke og lokale tilpasninger. Legg til, flytt og fjern kort etter behov.
+- Oppgi forventet spillerantall, bekreftet treneroppmøte og tilgjengelig utstyr. Ukjente antall står tomme, ikke som null. Hvert kort er en sekvensiell blokk; oppgi **samlet** behov for alle samtidige grupper i blokken, inkludert reserveballer.
+- Ufullstendige planer kan lagres som utkast. Godkjenning krever utfylte rammer, lik samlet øvelsestid og øktvarighet, samt tallkontroll mot bekreftede trenere og utstyr. Dette erstatter ikke trenerens vurdering av sikkerhet, kildeinnhold eller om organiseringen fungerer.
+- Hver lagring bevarer en ny planversjon med dato, tema, rammer, godkjenningsstatus og årsplankontekst. Senere årsplanendringer endrer ikke lagrede planer. Samtidige redigeringer avvises med beskjed om å laste på nytt; redigeringer beholdes ved avvist lagring. Endring av en planlagt økt krever ny godkjenning, ellers lagres den som utkast.
+
+Dato og klokkeslett er lokale i `Europe/Oslo`. En plan er aldri dokumentasjon på faktisk gjennomføring. Det opprettes ingen økter eller historikk i det eksisterende Markdown-/Pages-arkivet fra disse skjermene.
+
+Fødselsår oppgis eksplisitt, ikke utledet fra gruppenavnet. Årsplanen lenker til [NFFs sportsplan/fagplan](https://www.fotball.no/barn-og-ungdom/) for beregnet alder i planåret. NFF skal være standard faglig kilde til AI-forslag til temaer og øvingsmål i steg 4; **ingen temaer genereres eller forhåndsutfylles fra NFF nå**. Strukturert øktkontrakt, kildefelt og kontekstsnapshots er klare for senere AI-generering og revisjon. Medier og taktikkredigerer integreres i et senere steg.
+
 ### Verifisering og migreringer
 
 ```powershell
@@ -58,7 +74,7 @@ npm run test:db
 npm run build
 ```
 
-`test:db` oppretter isolerte PGlite-databaser i midlertidige mapper og trenger verken miljøfil eller database som kjører. Testene dekker persistens etter ny åpning, migreringshistorikk, fillås, innlogging, engangslenker, invitasjoner, roller og klubb-/gruppeskille. Fiktive testdata og midlertidige mapper ryddes opp. Eksisterende taktikktavletester inngår i `npm test`.
+`test:db` oppretter isolerte PGlite-databaser i midlertidige mapper og trenger verken miljøfil eller database som kjører. Testene dekker persistens etter ny åpning, migreringshistorikk, fillås, innlogging, engangslenker, invitasjoner, roller, klubb-/gruppeskille, årsplan, kalenderunntak og uforanderlige planversjoner. Enhetstestene kontrollerer også datoer, aldersbestemte NFF-lenker, kildefelt og nøyaktige tids-/utstyrsgrenser. Fiktive testdata og midlertidige mapper ryddes opp. Eksisterende taktikktavletester inngår i `npm test`.
 
 - `npm run db:generate`: lag versjonert Drizzle-migrering etter skjemaendringer.
 - `npm run db:migrate`: kjør ventende migreringer separat. Med `APP_ENV=local` brukes PGlite og lokal konfigurasjon; stopp appen først. I deployede miljøer kreves eksplisitt `DATABASE_URL` til Neon. Kommandoen er ikke del av Vercel-funksjonsoppstart.

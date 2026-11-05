@@ -66,6 +66,10 @@ En bruker kan være medlem av flere klubber og grupper, med forskjellig rolle i 
 - Gruppen angir standard varighet for treningene. En trener kan overstyre varighet for en enkelt økt uten å endre standardverdien.
 - En trener kan endre dato, tema, varighet, antall spillere, antall trenere og andre rammer per økt uten å overskrive gruppens standardverdier.
 - Kalenderen skal kunne deles offentlig med en skrivebeskyttet lenke. Treneren velger hvilke felt og datoer som inngår.
+- Årsplanen har eksplisitt fødselsår, årsmål og daterte, ikke-overlappende temaperioder med øvingsmål og progresjon. Årskull skal ikke utledes fra gruppenavnet.
+- NFFs [sportsplan/fagplan for barn og ungdom](https://www.fotball.no/barn-og-ungdom/) skal være standard faglig utgangspunkt for forslag til temaer og øvingsmål tilpasset alder i planåret. Automatisk forslag utsettes til AI i steg 4; nå tilrettelegges aldersbestemt kildelenke og strukturert kontekst, uten forhåndsutfylte NFF-temaer.
+- Faste uketider kan projiseres virtuelt til kalenderen. En øktplan eller avlysning lagres først ved aktiv handling. En stabil forekomstnøkkel hindrer duplikater og at opprinnelig tidspunkt gjenoppstår etter flytting, også over årsskiftet. Endrede uketider endrer ikke allerede lagrede økter.
+- Kalenderdato og treningstid lagres som lokale verdier i `Europe/Oslo`; senere automatikk må håndtere sommertid ved beregning av kjøretidspunkt.
 
 ### Planlegging og AI-agent
 
@@ -87,7 +91,11 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 - Øktplan kan redigeres manuelt eller med en instruks til AI-agenten.
 - Lagre versjoner av utkast og godkjent plan. Redigering skal ikke slette tidligere versjoner.
 - En økt kan inneholde mål, tidsplan, øvelseskort, grupper, trenerroller, utstyrsbehov, Tiim-kilder, lokale tilpasninger og medier.
+- Manuell øktbygger bruker Tiim-inspirert struktur: tema/introduksjon, øvingsmål og rammer, deretter ordnede kort for oppvarming, temaarbeid, spill og avslutning. Hvert kort har varighet, mål, organisering/rotasjon, instruksjon, læringsmomenter, enklere/vanskeligere variant, kilde og lokale tilpasninger. Dette er egne beskrivelser, ikke kopiert Tiim-innhold.
+- Samme versjonerte, validerte plankontrakt skal brukes av manuell redigering og senere AI. Hver planversjon bevarer øktmetadata, planstatus og årsplankontekst; endringer i årsplanen skal ikke endre eksisterende planer i det stille. Utdaterte redigeringer avvises fremfor å overskrive en annen treners arbeid.
 - Kontroller at tidsplanen summerer til oppgitt øktlengde, og at samtidige grupper, mål og baller er regnet med. Vis tydelig varsel ved manglende data eller avvik, ikke en falsk grønn status.
+- Ukjente ressursantall lagres som ukjente, ikke null baller eller én ball per spiller. Hvert øvelseskort er en sekvensiell blokk med samlet fordeling og behov for alle samtidige grupper; toppbehov mellom blokker sammenlignes med bekreftet beholdning. Reserveballer inngår i behovet. Trener må fortsatt kontrollere sikkerhet og praktisk organisering.
+- Ufullstendige utkast kan lagres, men kan ikke godkjennes. Redigering av en planlagt økt krever eksplisitt ny godkjenning, ellers blir den utkast. Avlysning/gjenåpning bevarer planversjonene, og gjenåpning gir ikke automatisk godkjenning.
 - Etter trening kan trener registrere faktisk oppmøte på gruppenivå, faktisk gjennomførte øvelser, endringer og evaluering. Plan og faktisk gjennomføring lagres hver for seg.
 - Evalueringer skal være tilgjengelige som kontekst for senere planlegging, men være private for gruppens autoriserte trenere og administratorer.
 - Status minst: `utkast`, `planlagt`, `gjennomført` og `avlyst`. `Gjennomført` krever registrert gjennomføring; delingsstatus er en separat egenskap.
@@ -149,6 +157,8 @@ Tabellene implementeres med Drizzle og Neon Postgres. Dette er logiske objekter;
 | `generation_jobs` | Automatiske/manuelle genereringsjobber, status og feilinformasjon |
 
 Hver tenant-eid rad må ha klubbtilknytning. Gruppeinnhold må i tillegg være bundet til riktig gruppe. Bruk sammensatte fremmednøkler eller tilsvarende databasebegrensninger for å hindre at en referanse peker på en gruppe fra en annen klubb.
+
+Den lokale planleggingsleveransen bruker `annual_plans`, `plan_periods`, `training_events` og `session_versions`. Øvelseskort, ressursforutsetninger og kildefelt ligger foreløpig i validert, versjonert JSON per planversjon. Årsplankontekst lagres som snapshot sammen med versjonen, inkludert NFF-kildelenke og markering av at AI-forslag ennå ikke er aktive. Senere AI-integrasjon må bruke samme validering og versjonering, og hente faktisk historikk, evalueringer og klubbfelles innhold når disse er implementert.
 
 ## Teknisk løsningsretning
 

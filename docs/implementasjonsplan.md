@@ -27,17 +27,21 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 ## 3. Kalender og manuell øktplanlegging
 
-- [ ] Kalender med gjentakende treninger, unntak og enkeltøkter.
-- [ ] Års-/periodeplan med tema og progresjon.
+- [x] Kalender med gjentakende treninger, unntak og enkeltøkter.
+- [x] Års-/periodeplan med tema, øvingsmål, progresjon og eksplisitt fødselsår.
+- [x] Aldersbestemt NFF-kildelenke og lagret årsplankontekst, uten automatisk temagenerering før steg 4.
 - [ ] Klubbfelles sportsplan, veiledning og utstyr med versjonering.
-- [ ] Manuelle øktutkast, øvelseskort og uforanderlige planversjoner.
-- [ ] Oppmøteforutsetninger og kontroller av tid, trenerbehov og samtidig utstyr.
+- [x] Manuelle øktutkast med Tiim-inspirert oppbygning, ordnede øvelseskort og uforanderlige planversjoner.
+- [x] Oppmøteforutsetninger og kontroller av tid, trenerbehov og samtidig utstyr, med sperre mot ufullstendig godkjenning.
+- [x] Felles strukturert plan-/kildekontrakt og kontekstsnapshots som grunnlag for AI i steg 4.
 - [ ] Faktisk gjennomføring og privat evaluering uten spillerprofiler.
 
 ## 4. AI og automatisering
 
 - [ ] Vercel AI Gateway med strukturert, validert øktutkast.
 - [ ] Kontekst fra planer, kilder, historikk og evalueringer.
+- [ ] NFFs aldersriktige sportsplan/fagplan som standard forslag til årsplantemaer og øvingsmål, med faktisk kildekontroll og trenergodkjenning. Ikke generer dette før AI er på plass.
+- [ ] Bruke planleggingskontrakten og versjonsflyten for AI-utkast/revisjoner; beregne ny gruppering ved endrede spiller-/trenerantall.
 - [ ] Nettleserverktøy for Tiim, kildekontroll og tydelig feilrapportering.
 - [ ] AI-revisjon med forhåndsvisning av endringer og versjonshistorikk.
 - [ ] Planlagte jobber som lager utkast før trening, uten duplikater.
@@ -61,7 +65,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 ## Leveransestatus
 
-Første lokale leveranse dekker punkt 1 og avkryssede deler av punkt 2. Lokal oppstart, engangsinnlogging, oppretting av klubb/gruppe, invitasjonsaksept og lagring av treningstider er testet i nettleser, inkludert mobilbredde og gjenlasting.
+Den lokale leveransen dekker punkt 1 og avkryssede deler av punkt 2 og 3. Lokal oppstart, engangsinnlogging, oppretting av klubb/gruppe, invitasjonsaksept og lagring av treningstider er testet i nettleser, inkludert mobilbredde og gjenlasting.
 
 Byttet til PGlite og HeroUI er verifisert med 17 enhets-/animasjonstester og 8 databasekontroller, typekontroll, lint og produksjonsbygg. Nettlesertesten dekker HeroUI-skjemaer, ukedagsvalg med mus og tastatur, invitasjonsaksept, mobilvisning uten horisontal overløp og utlogging. Serveromstart bevarer både øktrammer, treningstider og innlogget sesjon i PGlite.
 
@@ -75,4 +79,8 @@ Nettleserkontrollen av klubbprofilen bruker egen PGlite-database med fiktive klu
 
 Typekontroll, lint, eksisterende animasjonstester, nye konfigurasjonstester, PGlite-integrasjonstester og produksjonsbygg er kontrollpunkter for leveransen. Databasetestene bruker isolerte midlertidige mapper, uten Docker eller miljøfil, og verifiserer fillås, persistens og at migreringer ikke kjøres på nytt ved omstart. HeroUI erstatter de håndlagde UI-komponentene uten å endre autorisasjonsreglene. `publiserte/assets/package.json` bevarer CommonJS-kompatibiliteten til de eksisterende UMD-baserte animasjonsmodulene mens webappen bruker ES-moduler.
 
-Neon Auth, AI, kalender, automatisk generering og offentlig deling er fortsatt uferdige. Neste implementasjonssteg er kalender og manuell øktplanlegging, deretter AI og automatisering. Avkrysning gjøres først når funksjonen er implementert og verifisert. Se også kjente utviklingsavhengighetsvarsler i [README](../README.md#verifisering-og-migreringer).
+Kalender og manuell øktplanlegging er verifisert med 29 enhets-/animasjonstester, 24 databasekontroller, typekontroll, lint og produksjonsbygg. Databasetestene dekker virtuelle uketider, samtidige/idempotente opprettinger, temaperioder, godkjenning, utdaterte redigeringer, tenant-grenser og sammensatte fremmednøkler. De tester også flytting over årsskiftet, avlysning/gjenåpning, bevaring av opprinnelig årsplankontekst og persistens etter ny åpning.
+
+Nettleserkontrollen med en vanlig trener og isolerte, fiktive data dekker årsplan og temaperiode, aldersriktig NFF-lenke, kalender med arvede temaer, utkast og godkjenning, øvelsesrekkefølge/fjerning, versjonshistorikk, flytting og avlysning/gjenåpning. Avvist godkjenning bevarer tekstfelt, tekstområder, tall og øktdel. Årsplan, kalender og åpen øktbygger er kontrollert ved 375 pikslers bredde uten horisontal overløp. Ingen faktiske lagøkter er opprettet i Markdown-historikken.
+
+Klubbfelles dokumenter/utstyr og faktisk gjennomføring/evaluering gjenstår i steg 3. AI, NFF-temagenerering, automatisk generering, Neon Auth og offentlig deling er fortsatt uferdige. Automatisk gruppering kommer sammen med AI; dagens tallkontroll gjør ikke om organiseringen på egen hånd. Avkrysning gjøres først når funksjonen er implementert og verifisert. Se også kjente utviklingsavhengighetsvarsler i [README](../README.md#verifisering-og-migreringer).

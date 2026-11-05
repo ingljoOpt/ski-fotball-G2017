@@ -59,6 +59,36 @@ small { color: var(--muted); }
 .profile-colors input { min-height: 48px; }
 .profile-preview { padding: 1rem; border: 2px solid var(--club-primary); border-radius: .6rem; display: grid; gap: 1rem; background: white; }
 .profile-preview > .club-logo { margin-bottom: .5rem; }
+.planning-nav { display: flex; flex-wrap: wrap; gap: 1.2rem; padding: 1rem 0; border-bottom: 1px solid var(--line); margin-bottom: 1.5rem; }
+.year-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .75rem; margin-top: 2rem; }
+.month-card { padding: 1rem; overflow-wrap: anywhere; }
+.selected-month { border: 2px solid var(--club-primary); }
+.section-title { margin-top: 2rem; }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .3rem; }
+.calendar-day { min-height: 100px; padding: .5rem; border: 1px solid var(--line); background: white; border-radius: .3rem; overflow-wrap: anywhere; }
+.calendar-day > a { display: inline-block; font-weight: bold; }
+.calendar-day small, .calendar-theme { display: block; font-size: .75rem; }
+.calendar-theme { color: var(--club-primary); font-weight: bold; }
+.calendar-day.today { border: 2px solid var(--club-primary); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 1rem; }
+.exercise-detail { border: 1px solid var(--line); border-radius: .5rem; padding: 1rem; margin: .75rem 0; background: white; min-width: 0; overflow-wrap: anywhere; }
+summary { cursor: pointer; }
+.exercise-detail[open] > summary { margin-bottom: 1rem; }
+.exercise-detail form, .exercise-detail .row { margin-top: 1rem; }
+.preserve-lines { white-space: pre-wrap; overflow-wrap: anywhere; }
+.plan-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+.plan-facts dt { font-weight: bold; }
+.plan-facts dd { margin: 0; }
+.session-timeline { padding-left: 1.5rem; }
+.session-timeline li { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+.plan-editor-details > summary h2 { display: inline; }
+.session-editor { margin-top: 1.5rem; }
+.session-editor textarea { width: 100%; }
+@media (max-width: 600px) {
+  .calendar-day { min-height: 64px; padding: .2rem; }
+  .calendar-day small, .calendar-theme { font-size: .6rem; }
+  .calendar-grid { gap: .15rem; }
+}
 footer { border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: .85rem; padding: 1.5rem; }
 .skip { position: absolute; left: 1rem; top: -100px; background: white; z-index: 10; padding: .5rem; }
 .skip:focus { top: 1rem; }

@@ -1,8 +1,9 @@
 import { sql } from "drizzle-orm";
 import {
-  pgTable, pgEnum, uuid, text, timestamp, integer, boolean,
+  pgTable, pgEnum, uuid, text, timestamp, integer, boolean, date, jsonb,
   primaryKey, unique, foreignKey, check,
 } from "drizzle-orm/pg-core";
+import type { PlanningSnapshot, SessionPlan } from "../lib/planning.ts";
 
 export const groupRole = pgEnum("group_role", ["head_coach", "coach"]);
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
@@ -12,6 +13,81 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   createdAt: createdAt(),
 });
+
+export const annualPlans = pgTable("annual_plans", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  year: integer("year").notNull(),
+  birthYear: integer("birth_year"),
+  objectives: text("objectives").notNull().default(""),
+  revision: integer("revision").notNull().default(1),
+}, (table) => [
+  foreignKey({ columns: [table.clubId, table.groupId], foreignColumns: [groups.clubId, groups.id] }).onDelete("cascade"),
+  unique("annual_plan_group_year").on(table.groupId, table.year),
+  unique("annual_plan_tenant_id").on(table.clubId, table.groupId, table.id),
+  check("annual_plan_year_range", sql`${table.year} between 2000 and 2100`),
+]);
+
+export const planPeriods = pgTable("plan_periods", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  annualPlanId: uuid("annual_plan_id").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  theme: text("theme").notNull(),
+  objectives: text("objectives").notNull(),
+  progression: text("progression").notNull().default(""),
+  sourceUrl: text("source_url").notNull().default(""),
+}, (table) => [
+  foreignKey({ columns: [table.clubId, table.groupId, table.annualPlanId],
+    foreignColumns: [annualPlans.clubId, annualPlans.groupId, annualPlans.id] }).onDelete("cascade"),
+  check("period_date_order", sql`${table.endDate} >= ${table.startDate}`),
+]);
+
+export const trainingEvents = pgTable("training_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  date: date("date").notNull(),
+  startTime: text("start_time").notNull(),
+  durationMinutes: integer("duration_minutes").notNull(),
+  title: text("title").notNull(),
+  theme: text("theme").notNull().default(""),
+  objectives: text("objectives").notNull().default(""),
+  recurrenceKey: text("recurrence_key"),
+  status: text("status", { enum: ["draft", "planned", "cancelled"] }).notNull().default("draft"),
+  revision: integer("revision").notNull().default(1),
+  createdAt: createdAt(),
+}, (table) => [
+  foreignKey({ columns: [table.clubId, table.groupId], foreignColumns: [groups.clubId, groups.id] }).onDelete("cascade"),
+  unique("event_tenant_id").on(table.clubId, table.groupId, table.id),
+  unique("event_group_slot").on(table.groupId, table.date, table.startTime),
+  unique("event_recurrence_key").on(table.groupId, table.recurrenceKey),
+  check("event_duration_range", sql`${table.durationMinutes} between 15 and 240`),
+  check("event_status", sql`${table.status} in ('draft', 'planned', 'cancelled')`),
+  check("event_time", sql`${table.startTime} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
+]);
+
+export const sessionVersions = pgTable("session_versions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  eventId: uuid("event_id").notNull(),
+  version: integer("version").notNull(),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  origin: text("origin", { enum: ["manual", "ai"] }).notNull(),
+  eventSnapshot: jsonb("event_snapshot").$type<{ date: string; startTime: string; durationMinutes: number; title: string; theme: string; objectives: string; status: "draft" | "planned" }>().notNull(),
+  plan: jsonb("plan").$type<SessionPlan>().notNull(),
+  planningContext: jsonb("planning_context").$type<PlanningSnapshot>().notNull(),
+  createdAt: createdAt(),
+}, (table) => [
+  foreignKey({ columns: [table.clubId, table.groupId, table.eventId],
+    foreignColumns: [trainingEvents.clubId, trainingEvents.groupId, trainingEvents.id] }).onDelete("cascade"),
+  unique("session_version_number").on(table.eventId, table.version),
+  check("session_origin", sql`${table.origin} in ('manual', 'ai')`),
+]);
 
 export const loginLinks = pgTable("login_links", {
   tokenHash: text("token_hash").primaryKey(),

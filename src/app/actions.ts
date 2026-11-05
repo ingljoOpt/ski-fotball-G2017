@@ -15,6 +15,10 @@ import {
 } from "@/lib/domain";
 import { idSchema } from "@/lib/validation";
 import { logoFromForm } from "@/lib/logo";
+import {
+  changeTrainingStatus, createTrainingEvent, removePlanPeriod, saveAnnualPlan, savePlanPeriod, saveSessionPlan,
+} from "@/lib/planning-domain";
+import { yearSchema } from "@/lib/planning";
 
 const field = (form: FormData, key: string) => {
   const value = form.get(key);
@@ -41,7 +45,7 @@ async function run(fallback: string, operation: () => Promise<string>): Promise<
       console.error("Handlingen kunne ikke fullføres:", error);
       message = "Handlingen feilet. Kontroller serverloggen og prøv igjen.";
     }
-    destination = `${fallback}?feil=${encodeURIComponent(message)}`;
+    destination = `${fallback}${fallback.includes("?") ? "&" : "?"}feil=${encodeURIComponent(message)}`;
   }
   redirect(destination);
 }
@@ -205,5 +209,85 @@ export async function resetClubProfile(form: FormData) {
   return run(clubPath(form), async () => {
     await resetClubBranding(await getDatabase(), user.id, field(form, "clubId"));
     return `${clubPath(form)}?melding=${encodeURIComponent("Standardfargene er gjenopprettet og logoen fjernet.")}`;
+  });
+}
+
+const planningPath = (form: FormData, page: "arsplan" | "kalender") => {
+  const year = yearSchema.safeParse(field(form, "year"));
+  return `${groupPath(form)}/${page}${year.success ? `?year=${year.data}` : ""}`;
+};
+const eventFields = (form: FormData) => ({
+  date: field(form, "date"), startTime: field(form, "startTime"), durationMinutes: field(form, "durationMinutes"),
+  title: field(form, "title"), theme: field(form, "theme"), objectives: field(form, "objectives"),
+});
+const eventPath = (form: FormData) => {
+  const eventId = idSchema.safeParse(field(form, "eventId"));
+  return eventId.success ? `${groupPath(form)}/okter/${eventId.data}` : groupPath(form);
+};
+
+export async function saveYearPlan(form: FormData) {
+  const user = await requireUser();
+  return run(planningPath(form, "arsplan"), async () => {
+    await saveAnnualPlan(await getDatabase(), user.id, field(form, "groupId"), {
+      year: field(form, "year"), birthYear: field(form, "birthYear"), objectives: field(form, "objectives"),
+    }, field(form, "revision"));
+    return `${planningPath(form, "arsplan")}&melding=${encodeURIComponent("Årsplanen er lagret.")}`;
+  });
+}
+
+export async function saveThemePeriod(form: FormData) {
+  const user = await requireUser();
+  return run(planningPath(form, "arsplan"), async () => {
+    await savePlanPeriod(await getDatabase(), user.id, field(form, "groupId"), yearSchema.parse(field(form, "year")), {
+      startDate: field(form, "startDate"), endDate: field(form, "endDate"), theme: field(form, "theme"),
+      objectives: field(form, "objectives"), progression: field(form, "progression"), sourceUrl: field(form, "sourceUrl"),
+    }, field(form, "revision"), field(form, "periodId") || undefined);
+    return `${planningPath(form, "arsplan")}&melding=${encodeURIComponent("Temaperioden er lagret. Eksisterende øktplaner er ikke endret.")}`;
+  });
+}
+
+export async function deleteThemePeriod(form: FormData) {
+  const user = await requireUser();
+  return run(planningPath(form, "arsplan"), async () => {
+    await removePlanPeriod(await getDatabase(), user.id, field(form, "groupId"), field(form, "periodId"), field(form, "revision"));
+    return `${planningPath(form, "arsplan")}&melding=${encodeURIComponent("Perioden er fjernet. Lagrede planversjoner beholdes.")}`;
+  });
+}
+
+export async function newTrainingEvent(form: FormData) {
+  const user = await requireUser();
+  return run(planningPath(form, "kalender"), async () => {
+    const eventId = await createTrainingEvent(await getDatabase(), user.id, field(form, "groupId"),
+      eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel");
+    return `${groupPath(form)}/okter/${eventId}`;
+  });
+}
+
+export async function saveTrainingPlan(_previous: { error: string } | null, form: FormData): Promise<{ error: string }> {
+  const user = await requireUser();
+  try {
+    let plan: unknown;
+    try { plan = JSON.parse(field(form, "plan")); }
+    catch (error) {
+      if (error instanceof SyntaxError) throw new DomainError("Øktplanen er ikke gyldig JSON.");
+      throw error;
+    }
+    await saveSessionPlan(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"),
+      eventFields(form), plan, field(form, "revision"), field(form, "intent") === "approve" ? "planned" : "draft");
+  } catch (error) {
+    if (error instanceof ZodError) return { error: error.issues.map((issue) => issue.message).join(" ") };
+    if (error instanceof DomainError) return { error: error.message };
+    console.error("Øktplanen kunne ikke lagres:", error);
+    return { error: "Lagring feilet. Kontroller serverloggen og prøv igjen. Endringene er beholdt i skjemaet." };
+  }
+  redirect(`${eventPath(form)}?melding=${encodeURIComponent("Ny planversjon er lagret.")}`);
+}
+
+export async function setTrainingStatus(form: FormData) {
+  const user = await requireUser();
+  return run(eventPath(form), async () => {
+    await changeTrainingStatus(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"),
+      field(form, "revision"), field(form, "intent") === "cancel" ? "cancelled" : "draft");
+    return `${eventPath(form)}?melding=${encodeURIComponent("Øktstatus er oppdatert. Planversjonene er bevart.")}`;
   });
 }
