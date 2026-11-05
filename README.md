@@ -2,6 +2,70 @@
 
 Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkter for gutter født i 2017. Tiim brukes som øvelseskilde; øktene lagres i GitHub og kan deles via GitHub Pages. Denne prosjektmappen samler rammer, lokale tilpasninger og historikk.
 
+## Ny webapp: lokal utvikling
+
+Den nye Next.js-appen bygges ved siden av dagens øktarkiv og Pages-nettsted. Se [spesifikasjonen](docs/nettsted-spesifikasjon.md) og [implementasjonsplanen](docs/implementasjonsplan.md).
+
+Første leveranse har lokal magic-link-innlogging, oppretting av klubber og grupper, administrator- og hovedtrenerinvitasjoner, treneradministrasjon, overføring av hovedtrenerrolle, klubbprofil med logo/farger og lagring av faste treningstider/øktrammer. Kalender, AI, automatisk utkast, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
+
+### Start lokalt
+
+Krever Node.js 24.10 eller nyere. PGlite kjører PostgreSQL innebygd i Node.js; du trenger verken Docker, databaseserver, Neon-konto eller ekstern e-post. Grensesnittet bruker HeroUI v3 med Tailwind CSS v4. Kjør fra prosjektroten:
+
+```powershell
+npm ci
+Copy-Item .env.example .env.local
+npm run dev
+```
+
+Kopier miljøfilen bare ved første oppsett; behold egne lokale endringer senere. Åpne `http://127.0.0.1:3000`. Appen oppretter PGlite-mappen automatisk, kjører ventende Drizzle-migreringer og lukker migreringsforbindelsen **før** Next.js starter. Data beholdes på disk i `.local/pglite` ved omstart. Mappen er ignorert av Git; ingen eksempeldata eller ekte klubbdata legges inn automatisk.
+
+Velg innlogging med e-post. En engangslenke vises i **serverterminalen**, ikke i e-post. Lenken varer i 15 minutter, og innlogget sesjon i 30 dager. Invitasjoner vises også i terminalen, varer i sju dager og må aksepteres med riktig e-postadresse. Dette er bare en lokal utviklingsflyt; lokal auth avvises uten eksplisitt lokal konfigurasjon og i produksjon, Vercel og CI.
+
+`APP_URL` styrer appens port og lenkene som genereres. Hvis porten er opptatt, endre `APP_URL` og start appen på nytt. `PGLITE_DATA_DIR` kan settes til en annen lokal mappe; standard er `.local/pglite`. `DATABASE_URL`, `LOCAL_DB_PORT` og `LOCAL_DB_DOCKER` brukes ikke til lokal oppstart.
+
+PGlite skal bare åpnes av én prosess om gangen. Appen deler én instans mellom forespørsler og hot reload, og en fillås hindrer andre app-/migreringsprosesser i å åpne den samme mappen. Stopp appen før du kjører separat lokal migrering. Etter en brå avslutning kan en gammel lås bruke omtrent ti sekunder på å utløpe; ikke slett databasefiler for å løse en låsefeil.
+
+### Administrere roller
+
+På klubbsiden kan en klubbadministrator invitere flere administratorer, tilbakekalle invitasjoner og fjerne administratorroller. Mottakeren må logge inn med riktig e-postadresse og eksplisitt akseptere før tilgangen gis. En ny invitasjon erstatter en eventuell ubenyttet invitasjon til samme mottaker. Invitasjoner varer i sju dager.
+
+Den siste administratoren kan ikke fjernes eller fratre før en annen har akseptert. Administratorendringer serialiseres i en databasetransaksjon. Fjerning bevarer eventuelle gruppemedlemskap, men tilbakekaller ubrukte administratorinvitasjoner til eller opprettet av personen.
+
+På gruppesiden kan klubbadministrator overføre hovedtrenerrollen til en eksisterende trener i samme gruppe. Tidligere hovedtrener blir vanlig trener, og ubrukte hovedtrenerinvitasjoner trekkes tilbake. Rollebyttet skjer samlet; vanlige trenere og hovedtrenere kan ikke utføre overføringen.
+
+### Tidligere lokal database
+
+Tidligere Docker-data flyttes ikke automatisk til PGlite. Eventuelle eksisterende Docker-volumer beholdes urørt. PGlite bruker samme SQL-migreringer som Neon, men erstatter ikke testing av server-/tilkoblingsoppførsel mot Neon før produksjon.
+
+### Klubbens farger og logo
+
+Klubbadministrator kan redigere klubbprofilen på klubbsiden. Velg primær-/aksentfarge og last opp en statisk PNG, JPEG eller WebP. Forhåndsvisning endrer ikke lagret profil før **Lagre klubbprofil** velges. Primærfargen må ha minst 4,5:1 kontrast mot både hvitt og sidens lyse bakgrunn; aksentfargen får automatisk svart eller hvit tekst med minst samme kontrast.
+
+Logoen kan være maksimalt 512 KiB og 2048 × 2048 piksler. Serveren kontrollerer faktisk bildeformat, filstørrelse, dimensjoner og at bildet ikke er animert. Bildet skaleres ned til maksimalt 512 × 512 piksler og kodes om til WebP uten opprinnelige metadata. SVG og eksterne logolenker støttes ikke.
+
+Små logoer lagres som normaliserte bildedata i klubbens databasepost, ikke som filer i Git eller på Vercels midlertidige disk. Dette fungerer lokalt uten en ekstra lagringstjeneste. Farger og logo vises på klubbkort, klubbsiden og gruppesidene, med klubben som tekstalternativ for logoen. Vanlige trenere og hovedtrenere kan se profilen, men ikke endre den. Profilen påvirker ikke andre klubber eller appens globale navigasjon.
+
+Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo** lagrer standardprofilen umiddelbart. Offentlige økt-/kalendersider er ennå ikke implementert; den delte profilkomponenten skal brukes også der når de bygges.
+
+### Verifisering og migreringer
+
+```powershell
+npm run typecheck
+npm run lint
+npm test
+npm run test:db
+npm run build
+```
+
+`test:db` oppretter isolerte PGlite-databaser i midlertidige mapper og trenger verken miljøfil eller database som kjører. Testene dekker persistens etter ny åpning, migreringshistorikk, fillås, innlogging, engangslenker, invitasjoner, roller og klubb-/gruppeskille. Fiktive testdata og midlertidige mapper ryddes opp. Eksisterende taktikktavletester inngår i `npm test`.
+
+- `npm run db:generate`: lag versjonert Drizzle-migrering etter skjemaendringer.
+- `npm run db:migrate`: kjør ventende migreringer separat. Med `APP_ENV=local` brukes PGlite og lokal konfigurasjon; stopp appen først. I deployede miljøer kreves eksplisitt `DATABASE_URL` til Neon. Kommandoen er ikke del av Vercel-funksjonsoppstart.
+- `npm run build`: kontroller produksjonsbygget uten å kontakte databasen. Det betyr ikke at produksjonsauth er ferdig. `npm start` skal ikke brukes for lokal auth; bruk `npm run dev`.
+
+Produksjonsavhengighetene er kontrollert med `npm audit --omit=dev`. Det finnes foreløpig moderate varsler i utviklingsverktøyenes transitive avhengigheter (Drizzle Kit/ESLint); disse må følges opp før produksjonssetting. Ikke bruk `npm audit fix --force` uten å kontrollere verktøyenes kompatibilitet.
+
 ## Publiserte økter og verktøy
 
 - [Alle publiserte økter](https://ingljoopt.github.io/ski-fotball-G2017/)
@@ -28,6 +92,10 @@ Agentferdigheten [Øktplanlegger](.claude/skills/oktplanlegger/SKILL.md) følger
 | --- | --- |
 | `docs/produktbeskrivelse.md` | Mål, krav, avgrensning og ferdigkriterier |
 | `docs/nettsted-spesifikasjon.md` | Krav og teknisk retning for den planlagte flerklubb-nettløsningen |
+| `docs/implementasjonsplan.md` | Sjekkliste og verifisert leveransestatus for webappen |
+| `src/` | Next.js-app, lokal auth, tilgangskontroll og Drizzle-skjema |
+| `scripts/` | Lokal oppstart og migrering |
+| `drizzle/` | Versjonerte databasemigreringer |
 | `docs/rammer.md` | Spillergruppe, utstyr, årstid og organisering |
 | `docs/arbeidsflyt.md` | Planlegging, kilder, GitHub-publisering og gjenbruk |
 | `ovelsesbank/README.md` | Verifiserte Tiim-lenker og lokale vurderinger |

@@ -1,0 +1,45 @@
+{
+  "name": "klubbokter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.10.0" },
+  "scripts": {
+    "dev": "node scripts/dev.ts",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint src scripts tests/app",
+    "test": "node --test tests/*.test.cjs tests/app/*.test.ts",
+    "test:db": "node --test tests/app/database.integration.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node scripts/migrate.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@heroui/react": "^3.2.7",
+    "@heroui/styles": "^3.2.7",
+    "drizzle-orm": "^0.45.4",
+    "next": "^16.0.0",
+    "postgres": "^3.4.7",
+    "proper-lockfile": "^4.1.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^24.10.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.6",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "^16.0.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -23,14 +23,28 @@ En bruker kan være medlem av flere klubber og grupper, med forskjellig rolle i 
 
 - En konto kan opprette eller bli invitert til flere klubber.
 - En klubb kan ha flere administratorer.
+- Klubbadministrator kan invitere andre administratorer og fjerne administratorroller, inkludert sin egen. Den siste administratoren kan ikke fjernes før en annen har akseptert. Administratorrollen gir tilgang til alle klubbens grupper, men er separat fra gruppemedlemskap.
 - En klubb kan ha flere undergrupper, for eksempel G2017.
 - Når en gruppe opprettes, inviterer klubbadministrator en hovedtrener som gruppens første medlem. Hovedtreneren kan deretter administrere gruppen selvstendig, uten å være klubbadministrator.
 - Hovedtrener kan invitere og fjerne trenere i egen gruppe, og administrere gruppens treningstider, planer, økter og delingsinnstillinger.
 - Klubbadministratorer kan uavhengig av hovedtrener legge til og fjerne medlemmer i alle klubbens grupper. De kan også overføre hovedtrenerrollen eller invitere en ny hovedtrener.
+- Ved overføring må mottakeren være et eksisterende medlem av samme gruppe. Overføringen utføres bare av klubbadministrator, og tidligere hovedtrener beholdes som vanlig trener. Rollebyttet og tilbakekalling av ubrukte hovedtrenerinvitasjoner gjøres atomisk.
 - En gruppe har egne hovedtrenere/trenere, års-/periodeplan, kalender, økter og evalueringer.
 - Klubben kan vedlikeholde innhold som deles med gruppene: sportsplan, trenerveiledning, utstyrsliste og andre dokumenter.
 - Felles innhold skal versjoneres. En endring skal ikke i det stille endre en allerede godkjent eller gjennomført økt.
 - Gruppens utstyrsbeholdning kan arve klubbens liste, med mulighet for lokale opplysninger og konkret tilgjengelighet per økt.
+
+### Klubbprofil: temafarger og logo
+
+- Klubbadministrator kan legge inn, endre og fjerne klubbens logo og temafarger, med primær- og aksentfarge.
+- Klubbprofilen brukes på klubbens og undergruppenes sider, inkludert offentlige økt- og kalendersider. Endringer gjelder bare den aktuelle klubben.
+- Vis en forhåndsvisning før lagring, og tilby tilbakestilling til løsningens standardprofil når logo eller farger ikke er satt.
+- Fargeverdier valideres, og tekst, knapper og fokusmarkeringer skal beholde tilstrekkelig kontrast. Logo valideres for filtype og størrelse, og vises med et meningsfullt tekstalternativ.
+- Trenere og hovedtrenere kan ikke endre klubbprofilen uten klubbadministratorrolle.
+- Første implementasjon tillater statiske PNG-, JPEG- og WebP-logoer på maksimalt 512 KiB og 2048 × 2048 piksler. Serveren dekoder bildet, kontrollerer faktisk filtype og skalerer/omkoder til WebP på opptil 512 × 512 piksler uten opprinnelige metadata. SVG, animasjon og eksterne logo-URL-er avvises.
+- Små normaliserte logoer lagres i klubbens databasepost. Lokal drift krever ingen ekstern lagringstjeneste, og løsningen skriver ikke opplastinger til Git eller Vercels midlertidige disk.
+- Primærfargen brukes til lenker, knapper og fokusmarkering og må ha minst 4,5:1 kontrast mot både hvitt og sidens lyse bakgrunn. Aksentfargen får automatisk svart eller hvit tekst med minst 4,5:1 kontrast. Fargene valideres på serveren og begrenses til seks heksadesimale tegn.
+- Forhåndsvisning lagrer ingenting. Administrator kan fjerne bare logoen ved lagring, eller lagre standardfarger og fjerne logoen samlet med eksplisitt tilbakestilling. Appens globale navigasjon beholdes nøytral.
 
 ### Innlogging og invitasjoner
 
@@ -39,6 +53,7 @@ En bruker kan være medlem av flere klubber og grupper, med forskjellig rolle i 
 - Lokal utvikling skal bruke en egen lokal auth-adapter og ikke kreve Neon Auth-konto, Neon-tilkobling eller ekstern e-postutsending. Utviklingsflyten kan vise magic link lokalt, for eksempel i terminalen eller en lokal e-postfanger.
 - Lokal auth er kun tilgjengelig i eksplisitt lokal utviklingsmodus og skal ikke kunne aktiveres i test- eller produksjonsmiljø.
 - Invitasjoner er knyttet til klubb eller gruppe, rolle og mottaker. Klubbadministrator inviterer første hovedtrener til en gruppe; deretter kan hovedtrener invitere gruppetrenere. Klubbadministrator kan også invitere medlemmer direkte til enhver gruppe. Invitasjoner skal kunne utløpe, trekkes tilbake og aksepteres etter innlogging.
+- Administratorinvitasjoner krever eksplisitt aksept fra innlogget mottaker med samsvarende e-postadresse. Lokalt varer de i sju dager, kan bare brukes én gang og erstattes ved ny invitasjon til samme mottaker. Fjerning av administrator tilbakekaller ubrukte administratorinvitasjoner til eller opprettet av personen, men bevarer selvstendige gruppemedlemskap.
 - Brukeren skal tydelig se hvilken klubb og gruppe som er aktiv.
 - Detaljer som utløpstid for magic link og innlogget økt må fastsettes ved implementering i tråd med Neon Auth sine støttede innstillinger.
 
@@ -137,9 +152,9 @@ Hver tenant-eid rad må ha klubbtilknytning. Gruppeinnhold må i tillegg være b
 
 ## Teknisk løsningsretning
 
-- **Web:** Next.js med TypeScript; server-side håndtering for autorisasjon og datatilgang.
-- **Database:** Neon Postgres i deployede miljøer og lokal PostgreSQL for utvikling, med samme Drizzle-skjema og migrasjoner. Lokal PostgreSQL bør kjøres via Docker Compose eller en tilsvarende enkel lokal oppstart, med persistent volum for utviklingsdata.
-- **Lokal oppstart:** `dev`-oppstartsskriptet starter eller kontrollerer lokal database, venter til den er tilgjengelig, kjører Drizzle-migreringer idempotent og starter deretter Next.js. Migreringer skal ikke kjøres parallelt av flere app-prosesser; bruk migreringslås eller ett eksplisitt migreringstrinn før serverstart.
+- **Web:** Next.js med TypeScript og HeroUI-komponenter med Tailwind CSS. Autorisasjon og datatilgang håndteres server-side.
+- **Database:** Neon Postgres i deployede miljøer og PGlite som standard lokalt, med samme Drizzle-skjema og SQL-migrasjoner. PGlite kjører innebygd i Node.js og lagrer utviklingsdata på disk uten Docker eller egen databaseserver.
+- **Lokal oppstart:** `dev`-oppstartsskriptet åpner PGlite, kjører ventende Drizzle-migreringer, lukker forbindelsen og starter deretter Next.js. Fillås hindrer samtidige prosesser i å åpne samme PGlite-mappe. Appen deler én instans mellom forespørsler.
 - **Migreringer i deploy:** produksjonsmigrering kjøres som et eget kontrollert deploy-steg mot Neon, ikke som sideeffekt av hver Vercel-funksjonsstart. Samme versjonerte Drizzle-migreringer brukes lokalt og i deploy.
 - **Auth:** Neon Auth magic link og langvarig, tilbakekallbar innlogget økt i deployede miljøer. Auth-laget abstraheres slik at lokal utvikling bruker lokal auth-adapter med samme bruker-/rollegrensesnitt uten å koble til Neon Auth.
 - **AI:** Vercel AI Gateway; modell- og verktøytilgang styres fra serveren. API-nøkler og hemmeligheter lagres i miljø-/secret management, aldri i klientkode eller databaseinnhold.
@@ -149,9 +164,9 @@ Hver tenant-eid rad må ha klubbtilknytning. Gruppeinnhold må i tillegg være b
 
 ## Lokal utvikling
 
-- En utvikler skal kunne klone prosjektet, starte lokal PostgreSQL og kjøre appens grunnleggende funksjoner uten Neon-database, Neon Auth-konto eller ekstern e-posttjeneste.
-- Lokal PostgreSQL bruker samme Postgres-dialekt som Neon, slik at skjema, transaksjoner og Drizzle-migreringer oppfører seg likt. Lokal database skal ha persistent lagring, men kunne opprettes fra en tom tilstand ved å kjøre migreringene.
-- Oppstartsrekkefølge: start database → vent på health check/tilkobling → kjør ventende Drizzle-migreringer → start Next.js. Oppstart skal feile tydelig hvis migrering eller databaseforbindelse feiler; ikke start appen med et utdatert skjema.
+- En utvikler skal kunne klone prosjektet og kjøre appens grunnleggende funksjoner med PGlite uten Docker, ekstern database, Neon Auth-konto eller ekstern e-posttjeneste.
+- PGlite bruker Postgres-dialekt og samme versjonerte SQL-migreringer som Neon. Lokal database har persistent lagring i en Git-ignorert mappe og kan opprettes fra en tom tilstand med migreringene. Forskjeller i server-/tilkoblingsoppførsel må fortsatt testes mot Neon før produksjon.
+- Oppstartsrekkefølge: åpne PGlite med eksklusiv fillås → kjør ventende Drizzle-migreringer → lukk forbindelsen → start Next.js. Oppstart skal feile tydelig hvis migrering eller databaseåpning feiler; ikke start appen med et utdatert skjema.
 - Migreringskommandoen skal være tilgjengelig separat for CI og lokal feilsøking. Migreringer er versjonerte og kjøres bare én gang per databaseversjon, også om utvikleren starter appen på nytt.
 - Lokal auth skal gjøre det mulig å teste magic-link- og invitasjonsflyten uten å sende e-post ut av maskinen. Testlenke kan vises i lokal e-postfanger eller terminal, men må være tydelig merket som utviklingsmodus.
 - Lokal auth må kreve eksplisitt utviklingskonfigurasjon og nekte å starte hvis aktivt miljø er test eller produksjon. Produksjonsdeploy skal kreve Neon Auth-konfigurasjon og skal aldri falle tilbake til lokal auth automatisk.
@@ -171,7 +186,7 @@ Hver tenant-eid rad må ha klubbtilknytning. Gruppeinnhold må i tillegg være b
 
 ## MVP og avgrensning
 
-**MVP omfatter:** klubber og grupper, invitasjon av hovedtrener som første gruppemedlem, gruppeadministrasjon for hovedtrener, klubbadministrasjon av gruppemedlemskap, magic link, lokal utviklingsmodus med PostgreSQL og lokal auth uten Neon-avhengighet, klubbfelles innhold, gruppekalender og periodeplan, manuell øktplanlegging, AI-utkast og promptbasert revisjon, historikk/evaluering, utstyrs- og grupperegnskap, valgfri automatisk utkastjobb, offentlige skrivebeskyttede lenker og visning av støttede medier/taktikktavler.
+**MVP omfatter:** klubber og grupper, invitasjon av hovedtrener som første gruppemedlem, gruppeadministrasjon for hovedtrener, klubbadministrasjon av gruppemedlemskap, magic link, lokal utviklingsmodus med PGlite og lokal auth uten Docker-/Neon-avhengighet, HeroUI-grensesnitt, klubbfelles innhold, gruppekalender og periodeplan, manuell øktplanlegging, AI-utkast og promptbasert revisjon, historikk/evaluering, utstyrs- og grupperegnskap, valgfri automatisk utkastjobb, offentlige skrivebeskyttede lenker og visning av støttede medier/taktikktavler.
 
 **Ikke del av MVP:** spillerkontoer eller individuelle profiler, kampadministrasjon, betaling, automatisk publisering, egen videohosting, ubegrensede eksterne iframe-kilder og en uautorisert direkteintegrasjon mot Tiim. Taktikkredigereren integreres i Next.js-appen ved å gjenbruke eksisterende format og funksjoner, ikke ved å bygge en separat ny redigerer fra grunnen.
 
@@ -190,9 +205,11 @@ Hver tenant-eid rad må ha klubbtilknytning. Gruppeinnhold må i tillegg være b
 11. En offentlig kalenderlenke viser bare valgte datoer/felter; ingen evalueringer, invitasjoner eller medlemsdata.
 12. Eksisterende taktikktavle-JSON kan vises med tekstalternativ, og animasjon starter først etter en aktiv handling fra leseren.
 13. Sikkerhetstester verifiserer klubb- og gruppeskille for både lesing, endring og delte lenker, inkludert rollegrensene mellom klubbadministrator, hovedtrener og trener.
-14. En utvikler kan starte lokal app og PostgreSQL uten Neon-tilkobling eller Neon Auth, og lokal oppstart anvender ventende Drizzle-migreringer før Next.js starter.
+14. En utvikler kan starte lokal app med diskbasert PGlite uten Docker, Neon-tilkobling eller Neon Auth. Lokal oppstart anvender ventende Drizzle-migreringer før Next.js starter, og lagrede data beholdes ved omstart.
 15. Lokal magic-link- og invitasjonsflyt fungerer uten ekstern e-postutsending; lokal auth kan ikke aktiveres i deployede test- eller produksjonsmiljøer.
 16. Deploy kjører migreringer kontrollert mot Neon uten at migreringer startes på nytt for hver Vercel-funksjonsinstans.
+17. Klubbadministrator kan lagre logo og temafarger med forhåndsvisning. Profilen vises på klubbens, gruppenes og klubbens offentlige sider uten å påvirke andre klubber, og løsningen har tilgjengelige kontraster og standardprofil som reserve.
+18. Eksisterende sider bruker HeroUI for kort, knapper, lenker, tekst-/tallfelt og ukedagsvalg, med tilgjengelige etiketter, validering og uendret server-side tilgangskontroll.
 
 ## Avklaringer før implementering
 

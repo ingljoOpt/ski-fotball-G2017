@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793880734145,
+      "tag": "0000_robust_salo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793882749281,
+      "tag": "0001_natural_lethal_legion",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793883273134,
+      "tag": "0002_misty_iron_lad",
+      "breakpoints": true
+    }
+  ]
+}
