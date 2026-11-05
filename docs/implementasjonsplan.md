@@ -32,6 +32,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [x] Aldersbestemt NFF-kildelenke og lagret årsplankontekst, uten automatisk temagenerering før steg 4.
 - [ ] Klubbfelles sportsplan, veiledning og utstyr med versjonering.
 - [x] Manuelle øktutkast med Tiim-inspirert oppbygning, ordnede øvelseskort og uforanderlige planversjoner.
+- [ ] Full endringshistorikk for økter, årsplaner og periodeplaner: vis hvem, når og hva som ble endret, også ved statusendringer og sletting av perioder. Lagre historikk atomisk med endringen, skill bruker-/AI-/systemhandlinger og hold aktøridentitet utenfor offentlig deling.
 - [x] Oppmøteforutsetninger og kontroller av tid, trenerbehov og samtidig utstyr, med sperre mot ufullstendig godkjenning.
 - [x] Felles strukturert plan-/kildekontrakt og kontekstsnapshots som grunnlag for AI i steg 4.
 - [ ] Faktisk gjennomføring og privat evaluering uten spillerprofiler.

@@ -90,6 +90,9 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 
 - Øktplan kan redigeres manuelt eller med en instruks til AI-agenten.
 - Lagre versjoner av utkast og godkjent plan. Redigering skal ikke slette tidligere versjoner.
+- Alle lagrede endringer i økter, årsplaner og periodeplaner skal ha en uforanderlig endringshistorikk som viser **hvem som endret**, **når** og **hva som ble endret**, med tidligere og nye verdier eller referanser til bevarte versjoner. Dette omfatter også oppretting, sletting av perioder, flytting, godkjenning, avlysning og gjenåpning.
+- Endringsaktør hentes fra innlogget bruker på serveren, ikke fra et redigerbart skjemafelt. Ved AI-revisjoner registreres både AI-opprinnelse og brukeren som ba om eller godkjente endringen; automatiske jobber merkes som systemhandlinger. Historikk lagres atomisk sammen med endringen og bevares også når en bruker mister tilgang.
+- Autoriserte trenere og klubbadministratorer skal kunne åpne endringshistorikken fra økten eller planen. Brukeridentitet og intern endringshistorikk skal ikke vises via offentlige delingslenker.
 - En økt kan inneholde mål, tidsplan, øvelseskort, grupper, trenerroller, utstyrsbehov, Tiim-kilder, lokale tilpasninger og medier.
 - Manuell øktbygger bruker Tiim-inspirert struktur: tema/introduksjon, øvingsmål og rammer, deretter ordnede kort for oppvarming, temaarbeid, spill og avslutning. Hvert kort har varighet, mål, organisering/rotasjon, instruksjon, læringsmomenter, enklere/vanskeligere variant, kilde og lokale tilpasninger. Dette er egne beskrivelser, ikke kopiert Tiim-innhold.
 - Samme versjonerte, validerte plankontrakt skal brukes av manuell redigering og senere AI. Hver planversjon bevarer øktmetadata, planstatus og årsplankontekst; endringer i årsplanen skal ikke endre eksisterende planer i det stille. Utdaterte redigeringer avvises fremfor å overskrive en annen treners arbeid.
@@ -149,6 +152,7 @@ Tabellene implementeres med Drizzle og Neon Postgres. Dette er logiske objekter;
 | `training_series` | Faste treningstider, standard øktvarighet, dager før automatisk oppretting, blokkvarighet og automatiseringsinnstillinger |
 | `sessions` | Dato, tema, status, varighet, spiller-/trenerantall og rammer |
 | `session_versions` | Uforanderlige planversjoner, AI-/manuell opprinnelse og godkjenning |
+| `change_history` | Uforanderlige endringsposter med klubb/gruppe, berørt økt/plan, aktør, tidspunkt, handling, opprinnelse og endrede verdier eller versjonsreferanser |
 | `session_activities` | Tidsplan, grupper, øvelser, roller og utstyrsbehov per versjon |
 | `sources` | Tiim-/eksterne lenker, kildetype, aldersmerking og kontrolltidspunkt |
 | `evaluations` | Faktisk gjennomføring og evaluering knyttet til økt og gruppe |
