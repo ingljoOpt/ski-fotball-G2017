@@ -15,14 +15,15 @@ Krever Node.js 24.10 eller nyere. PGlite kjører PostgreSQL innebygd i Node.js; 
 ```powershell
 npm ci
 Copy-Item .env.example .env.local
+npm run db:migrate
 npm run dev
 ```
 
-Kopier miljøfilen bare ved første oppsett; behold egne lokale endringer senere. Åpne `http://127.0.0.1:3000`. Appen oppretter PGlite-mappen automatisk, kjører ventende Drizzle-migreringer og lukker migreringsforbindelsen **før** Next.js starter. Data beholdes på disk i `.local/pglite` ved omstart. Mappen er ignorert av Git; ingen eksempeldata eller ekte klubbdata legges inn automatisk.
+Kopier miljøfilen bare ved første oppsett; behold egne lokale endringer senere. Åpne `http://127.0.0.1:3000`. Kjør migrering manuelt ved første oppsett og etter nye Drizzle-migreringer, mens appen er stoppet. `npm run dev` starter vanlig Next.js uten et eget oppstartsskript eller automatisk migrering. Migreringskommandoen oppretter PGlite-mappen og lukker forbindelsen når den er ferdig. Data beholdes på disk i `.local/pglite` ved omstart. Mappen er ignorert av Git; ingen eksempeldata eller ekte klubbdata legges inn automatisk.
 
 Velg innlogging med e-post. En engangslenke vises i **serverterminalen**, ikke i e-post. Lenken varer i 15 minutter, og innlogget sesjon i 30 dager. Invitasjoner vises også i terminalen, varer i sju dager og må aksepteres med riktig e-postadresse. Dette er bare en lokal utviklingsflyt; lokal auth avvises uten eksplisitt lokal konfigurasjon og i produksjon, Vercel og CI.
 
-`APP_URL` styrer appens port og lenkene som genereres. Hvis porten er opptatt, endre `APP_URL` og start appen på nytt. `PGLITE_DATA_DIR` kan settes til en annen lokal mappe; standard er `.local/pglite`. `DATABASE_URL`, `LOCAL_DB_PORT` og `LOCAL_DB_DOCKER` brukes ikke til lokal oppstart.
+`APP_URL` styrer lenkene som genereres, ikke Next.js-porten. Hvis porten er opptatt, sett for eksempel `APP_URL=http://127.0.0.1:3001` i `.env.local` og start med `npm run dev -- --port 3001`. Bruk samme origin i nettleseren og `APP_URL`. `PGLITE_DATA_DIR` kan settes til en annen lokal mappe; standard er `.local/pglite`. `DATABASE_URL`, `LOCAL_DB_PORT` og `LOCAL_DB_DOCKER` brukes ikke til lokal oppstart.
 
 PGlite skal bare åpnes av én prosess om gangen. Appen deler én instans mellom forespørsler og hot reload, og en fillås hindrer andre app-/migreringsprosesser i å åpne den samme mappen. Stopp appen før du kjører separat lokal migrering. Etter en brå avslutning kan en gammel lås bruke omtrent ti sekunder på å utløpe; ikke slett databasefiler for å løse en låsefeil.
 

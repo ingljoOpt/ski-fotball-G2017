@@ -184,7 +184,7 @@ Den lokale planleggingsleveransen bruker `annual_plans`, `plan_periods`, `traini
 
 - **Web:** Next.js med TypeScript og HeroUI-komponenter med Tailwind CSS. Autorisasjon og datatilgang håndteres server-side.
 - **Database:** Neon Postgres i deployede miljøer og PGlite som standard lokalt, med samme Drizzle-skjema og SQL-migrasjoner. PGlite kjører innebygd i Node.js og lagrer utviklingsdata på disk uten Docker eller egen databaseserver.
-- **Lokal oppstart:** `dev`-oppstartsskriptet åpner PGlite, kjører ventende Drizzle-migreringer, lukker forbindelsen og starter deretter Next.js. Fillås hindrer samtidige prosesser i å åpne samme PGlite-mappe. Appen deler én instans mellom forespørsler.
+- **Lokal oppstart:** Kjør `npm run db:migrate` manuelt ved første oppsett og etter nye migreringer, mens appen er stoppet. Kommandoen åpner PGlite, kjører ventende Drizzle-migreringer og lukker forbindelsen. `npm run dev` starter Next.js direkte. Fillås hindrer samtidige prosesser i å åpne samme PGlite-mappe. Appen deler én instans mellom forespørsler.
 - **Migreringer i deploy:** produksjonsmigrering kjøres som et eget kontrollert deploy-steg mot Neon, ikke som sideeffekt av hver Vercel-funksjonsstart. Samme versjonerte Drizzle-migreringer brukes lokalt og i deploy.
 - **Auth:** Neon Auth magic link og langvarig, tilbakekallbar innlogget økt i deployede miljøer. Auth-laget abstraheres slik at lokal utvikling bruker lokal auth-adapter med samme bruker-/rollegrensesnitt uten å koble til Neon Auth.
 - **AI:** Vercel AI Gateway; modell- og verktøytilgang styres fra serveren. API-nøkler og hemmeligheter lagres i miljø-/secret management, aldri i klientkode eller databaseinnhold.
@@ -235,7 +235,7 @@ Den lokale planleggingsleveransen bruker `annual_plans`, `plan_periods`, `traini
 11. En offentlig kalenderlenke viser bare valgte datoer/felter; ingen evalueringer, invitasjoner eller medlemsdata.
 12. Eksisterende taktikktavle-JSON kan vises med tekstalternativ, og animasjon starter først etter en aktiv handling fra leseren.
 13. Sikkerhetstester verifiserer klubb- og gruppeskille for både lesing, endring og delte lenker, inkludert rollegrensene mellom klubbadministrator, hovedtrener og trener.
-14. En utvikler kan starte lokal app med diskbasert PGlite uten Docker, Neon-tilkobling eller Neon Auth. Lokal oppstart anvender ventende Drizzle-migreringer før Next.js starter, og lagrede data beholdes ved omstart.
+14. En utvikler kan starte lokal app med diskbasert PGlite uten Docker, Neon-tilkobling eller Neon Auth. Ventende Drizzle-migreringer kjøres manuelt med `npm run db:migrate` mens appen er stoppet. `npm run dev` starter vanlig Next.js uten eget oppstartsskript eller automatisk migrering, og lagrede data beholdes ved omstart.
 15. Lokal magic-link- og invitasjonsflyt fungerer uten ekstern e-postutsending; lokal auth kan ikke aktiveres i deployede test- eller produksjonsmiljøer.
 16. Deploy kjører migreringer kontrollert mot Neon uten at migreringer startes på nytt for hver Vercel-funksjonsinstans.
 17. Klubbadministrator kan lagre logo og temafarger med forhåndsvisning. Profilen vises på klubbens, lagenes og klubbens offentlige sider uten å påvirke andre klubber, og løsningen har tilgjengelige kontraster og standardprofil som reserve.

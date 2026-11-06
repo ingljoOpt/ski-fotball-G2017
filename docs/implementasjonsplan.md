@@ -10,7 +10,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [x] Fast venstre sidemeny på desktop, hamburgermeny bare på smale skjermer og kontoavatar øverst til høyre med egen utloggingsmeny. Nettleserkontroll ved 320, 375 og 1280 piksler, inkludert Escape og fokusretur.
 - [x] Lokal PGlite med diskbasert lagring uten Docker eller egen databaseserver.
 - [x] Postgres-skjema og versjonerte Drizzle-migreringer. Neon-tilkobling verifiseres i produksjonssteget.
-- [x] Oppstart som åpner PGlite og migrerer før Next.js starter, med fillås mot samtidige prosesser.
+- [x] Vanlig `next dev` uten eget oppstartsskript. Migrering kjøres manuelt med `npm run db:migrate` mens appen er stoppet; PGlite har fillås mot samtidige prosesser.
 - [x] Lokal magic-link-innlogging og innlogget sesjon uten ekstern e-post.
 - [x] Sperre lokal auth i deployede miljøer.
 
