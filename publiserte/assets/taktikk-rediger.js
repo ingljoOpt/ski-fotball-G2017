@@ -188,7 +188,9 @@
   }
 
   function mayReplace() {
-    return !dirty || window.confirm('Du har endringer som ikke er publisert. Last ned JSON først hvis du vil beholde dem. Fortsette?');
+    return !dirty || window.confirm(root.dataset.storageMode === 'file'
+      ? 'Du har endringer i tavlen. Last ned JSON først hvis du vil beholde dem. Fortsette?'
+      : 'Du har endringer som ikke er publisert. Last ned JSON først hvis du vil beholde dem. Fortsette?');
   }
 
   function tick(time) {
@@ -401,7 +403,9 @@
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      report('Nedlasting startet. Kopier filen til prosjektet og publiser via GitHub; nettstedet er ikke oppdatert ennå.');
+      report(root.dataset.storageMode === 'file'
+        ? 'Nedlasting startet. Ta vare på JSON-filen og åpne den her for å redigere videre. Ingen delt lagring eller publisering.'
+        : 'Nedlasting startet. Kopier filen til prosjektet og publiser via GitHub; nettstedet er ikke oppdatert ennå.');
     } catch (error) {
       report(`Kunne ikke laste ned: ${error.message}`, true);
     }

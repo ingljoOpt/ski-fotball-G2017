@@ -36,6 +36,13 @@
       "when": 1793910550101,
       "tag": "0004_right_synch",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793948224810,
+      "tag": "0005_sour_sasquatch",
+      "breakpoints": true
     }
   ]
 }

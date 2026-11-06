@@ -4,6 +4,7 @@ import {
   primaryKey, unique, foreignKey, check,
 } from "drizzle-orm/pg-core";
 import type { PlanningSnapshot, SessionPlan } from "../lib/planning.ts";
+import { DEFAULT_ACCENT, DEFAULT_PRIMARY } from "../lib/branding.ts";
 
 export const groupRole = pgEnum("group_role", ["head_coach", "coach"]);
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
@@ -108,8 +109,8 @@ export const authSessions = pgTable("auth_sessions", {
 export const clubs = pgTable("clubs", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
-  primaryColor: text("primary_color").notNull().default("#176345"),
-  accentColor: text("accent_color").notNull().default("#e7d995"),
+  primaryColor: text("primary_color").notNull().default(DEFAULT_PRIMARY),
+  accentColor: text("accent_color").notNull().default(DEFAULT_ACCENT),
   logoData: text("logo_data"),
   createdAt: createdAt(),
 });

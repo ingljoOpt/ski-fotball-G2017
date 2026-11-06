@@ -7,6 +7,7 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { connectLocalDatabase } from "../../src/db/local.ts";
 import { migrateLocalDatabase } from "../../scripts/migrate.ts";
 import { emptySessionPlan } from "../../src/lib/planning.ts";
+import { DEFAULT_ACCENT, DEFAULT_PRIMARY } from "../../src/lib/branding.ts";
 
 test("end-time migration preserves legacy durations, overnight slots and historical snapshots", async () => {
   const directory = await mkdtemp(join(tmpdir(), "klubbokter-time-migration-"));
@@ -26,6 +27,7 @@ test("end-time migration preserves legacy durations, overnight slots and histori
     await migrate(connection.db, { migrationsFolder: migrations });
     const user = await connection.client.query<{ id: string }>("insert into users (email) values ('migration@example.invalid') returning id");
     const club = await connection.client.query<{ id: string }>("insert into clubs (name) values ('Migration test') returning id");
+    await connection.client.query("insert into clubs (name, primary_color, accent_color) values ('Custom profile', '#123456', '#abcdef')");
     for (const [startTime, groupDuration, eventDuration] of [["18:00", 75, 45], ["23:30", 90, 120]] as const) {
       const group = await connection.client.query<{ id: string }>(
         "insert into groups (club_id, name, duration_minutes) values ($1, 'Test', $2) returning id", [club.rows[0].id, groupDuration],
@@ -49,6 +51,12 @@ test("end-time migration preserves legacy durations, overnight slots and histori
     await migrateLocalDatabase(database);
     await migrateLocalDatabase(database);
     connection = await connectLocalDatabase(database);
+    const profiles = await connection.client.query<{ primary_color: string; accent_color: string }>("select primary_color, accent_color from clubs order by name");
+    assert.deepEqual(profiles.rows, [
+      { primary_color: "#123456", accent_color: "#abcdef" }, { primary_color: "#176345", accent_color: "#e7d995" },
+    ], "default migration never overwrites stored club colors, including the former defaults");
+    const fresh = await connection.client.query<{ primary_color: string; accent_color: string }>("insert into clubs (name) values ('New defaults') returning primary_color, accent_color");
+    assert.deepEqual(fresh.rows[0], { primary_color: DEFAULT_PRIMARY, accent_color: DEFAULT_ACCENT });
     const times = await connection.client.query<{ end_time: string }>("select end_time from training_times order by start_time");
     assert.deepEqual(times.rows.map((row) => row.end_time), ["19:15", "01:00"]);
     const events = await connection.client.query<{ end_time: string; duration_minutes: number }>("select end_time, duration_minutes from training_events order by start_time");

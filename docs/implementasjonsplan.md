@@ -30,11 +30,14 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 ## 3. Kalender og manuell øktplanlegging
 
 - [x] Kalender med gjentakende treninger, unntak og enkeltøkter.
+- [x] Gruppemeny med Økter, Årsplan, Brukere, Innstillinger og Egne øvelser. Økter som startside med neste trening, genereringsplassholder, manuell oppretting og fem siste lagrede økter.
+- [x] Klikkbart årshjul og vertikalt rullbar årsoversikt med månedens temaer, øvingsmål og progresjon.
 - [x] Fra-/til-tid på hver økt, automatisk beregnet varighet og serverstyrt arv av tidsrom fra valgt trening. Migrere eksisterende tider/økter og historiske snapshots uten å endre tidligere varighet.
 - [x] Års-/periodeplan med tema, øvingsmål, progresjon og eksplisitt fødselsår.
 - [x] Aldersbestemt NFF-kildelenke og lagret årsplankontekst, uten automatisk temagenerering før steg 4.
 - [ ] Klubbfelles sportsplan, veiledning og utstyr med versjonering.
 - [x] Manuelle øktutkast med Tiim-inspirert oppbygning, ordnede øvelseskort og uforanderlige planversjoner.
+- [x] Tiim-inspirert øktdesign med toppdel, faktaboks, innholdsnavigasjon, tidsummerte deler og øvelseskort med sammenleggbare fag-/ressursfelt. Blå standardpalett og lokalt levert Montserrat; lagrede klubbprofiler og øvelsesrekkefølge bevares. Utskrift og snarvei til redigering.
 - [ ] Full endringshistorikk for økter, årsplaner og periodeplaner: vis hvem, når og hva som ble endret, også ved statusendringer og sletting av perioder. Lagre historikk atomisk med endringen, skill bruker-/AI-/systemhandlinger og hold aktøridentitet utenfor offentlig deling.
 - [x] Oppmøteforutsetninger og kontroller av tid, trenerbehov og samtidig utstyr, med sperre mot ufullstendig godkjenning.
 - [x] Felles strukturert plan-/kildekontrakt og kontekstsnapshots som grunnlag for AI i steg 4.
@@ -54,7 +57,8 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 ## 5. Deling og medier
 
 - [ ] Tilbakekallbare økt- og kalenderlenker uten utløp, med eksplisitt offentlig feltutvalg.
-- [ ] Integrere eksisterende taktikkredigerer og JSON-format i Next.js.
+- [x] Integrere eksisterende taktikkredigerer og JSON-format i Next.js under Egne øvelser, med autorisert lokal levering og filimport/-eksport.
+- [ ] Felles databaselagring av egne øvelser/animasjoner per gruppe og kobling til øktkort, med versjonering og tilgangskontroll.
 - [ ] Sikker innebygging av Tiim-/andre videoer med kildelenke som reserve.
 - [ ] Tilgjengelighet, mobilbruk og tekstalternativer.
 
@@ -69,7 +73,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 ## Leveransestatus
 
-Navigasjonsoppryddingen skiller oversikter fra administrasjon: klubbens grupper, brukere og profilinnstillinger, og gruppens oversikt, brukere og innstillinger har egne ruter. Oppretting av klubb, gruppe og enkeltøkt har dedikerte sider. Kalenderen starter med valgt måned og sammenleggbar årsoversikt. Konto og utlogging er samlet i en egen meny.
+Navigasjonsoppryddingen skiller oversikter fra administrasjon: klubbens grupper, brukere og profilinnstillinger har egne ruter. Gruppens fem menyvalg er Økter, Årsplan, Brukere, Innstillinger og Egne øvelser, samlet i slide-in-meny på mobil og venstre sidemeny på desktop. Økter viser kommende trening og siste lagrede økter; genereringsdato er tydelig merket som en inaktiv AI-plassholder. Årsplanen har et interaktivt årshjul og rullbar månedsoversikt. Animasjonseditoren gjenbruker eksisterende kode og JSON-format lokalt i appen, med filbasert lagring hos treneren inntil felles øvelsesbank er implementert. Oppretting av klubb, gruppe og enkeltøkt har dedikerte sider. Kalenderen nås fra Økter. Konto og utlogging er samlet i en egen meny.
 
 Verifisert med 30 enhets-/animasjonstester, 26 databasekontroller, typekontroll, lint og produksjonsbygg. Nettleserkontrollen dekker seks hoved-/administrasjonssider ved 375 pikslers bredde, kalender, profil og enkeltøktskjema ved 320 piksler og klubboversikt ved 1280 piksler uten horisontal sideoverløp. Hamburgermenyen er kontrollert med tastatur, Escape, aktivt menyvalg og lukking ved navigasjon. Avviste skjemaer returnerer til riktig underside uten å opprette data.
 

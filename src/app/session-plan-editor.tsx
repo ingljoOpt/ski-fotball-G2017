@@ -7,7 +7,7 @@ import { minutesBetween, timeRangeSchema } from "@/lib/validation";
 import { ActionButton, NativeInput, OptionSelect, SubmitButton, TextAreaInput, TextInput } from "./ui";
 
 const exerciseTexts = [
-  ["objectives", "Mål for øvelsen"], ["organization", "Organisering, grupper, bane og rotasjon"],
+  ["objectives", "Målsetting"], ["organization", "Organisering, grupper, bane og rotasjon"],
   ["description", "Slik gjør dere det"], ["coachingPoints", "Læringsmomenter"],
   ["easier", "Enklere variant"], ["harder", "Vanskeligere variant"], ["localAdaptations", "Lokalt opplegg / tilpasninger fra kilden"],
 ] as const;

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, lt, lte, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db/index.ts";
 import { annualPlans, clubs, groups, planPeriods, sessionVersions, trainingEvents, trainingTimes } from "../db/schema.ts";
@@ -7,7 +7,7 @@ import { idSchema, minutesBetween } from "./validation.ts";
 import {
   annualPlanSchema, checkSessionPlan, datesInYear, emptySessionPlan, eventSchema, NFF_SOURCE, nffAgeSource,
   periodSchema, periodsOnDate, sessionPlanSchema, slotKey, weekdayFor, yearSchema,
-  type PlanningSnapshot,
+  osloToday, type PlanningSnapshot,
 } from "./planning.ts";
 
 const revisionSchema = z.coerce.number().int().min(0);
@@ -119,6 +119,26 @@ export async function groupCalendar(db: Database, userId: string, groupId: strin
       };
     }));
   return { ...annual, entries: [...entries, ...virtual].sort((a, b) => slotKey(a.date, a.startTime).localeCompare(slotKey(b.date, b.startTime))) };
+}
+
+export async function groupSessions(db: Database, userId: string, groupId: string, now = new Date()) {
+  const today = osloToday(now);
+  const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Oslo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+  const year = Number(today.slice(0, 4));
+  const current = await groupCalendar(db, userId, groupId, year);
+  const [following, recent, savedUpcoming] = await Promise.all([
+    year < 2100 ? groupCalendar(db, userId, groupId, year + 1) : null,
+    db.select().from(trainingEvents).where(and(eq(trainingEvents.groupId, groupId), or(
+      lt(trainingEvents.date, today), and(eq(trainingEvents.date, today), lte(trainingEvents.startTime, time)),
+    ))).orderBy(desc(trainingEvents.date), desc(trainingEvents.startTime)).limit(5),
+    db.select().from(trainingEvents).where(and(eq(trainingEvents.groupId, groupId), ne(trainingEvents.status, "cancelled"), or(
+      gt(trainingEvents.date, today), and(eq(trainingEvents.date, today), gt(trainingEvents.startTime, time)),
+    ))).orderBy(asc(trainingEvents.date), asc(trainingEvents.startTime)).limit(1),
+  ]);
+  const upcoming = [...current.entries, ...(following?.entries ?? []), ...savedUpcoming.map((event) => ({ ...event, virtual: false }))]
+    .filter((event) => event.status !== "cancelled" && (event.date > today || (event.date === today && event.startTime > time)))
+    .sort((a, b) => slotKey(a.date, a.startTime).localeCompare(slotKey(b.date, b.startTime)))[0] ?? null;
+  return { ...current, recent, upcoming };
 }
 
 export async function createTrainingEvent(

@@ -35,6 +35,8 @@ test("PGlite: migrations, login, invitations and tenant authorization", async (t
         ["admin", "head", "coach", "outsider"].map((role) => ({ email: `${role}-${suffix}@example.invalid` })),
       ).returning();
       const club = await createClub(tx, admin.id, "Testklubb A");
+      assert.equal(club.primaryColor, DEFAULT_PRIMARY);
+      assert.equal(club.accentColor, DEFAULT_ACCENT);
       const otherClub = await createClub(tx, outsider.id, "Testklubb B");
       const firstGroup = await createGroup(tx, admin.id, club.id, "G2017", head.email);
       const otherGroup = await createGroup(tx, outsider.id, otherClub.id, "G2018", outsider.email);

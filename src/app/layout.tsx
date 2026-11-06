@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { NavigationShell } from "./navigation";
+import "@fontsource/montserrat/latin-500.css";
+import "@fontsource/montserrat/latin-600.css";
+import "@fontsource/montserrat/latin-700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

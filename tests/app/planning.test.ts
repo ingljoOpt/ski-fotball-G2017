@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   annualPlanSchema, checkSessionPlan, dateSchema, datesInYear, emptySessionPlan, eventSchema, nffAgeSource,
-  osloToday, periodSchema, sessionPlanSchema, sourceUrlSchema, weekdayFor,
+  generationDate, osloToday, periodSchema, sessionPlanSchema, sessionSections, sourceUrlSchema, weekdayFor,
 } from "../../src/lib/planning.ts";
 import { completePlan } from "./planning-fixtures.ts";
 import { formatTimeRange, timeRangeSchema } from "../../src/lib/validation.ts";
@@ -34,6 +34,30 @@ test("calendar dates use real ISO dates, Oslo today, leap years and stable local
   assert.equal(weekdayFor("2026-10-25"), 7);
   assert.equal(osloToday(new Date("2026-12-31T23:30:00Z")), "2027-01-01");
   assert.equal(osloToday(new Date("2026-06-01T22:30:00Z")), "2026-06-02");
+});
+
+test("generation placeholders subtract calendar days across month, year and daylight-saving boundaries", () => {
+  assert.equal(generationDate("2026-11-11", 3), "2026-11-08");
+  assert.equal(generationDate("2027-01-02", 3), "2026-12-30");
+  assert.equal(generationDate("2028-03-01", 1), "2028-02-29");
+  assert.equal(generationDate("2026-03-30", 2), "2026-03-28");
+  assert.equal(generationDate("2026-11-11", 0), "2026-11-11");
+  assert.throws(() => generationDate("2026-11-11", 31));
+  assert.throws(() => generationDate("2026-11-31", 3));
+});
+
+test("session sections combine theme and game without reordering exercises or changing time", () => {
+  const exercise = completePlan().exercises[0];
+  const exercises = (["warmup", "theme", "game", "closing", "warmup"] as const).map((stage, index) => ({
+    ...exercise, stage, id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`, durationMinutes: 5 + index,
+  }));
+  const sections = sessionSections(exercises);
+  assert.deepEqual(sections.map((section) => section.title), ["Oppvarming", "Hoveddel", "Avslutning", "Oppvarming"]);
+  assert.deepEqual(sections.map((section) => section.durationMinutes), [5, 13, 8, 9]);
+  assert.deepEqual(sections.flatMap((section) => section.exercises.map((entry) => entry.exercise.id)), exercises.map((entry) => entry.id));
+  assert.deepEqual(sections.flatMap((section) => section.exercises.map((entry) => entry.from)), [0, 5, 11, 18, 26]);
+  assert.equal(new Set(sections.map((section) => section.id)).size, sections.length);
+  assert.deepEqual(sessionSections([]), []);
 });
 
 test("annual plans calculate NFF age sources per year without generating themes", () => {

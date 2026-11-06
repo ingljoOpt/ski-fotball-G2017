@@ -18,11 +18,11 @@ export async function planningSelection(searchParams: SearchParams) {
 }
 export function PlanningNavigation({ groupId, year }: { groupId: string; year: number }) {
   return <NavigationLinks className="context-navigation" label="Gruppeplanlegging" items={[
-    { href: `/grupper/${groupId}`, label: "Oversikt" },
-    { href: `/grupper/${groupId}/kalender?year=${year}`, label: "Kalender" },
+    { href: `/grupper/${groupId}`, label: "Økter" },
     { href: `/grupper/${groupId}/arsplan?year=${year}`, label: "Årsplan" },
     { href: `/grupper/${groupId}/brukere`, label: "Brukere" },
     { href: `/grupper/${groupId}/innstillinger`, label: "Innstillinger" },
+    { href: `/grupper/${groupId}/ovelser`, label: "Egne øvelser" },
   ]} />;
 }
 export function YearPicker({ year }: { year: number }) {

@@ -20,8 +20,11 @@ export function NavigationShell({ children }: { children: ReactNode }) {
 export function NavigationLinks({ items, label, className = "" }: { items: Item[]; label: string; className?: string }) {
   const pathname = usePathname();
   const target = useContext(MobileNavigationTarget);
+  const activeHref = items.find((item) => pathname === item.href.split("?")[0])?.href
+    ?? items.find((item) => /^\/grupper\/[^/]+$/.test(item.href) &&
+      (pathname.startsWith(`${item.href}/okter/`) || pathname === `${item.href}/kalender`))?.href;
   const links = items.map((item) => <a href={item.href} key={item.href}
-    aria-current={pathname === item.href.split("?")[0] ? "page" : undefined}>{item.label}</a>);
+    aria-current={activeHref === item.href ? "page" : undefined}>{item.label}</a>);
   if (className.includes("context-navigation")) return <>
     <nav className={`section-navigation ${className}`} aria-label={label}>{links}</nav>
     {target && createPortal(<nav className="section-navigation" aria-label={label}>{links}</nav>, target)}

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import sharp from "sharp";
 import { ZodError } from "zod";
 import {
-  brandingSchema, contrastRatio, DEFAULT_ACCENT, DEFAULT_PRIMARY, foregroundFor, MAX_LOGO_BYTES,
+  brandingSchema, contrastRatio, DEFAULT_ACCENT, DEFAULT_PRIMARY, foregroundFor, MAX_LOGO_BYTES, PAGE_BACKGROUND,
 } from "../../src/lib/branding.ts";
 import { logoFromForm, normalizeLogo } from "../../src/lib/logo.ts";
 
@@ -11,12 +11,16 @@ test("club colors validate exact format and WCAG contrast threshold", () => {
   assert.equal(contrastRatio("#000000", "#ffffff"), 21);
   assert.equal(contrastRatio("#ffffff", "#ffffff"), 1);
   assert.ok(contrastRatio(DEFAULT_PRIMARY, "#ffffff") >= 4.5);
+  assert.equal(DEFAULT_PRIMARY, "#0056f5");
+  assert.equal(DEFAULT_ACCENT, "#ecf0ea");
+  assert.ok(contrastRatio(DEFAULT_PRIMARY, PAGE_BACKGROUND) >= 4.5);
   assert.deepEqual(brandingSchema.parse({ primaryColor: "#176345", accentColor: "#AABBCC" }), {
     primaryColor: "#176345", accentColor: "#aabbcc",
   });
   assert.equal(brandingSchema.safeParse({ primaryColor: "#717171", accentColor: DEFAULT_ACCENT }).success, true);
   assert.ok(contrastRatio("#767676", "#ffffff") >= 4.5);
   assert.ok(contrastRatio("#767676", "#f7f8f2") < 4.5);
+  assert.ok(contrastRatio("#767676", PAGE_BACKGROUND) < 4.5);
   for (const primaryColor of ["#767676", "#777777", "#ffffff", "#fff", "red", "url(evil)", "#000000; color: red"]) {
     assert.equal(brandingSchema.safeParse({ primaryColor, accentColor: DEFAULT_ACCENT }).success, false);
   }

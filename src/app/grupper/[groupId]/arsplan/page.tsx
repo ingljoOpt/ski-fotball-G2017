@@ -9,7 +9,8 @@ import { saveYearPlan, saveThemePeriod, deleteThemePeriod } from "@/app/actions"
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubIdentity, ClubTheme } from "@/app/club-theme";
 import { AppLink, Card, NativeInput, SubmitButton, TextAreaInput, TextInput } from "@/app/ui";
-import { formatDate, PlanningNavigation, planningSelection, YearPicker } from "@/app/planning-components";
+import { formatDate, months, PlanningNavigation, planningSelection, YearPicker } from "@/app/planning-components";
+import { AnnualWheel } from "@/app/annual-wheel";
 
 function PeriodFields({ year, period }: { year: number; period?: Period }) {
   return <>
@@ -29,7 +30,7 @@ export default async function AnnualPlan({ params, searchParams }: {
 }) {
   const user = await requireUser();
   const { groupId } = await params;
-  const { year } = await planningSelection(searchParams);
+  const { year, month } = await planningSelection(searchParams);
   let details;
   try { details = await annualPlanning(await getDatabase(), user.id, groupId, year); }
   catch (error) {
@@ -48,6 +49,7 @@ export default async function AnnualPlan({ params, searchParams }: {
     <h1>Årsplan {year} · {details.group.name}</h1>
     <YearPicker year={year} />
     <Notices searchParams={searchParams} />
+    <AnnualWheel key={year} year={year} months={months} periods={details.periods} initialMonth={month} />
     <div className="columns">
       <div className="stack">
         <Card className="app-card">
@@ -62,7 +64,7 @@ export default async function AnnualPlan({ params, searchParams }: {
           <h2>Temaperioder og øvingsmål</h2>
           <p>Legg en rød tråd gjennom året. Perioder kan gå over flere måneder, men kan ikke overlappe. Tomme perioder fylles ikke automatisk.</p>
           {details.periods.length === 0 && <p className="muted">Ingen temaer er registrert for dette året.</p>}
-          {details.periods.map((period) => <details className="exercise-detail" key={period.id}>
+          {details.periods.map((period) => <details className="exercise-detail" key={period.id} id={`periode-${period.id}`}>
             <summary><strong>{period.theme}</strong> · {formatDate(period.startDate)}–{formatDate(period.endDate)}</summary>
             <p className="preserve-lines">{period.objectives}</p>
             <form action={saveThemePeriod}>{hidden}<input type="hidden" name="periodId" value={period.id} />

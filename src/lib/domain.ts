@@ -84,7 +84,7 @@ export async function requireGroupManager(db: Database, userId: string, groupId:
 export async function createClub(db: Database, userId: string, name: string) {
   const cleanName = nameSchema.parse(name);
   return db.transaction(async (tx) => {
-    const [club] = await tx.insert(clubs).values({ name: cleanName }).returning();
+    const [club] = await tx.insert(clubs).values({ name: cleanName, primaryColor: DEFAULT_PRIMARY, accentColor: DEFAULT_ACCENT }).returning();
     await tx.insert(clubAdmins).values({ clubId: club.id, userId });
     return club;
   });

@@ -54,6 +54,8 @@ Tidligere Docker-data flyttes ikke automatisk til PGlite. Eventuelle eksisterend
 
 Klubbadministrator kan redigere klubbprofilen under **Klubb → Innstillinger**. Velg primær-/aksentfarge og last opp en statisk PNG, JPEG eller WebP. Forhåndsvisning endrer ikke lagret profil før **Lagre klubbprofil** velges. Primærfargen må ha minst 4,5:1 kontrast mot både hvitt og sidens lyse bakgrunn; aksentfargen får automatisk svart eller hvit tekst med minst samme kontrast.
 
+Standarddesignet er inspirert av [Tiims øktvisning](https://tiim.no/trenerskapt/okt/a8f324d9-67fa-463d-89b6-de2a6889cc7a): blå primærfarge `#0056f5`, lys grågrønn aksent `#ecf0ea`, bakgrunn `#fafafa` og tekst `#2e2e2e`. Montserrat leveres lokalt fra en åpent lisensiert fontpakke, uten eksterne fontkall. Tiims logo, ikoner, proprietære overskriftsfont og kildekode kopieres ikke. Eksisterende lagrede klubbfarger (også tidligere standardfarger) bevares; nye klubber og tilbakestilte profiler bruker den nye standarden. Vil du beholde logoen ved bytte, velg fargene og lagre i stedet for å tilbakestille hele profilen.
+
 Logoen kan være maksimalt 512 KiB og 2048 × 2048 piksler. Serveren kontrollerer faktisk bildeformat, filstørrelse, dimensjoner og at bildet ikke er animert. Bildet skaleres ned til maksimalt 512 × 512 piksler og kodes om til WebP uten opprinnelige metadata. SVG og eksterne logolenker støttes ikke.
 
 Små logoer lagres som normaliserte bildedata i klubbens databasepost, ikke som filer i Git eller på Vercels midlertidige disk. Dette fungerer lokalt uten en ekstra lagringstjeneste. Farger og logo vises på klubbkort, klubbsiden og gruppesidene, med klubben som tekstalternativ for logoen. Vanlige trenere og hovedtrenere kan se profilen, men ikke endre den. Profilen påvirker ikke andre klubber eller appens globale navigasjon.
@@ -62,7 +64,9 @@ Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo
 
 ### Årsplan, kalender og øktplanlegging
 
-Åpne en gruppe og velg **Årsplan** eller **Kalender**. Alle gruppens trenere og klubbadministratorer kan planlegge; faste treningstider og gruppens standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
+Åpne en gruppe og velg **Årsplan** eller gå til kalenderen fra **Økter**. Alle gruppens trenere og klubbadministratorer kan planlegge; faste treningstider og gruppens standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
+
+Øktvisningen har en samlet toppdel med tittel, tidspunkt, status og siste planoppdatering, faktaboks med tema/alder/varighet/oppmøte, øvingsmål og navigasjon til øvelsene. Øvelsene vises i **Oppvarming**, **Hoveddel** (temaarbeid og spill) og **Avslutning**, med varighet per del. Lagringsrekkefølgen og alle tidsverdier bevares; blandet rekkefølge gir gjentatte deloverskrifter fremfor at øvelser flyttes. Hvert kort viser gjennomføring og sammenleggbare felt for målsetting, læringsmomenter, organisering, variasjoner, ressurser og kilde. Ressurskontroll, redigering, avlysning og historiske planversjoner er fortsatt tilgjengelige. Historiske kort har egne anker-ID-er. **Skriv ut** gir en utskriftsvisning uten administrasjonsmenyer; **Rediger øktplan** åpner øktbyggeren.
 
 - Lagre planår, eventuelt fødselsår, og årsmål. Legg til daterte temaperioder med øvingsmål og progresjon. Perioder kan gå over flere måneder innenfor samme år, men ikke overlappe.
 - Kalenderen har årsoversikt og månedsvisning. Faste uketider vises som forventede treninger uten å fylle databasen med tomme øktplaner. Velg **Planlegg denne treningen**, avlys en enkeltforekomst eller opprett en ekstra enkeltøkt.
@@ -77,7 +81,13 @@ Dato og klokkeslett er lokale i `Europe/Oslo`. En plan er aldri dokumentasjon p�
 
 Ved oppgradering får eksisterende faste treningstider en beregnet til-tid ut fra gruppens tidligere varighet. Eksisterende økter og historiske versjoner får til-tid ut fra sin egen bevarte starttid og varighet, ikke fra dagens gruppedata. Den gamle gruppekolonnen beholdes som migreringsgrunnlag, men brukes ikke til nye økter eller i gruppeinnstillingene.
 
-Fødselsår oppgis eksplisitt, ikke utledet fra gruppenavnet. Årsplanen lenker til [NFFs sportsplan/fagplan](https://www.fotball.no/barn-og-ungdom/) for beregnet alder i planåret. NFF skal være standard faglig kilde til AI-forslag til temaer og øvingsmål i steg 4; **ingen temaer genereres eller forhåndsutfylles fra NFF nå**. Strukturert øktkontrakt, kildefelt og kontekstsnapshots er klare for senere AI-generering og revisjon. Medier og taktikkredigerer integreres i et senere steg.
+Fødselsår oppgis eksplisitt, ikke utledet fra gruppenavnet. Årsplanen lenker til [NFFs sportsplan/fagplan](https://www.fotball.no/barn-og-ungdom/) for beregnet alder i planåret. NFF skal være standard faglig kilde til AI-forslag til temaer og øvingsmål i steg 4; **ingen temaer genereres eller forhåndsutfylles fra NFF nå**. Strukturert øktkontrakt, kildefelt og kontekstsnapshots er klare for senere AI-generering og revisjon.
+
+Gruppemenyen har **Økter**, **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**:
+
+- Økter er gruppens startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. AI-jobber er ikke aktivert; datoen er ingen bekreftet bestilling. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Kalenderen er fortsatt tilgjengelig fra Økter.
+- Årsplan vises som et klikkbart årshjul og en vertikalt rullbar månedsoversikt med temaer, øvingsmål og progresjon. Redigering av årsretning og temaperioder beholdes under oversikten.
+- Egne øvelser integrerer den eksisterende animasjonseditoren direkte i appen, uten avhengighet til GitHub Pages. Gruppemedlemskap kontrolleres også for editorens HTML og ressurser. JSON kan åpnes, redigeres og lastes ned; felles databaselagring av egne øvelser og tilknytning til øktkort gjenstår. Last ned filen før du forlater en endret tavle.
 
 ### Verifisering og migreringer
 

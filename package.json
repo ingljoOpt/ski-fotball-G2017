@@ -16,6 +16,7 @@
     "db:migrate": "node scripts/migrate.ts"
   },
   "dependencies": {
+    "@fontsource/montserrat": "^5.3.0",
     "@electric-sql/pglite": "^0.5.15",
     "@heroui/react": "^3.2.7",
     "@heroui/styles": "^3.2.7",

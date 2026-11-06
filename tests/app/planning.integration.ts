@@ -11,7 +11,7 @@ import {
   acceptInvitation, addTrainingTime, createClub, createGroup, DomainError, inviteCoach, removeMember,
 } from "../../src/lib/domain.ts";
 import {
-  annualPlanning, changeTrainingStatus, createTrainingEvent, groupCalendar, removePlanPeriod,
+  annualPlanning, changeTrainingStatus, createTrainingEvent, groupCalendar, groupSessions, removePlanPeriod,
   saveAnnualPlan, savePlanPeriod, saveSessionPlan, trainingEventDetails,
 } from "../../src/lib/planning-domain.ts";
 import { emptySessionPlan, slotKey } from "../../src/lib/planning.ts";
@@ -86,6 +86,27 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       await assert.rejects(createTrainingEvent(db, coach.id, group.id, eventInput), /allerede/);
       await assert.rejects(createTrainingEvent(db, coach.id, group.id, { ...eventInput, date: "2026-11-05" }, "2026-11-04T18:00"), DomainError);
       await assert.rejects(createTrainingEvent(db, coach.id, group.id, { ...eventInput, date: "2026-11-05" }, "2026-11-05T18:00"), DomainError);
+    });
+
+    await t.test("sessions overview distinguishes saved history, upcoming drafts and virtual placeholders across years", async () => {
+      const before = await groupSessions(db, coach.id, group.id, new Date("2026-11-04T16:30:00Z"));
+      assert.equal(before.upcoming?.id, eventId, "existing upcoming draft replaces its virtual slot");
+      assert.equal(before.upcoming?.virtual, false);
+      assert.equal(before.recent.length, 0, "virtual historical training times are not claimed as saved sessions");
+      const after = await groupSessions(db, coach.id, group.id, new Date("2026-11-04T18:01:00Z"));
+      assert.equal(after.recent[0].id, eventId);
+      assert.equal(after.upcoming?.startTime, "19:30", "next same-day training is preserved");
+      assert.equal(after.upcoming?.virtual, true);
+      const nextYear = await groupSessions(db, coach.id, group.id, new Date("2026-12-31T20:00:00Z"));
+      assert.equal(nextYear.upcoming?.date, "2027-01-06");
+      assert.equal(nextYear.recent[0].id, eventId);
+      await assert.rejects(groupSessions(db, outsider.id, group.id), DomainError);
+      const empty = await groupSessions(db, outsider.id, otherGroup.id, new Date("2026-12-31T20:00:00Z"));
+      assert.equal(empty.upcoming, null);
+      assert.equal(empty.recent.length, 0);
+      const futureId = await createTrainingEvent(db, outsider.id, otherGroup.id, { ...eventInput, date: "2029-01-03" });
+      const future = await groupSessions(db, outsider.id, otherGroup.id, new Date("2026-12-31T20:00:00Z"));
+      assert.equal(future.upcoming?.id, futureId, "saved future sessions are found even beyond next year without recurring times");
     });
 
     await t.test("calendar drafts inherit the actual slot and edits derive duration without changing the schedule", async () => {

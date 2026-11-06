@@ -4,11 +4,12 @@ import { ZodError } from "zod";
 import { getDatabase } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { DomainError, groupDetails } from "@/lib/domain";
-import { changeHeadCoach, deleteMember, deleteTrainingTime, newCoachInvitation, newTrainingTime, saveGroupSettings } from "@/app/actions";
+import { changeHeadCoach, deleteMember, deleteTrainingTime, newCoachInvitation, newTrainingEvent, newTrainingTime, saveGroupSettings } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubIdentity, ClubTheme } from "@/app/club-theme";
-import { osloToday } from "@/lib/planning";
-import { PlanningNavigation } from "@/app/planning-components";
+import { generationDate, osloToday } from "@/lib/planning";
+import { groupSessions } from "@/lib/planning-domain";
+import { eventStatusLabels, formatDate, PlanningNavigation } from "@/app/planning-components";
 import { formatTimeRange } from "@/lib/validation";
 
 const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
@@ -27,24 +28,46 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
     throw error;
   }
   const { group, canManage } = details;
+  const sessions = section === "oversikt" ? await groupSessions(await getDatabase(), user.id, groupId) : null;
+  const upcoming = sessions?.upcoming;
   return (
     <ClubTheme club={details.club}>
       <Account email={user.email} />
       <AppLink className="back" href={`/klubber/${group.clubId}`}>← Til klubben</AppLink>
       <ClubIdentity club={details.club} />
       <span className="eyebrow">{section === "oversikt" ? "Gruppens trenerrom" : group.name}</span>
-      <h1>{section === "oversikt" ? group.name : section === "brukere" ? "Trenere og brukere" : "Gruppeinnstillinger"}</h1>
+      <h1>{section === "oversikt" ? `Økter · ${group.name}` : section === "brukere" ? "Trenere og brukere" : "Gruppeinnstillinger"}</h1>
       <PlanningNavigation groupId={groupId} year={Number(osloToday().slice(0, 4))} />
       <Notices searchParams={searchParams} />
       {section === "oversikt" && <div className="page-content">
-        <div className="quick-links">
-          <Card className="app-card"><h2>Kalender</h2><p>Finn treninger og lag øktplaner.</p><AppLink href={`/grupper/${groupId}/kalender`}>Åpne kalender →</AppLink></Card>
-          <Card className="app-card"><h2>Årsplan</h2><p>Planlegg temaer, øvingsmål og progresjon.</p><AppLink href={`/grupper/${groupId}/arsplan`}>Åpne årsplan →</AppLink></Card>
-        </div>
-        <Card className="app-card"><h2>Faste treningstider</h2>
-          {details.times.length ? <ul className="clean">{details.times.map((time) => <li key={time.id}>{weekdays[time.weekday - 1]} kl. {formatTimeRange(time.startTime, time.endTime)}</li>)}</ul> : <p>Ingen faste tider registrert.</p>}
-          <AppLink href={`/grupper/${groupId}/innstillinger`}>Se treningstider og innstillinger →</AppLink>
+        <div className="row"><AppLink href={`/grupper/${groupId}/okter/ny`}>+ Opprett økt manuelt</AppLink>
+          <AppLink href={`/grupper/${groupId}/kalender`}>Se alle treninger i kalenderen →</AppLink></div>
+        <Card className="app-card"><h2>Kommende økt</h2>
+          {upcoming ? <>
+            <p><strong>{formatDate(upcoming.date)} kl. {formatTimeRange(upcoming.startTime, upcoming.endTime)}</strong></p>
+            <h3>{upcoming.title}</h3><p>{upcoming.theme || "Tema ikke satt"} · {upcoming.durationMinutes} minutter</p>
+            {upcoming.virtual ? <>
+              <p>Ingen øktplan er opprettet ennå.</p>
+              <p className="notice">Ønsket genereringsdato: {formatDate(generationDate(upcoming.date, group.generationDaysBefore))} ({group.generationDaysBefore} dager før trening).
+                Automatisk generering er ikke aktivert ennå; dette er en plassholder, ikke en planlagt AI-jobb.</p>
+              <form action={newTrainingEvent}>
+                <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={upcoming.date.slice(0, 4)} />
+                {Object.entries({ date: upcoming.date, startTime: upcoming.startTime, endTime: upcoming.endTime, title: upcoming.title,
+                  theme: upcoming.theme, objectives: upcoming.objectives, recurrenceKey: upcoming.recurrenceKey ?? "" })
+                  .map(([key, value]) => <input type="hidden" name={key} value={value} key={key} />)}
+                <SubmitButton name="intent" value="create">Opprett denne økten manuelt</SubmitButton>
+              </form>
+            </> : <><p>{eventStatusLabels[upcoming.status]}</p><AppLink href={`/grupper/${groupId}/okter/${upcoming.id}`}>Åpne øktplan →</AppLink></>}
+          </> : <><p>Ingen kommende treninger er registrert.</p>
+            <AppLink href={`/grupper/${groupId}/innstillinger`}>Legg til faste treningstider →</AppLink></>}
         </Card>
+        <section className="stack" aria-label="Siste økter"><h2>Siste økter</h2>
+          {sessions?.recent.length ? sessions.recent.map((event) => <Card className="app-card" key={event.id}>
+            <small>{formatDate(event.date)} · {formatTimeRange(event.startTime, event.endTime)} · {eventStatusLabels[event.status]}</small>
+            <h3>{event.title}</h3><p>{event.theme || "Tema ikke satt"}</p>
+            <AppLink href={`/grupper/${groupId}/okter/${event.id}`}>Åpne øktplan →</AppLink>
+          </Card>) : <p className="muted">Ingen tidligere økter er lagret. Bare lagrede økter vises her; gjennomføring er ikke bekreftet.</p>}
+        </section>
       </div>}
       {section !== "oversikt" && <div className="settings-content stack">
         <div className="stack">

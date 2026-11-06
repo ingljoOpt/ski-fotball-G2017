@@ -45,6 +45,22 @@ export const stageLabels = {
   game: "Spill / smålagsspill",
   closing: "Avslutning og oppsummering",
 };
+export function sessionSections(exercises: Exercise[]) {
+  const sections: { id: string; title: string; durationMinutes: number; exercises: { exercise: Exercise; from: number; index: number }[] }[] = [];
+  let from = 0;
+  for (const [index, exercise] of exercises.entries()) {
+    const title = exercise.stage === "warmup" ? "Oppvarming" : exercise.stage === "closing" ? "Avslutning" : "Hoveddel";
+    let section = sections.at(-1);
+    if (!section || section.title !== title) {
+      section = { id: `del-${sections.length + 1}`, title, durationMinutes: 0, exercises: [] };
+      sections.push(section);
+    }
+    section.exercises.push({ exercise, from, index });
+    section.durationMinutes += exercise.durationMinutes;
+    from += exercise.durationMinutes;
+  }
+  return sections;
+}
 export const exerciseSchema = z.object({
   id: z.uuid(),
   stage: z.enum(["warmup", "theme", "game", "closing"]),
@@ -100,6 +116,13 @@ export function nffAgeSource(year: number, birthYear: number | null) {
 
 export function osloToday(now = new Date()) {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Oslo", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+}
+export function generationDate(date: string, daysBefore: number) {
+  dateSchema.parse(date);
+  z.number().int().min(0).max(30).parse(daysBefore);
+  const day = new Date(`${date}T12:00:00Z`);
+  day.setUTCDate(day.getUTCDate() - daysBefore);
+  return day.toISOString().slice(0, 10);
 }
 export function datesInYear(year: number) {
   yearSchema.parse(year);

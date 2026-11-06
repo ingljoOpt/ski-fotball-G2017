@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
-import { foregroundFor, type ClubBranding } from "@/lib/branding";
+import { DEFAULT_PRIMARY, foregroundFor, type ClubBranding } from "@/lib/branding";
 
 export function ClubTheme({ club, children }: { club: ClubBranding; children: ReactNode }) {
   const style: CSSProperties & Record<`--${string}`, string> = {
@@ -13,6 +13,8 @@ export function ClubTheme({ club, children }: { club: ClubBranding; children: Re
     "--accent-soft-hover": "#ffffff",
     "--focus": club.primaryColor,
     "--club-primary": club.primaryColor,
+    "--club-soft": club.primaryColor === DEFAULT_PRIMARY ? "#ebf2ff" : `color-mix(in srgb, ${club.primaryColor} 8%, white)`,
+    "--club-border": club.primaryColor === DEFAULT_PRIMARY ? "#c2d7ff" : `color-mix(in srgb, ${club.primaryColor} 24%, white)`,
     "--club-accent": club.accentColor,
     "--club-accent-foreground": foregroundFor(club.accentColor),
   };
