@@ -90,6 +90,16 @@ AI-forslag er alltid utkast. En trener må kontrollere og godkjenne før økten 
 
 Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslaget, og skille mellom kildefakta, brukeropplysninger og planforutsetninger. En trener skal kunne åpne kildene fra øktvisningen.
 
+#### Første implementerte agent
+
+- Vercel AI SDK `ToolLoopAgent`, Gateway-provider og `@ai-sdk/react` (AI SDK UI) brukes til streaming-chat i øktredigeringen. Chatten er en sidestolpe på brede skjermer og ligger over skjemaet på mobil; den kan foldes sammen.
+- Serveren kontrollerer innlogging, lagtilgang, økttilhørighet, avlysningsstatus og revisjon før modellen får kontekst. Den leser gjeldende usparte økt, årsplan/temaperioder/hendelser for redigert dato og fem tidligere planer fra samme lag. Medlems-/kontoopplysninger og andre lags data inngår ikke.
+- Agentens verktøy kan lese denne konteksten og foreslå en komplett plan. De kan ikke skrive til databasen. Bekreftet oppmøte/utstyr og dato/tid bevares; tidsplanen valideres mot faktisk øktlengde og samtidig ressursbehov.
+- Treneren ser øvelser og kontrollpunkter før **Bruk forslaget i skjemaet** erstatter tittel, tema, øvingsmål og planen. Forslag basert på et endret skjema avvises. Eksisterende lagring/godkjenning er fortsatt eksplisitt og oppretter en ny uforanderlig versjon med innlogget aktør og AI-assistert opprinnelse.
+- `AI_GATEWAY_API_KEY` er server-only, med valgfri `AI_MODEL` i Gateway-format. Manglende konfigurasjon og modell-/strømmefeil vises tydelig; manuell redigering fortsetter å fungere.
+- Chat/kontekst sendes til Vercel AI Gateway/modellleverandøren og må bare inneholde treningsinnhold. Chatten lagres ikke. Første versjon har ingen Tiim-nettleser, faktisk evaluering, klubbfelles dokumentinnhenting eller tidsstyrt generering. Kildeopplysninger fra tidligere planer er ikke ny verifisering.
+- Første agent har fire modellsteg og 110 sekunders tidsgrense per melding, avgrenset forespørsels-/chatstørrelse og seks forespørsler per bruker/minutt per prosess. Delt ratebegrensning/kostnadsbudsjett kreves før flerinstans-produksjon.
+
 ### Økter, redigering og evaluering
 
 - Øktplan kan redigeres manuelt eller med en instruks til AI-agenten.

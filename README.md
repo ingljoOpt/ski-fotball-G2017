@@ -6,7 +6,7 @@ Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkte
 
 Den nye Next.js-appen bygges ved siden av dagens øktarkiv og Pages-nettsted. Se [spesifikasjonen](docs/nettsted-spesifikasjon.md) og [implementasjonsplanen](docs/implementasjonsplan.md).
 
-Den lokale appen har magic-link-innlogging, klubber og lag, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan med månedens treninger/hendelser og manuell øktplanlegging med versjonshistorikk. AI, automatiske utkast, faktisk gjennomføring/evaluering, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
+Den lokale appen har magic-link-innlogging, klubber og lag, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan med månedens treninger/hendelser, manuell øktplanlegging med versjonshistorikk og en første AI-øktassistent. Automatiske utkast, faktisk gjennomføring/evaluering, nettleserkontroll av Tiim, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
 
 ### Start lokalt
 
@@ -95,6 +95,20 @@ Lagmenyen har **Økter**, **Årsplan**, **Brukere**, **Innstillinger** og **Egne
 - Økter er lagets startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. AI-jobber er ikke aktivert; datoen er ingen bekreftet bestilling. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Årsplanen nås fra Økter.
 - Årsplan vises som et klikkbart årshjul og en vertikalt rullbar månedsoversikt med temaer, øvingsmål og progresjon. Valgt måneds treninger og hendelser vises samlet, og månedsvalget beholdes i URL-en. Redigering av årsretning og temaperioder beholdes under oversikten.
 - Egne øvelser integrerer den eksisterende animasjonseditoren direkte i appen, uten avhengighet til GitHub Pages. Lagmedlemskap kontrolleres også for editorens HTML og ressurser. JSON kan åpnes, redigeres og lastes ned; felles databaselagring av egne øvelser og tilknytning til øktkort gjenstår. Last ned filen før du forlater en endret tavle.
+
+### AI-øktassistent
+
+Åpne en økt og velg **Rediger øktplan**. Chatten ligger som sidestolpe på brede skjermer og over skjemaet på mobil, og kan foldes sammen. Implementasjonen bruker Vercel AI SDK (`ai`) med `ToolLoopAgent`, Vercel AI Gateway og `@ai-sdk/react` (AI SDK UI) for streaming, samt eksisterende HeroUI-komponenter.
+
+Sett `AI_GATEWAY_API_KEY` i `.env.local` og start appen på nytt. Nøkkelen skal aldri ha `NEXT_PUBLIC_`-prefiks eller legges i Git. `AI_MODEL` er en Gateway-adresse; standard er `anthropic/claude-sonnet-4.6`. Gateway kan også bruke et gyldig `VERCEL_OIDC_TOKEN`. Uten nøkkel/token får chatten en tydelig konfigurasjonsfeil; manuell redigering fungerer fortsatt. Ingen nye databasemigreringer trengs for agenten.
+
+Agenten leser gjeldende **usparte** øktinnhold, lagets årgang, årsmål, temaperioder/hendelser på valgt dato og inntil fem tidligere øktplaner fra samme lag. Historikken er planer, ikke faktisk gjennomføring. Medlemslister, e-post, logoer og andre lags data sendes ikke. Chatmeldinger og denne planleggingskonteksten sendes til Vercel AI Gateway/modellleverandøren; bruk bare treningsinnhold, aldri navn eller private opplysninger om barn. Chatten er midlertidig og forsvinner ved gjenlasting.
+
+Et komplett forslag viser øvelser og kontrollpunkter. **Bruk forslaget i skjemaet** erstatter tittel, tema, øvingsmål og hele øvelsesplanen, men lagrer eller godkjenner ingenting. Har skjemaet blitt endret siden forespørselen, avvises bruk av det gamle forslaget. Treneren må deretter lagre/godkjenne via eksisterende versjonsflyt; AI-assisterte lagringer merkes i historikken med innlogget bruker som aktør. Dato, fra-/til-tid, spiller-/trenerantall og bekreftet utstyr beholdes. Endre disse i skjemaet før du ber om ny organisering.
+
+Forslag valideres mot samme plankontrakt og faktisk øktvarighet. Agenten kan ikke finne på nytt bekreftet oppmøte/utstyr, bruke mer enn oppgitte ressurser eller oppgi nye verifiserte kilder. Eksisterende kildelenker kan gjenbrukes med tidligere treneropplysninger; de er **ikke kontrollert på nytt**. Nye lokale øvelser får ingen oppdiktet Tiim-lenke, aldersmerking eller kontrolldato. Kontroller organisering, kildegrunnlag og praktisk gjennomførbarhet selv.
+
+Første versjon har ingen Tiim-nettleser, evalueringer, klubbfelles veilednings-/utstyrsdokumenter, tidsstyrt generering eller varig chathistorikk. Den har maks fire modellsteg per melding, 110 sekunders tidsgrense og seks forespørsler per bruker per minutt i én serverprosess. Før flerinstans-produksjon må kostnadsgrenser/ratebegrensning flyttes til et delt lager.
 
 ### Verifisering og migreringer
 

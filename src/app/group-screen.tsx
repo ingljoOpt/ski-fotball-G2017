@@ -124,7 +124,7 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
               <SubmitButton>Lagre rammer</SubmitButton>
             </form> : <><p>Årgang: {group.birthYear ?? "Ikke oppgitt"}.</p><p>Ønsket utkast {group.generationDaysBefore} dager før trening.</p></>}
             <p className="muted">Årgang settes av hovedtrener eller klubbadministrator. Øktlengden beregnes fra fra- og til-tidspunktet for hver trening. Ingen felles standardvarighet.</p>
-            <p className="notice">Innstillingene lagres nå. Automatisk oppretting og AI-planlegging kommer i neste steg og er ikke aktivert.</p>
+            <p className="notice">Innstillingene lagres nå. Automatisk oppretting er ikke aktivert. AI-øktassistenten kan brukes manuelt i øktredigeringen.</p>
           </Card>}
         </div>
       </div>}

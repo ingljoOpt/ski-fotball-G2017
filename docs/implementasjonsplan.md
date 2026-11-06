@@ -48,12 +48,14 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 ## 4. AI og automatisering
 
-- [ ] Vercel AI Gateway med strukturert, validert øktutkast.
-- [ ] Kontekst fra planer, kilder, historikk og evalueringer.
+- [x] Første øktagent med Vercel AI SDK ToolLoopAgent, Vercel AI Gateway og `@ai-sdk/react` (AI SDK UI): streaming-chat i sidestolpe ved redigering, forhåndsvisning og eksplisitt bruk av et validert forslag.
+- [x] Tenant-avgrenset kontekst fra gjeldende usparte økt, årgang, årsplan, hendelser og fem tidligere planer; gjenbruk av eksisterende kildeopplysninger uten ny kildekontroll.
+- [ ] Utvide agentkontekst med faktiske evalueringer og klubbfelles veiledning/utstyr når disse finnes.
 - [ ] NFFs aldersriktige sportsplan/fagplan som standard forslag til årsplantemaer og øvingsmål, med faktisk kildekontroll og trenergodkjenning. Ikke generer dette før AI er på plass.
-- [ ] Bruke planleggingskontrakten og versjonsflyten for AI-utkast/revisjoner; beregne ny gruppering ved endrede spiller-/trenerantall.
+- [x] Bruke planleggingskontrakten og versjonsflyten for AI-assisterte revisjoner; ta hensyn til manuelt oppdaterte spiller-/trenerantall, bevare bekreftede rammer, eksakt tidslengde og gamle øktversjoner.
 - [ ] Nettleserverktøy for Tiim, kildekontroll og tydelig feilrapportering.
-- [ ] AI-revisjon med forhåndsvisning av endringer og versjonshistorikk.
+- [x] Komplett AI-forslag med kontrollpunkter, eksplisitt erstatning i skjemaet, vern mot utdaterte forslag og AI-merket versjon ved trenerens lagring. Ingen automatisk lagring/godkjenning.
+- [ ] Produksjonsklar felles ratebegrensning og kostnadsbudsjett på tvers av Vercel-instanser. Første lokale agent har grense per prosess.
 - [ ] Planlagte jobber som lager utkast før trening, uten duplikater.
 - [ ] Støtte for gjenbruk av økt i flere uker og individuell gjennomføring per dato.
 
@@ -75,6 +77,10 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [ ] Dokumentert oppstart, backup/gjenoppretting og deploy.
 
 ## Leveransestatus
+
+Første AI-øktassistent er implementert med AI SDK/Gateway og AI SDK UI-chat i øktredigeringen. Kontroller av kontekst, tenant-grenser, kildedata, eksakt varighet, ressurser og eksplisitt AI-assistert versjonslagring er testet. Verifiseringen omfatter 43 enhetstester og 33 databasekontroller, typekontroll, lint og produksjonsbygg. Streaming/proposal-flyten er kontrollert med simulert modell; ekte Gateway-kall krever servernøkkel og er ikke verifisert uten denne.
+
+Autentiserte HTTP-kontroller dekker manglende Gateway-nøkkel (503), innlogging (401), fremmed origin (403), ugyldig melding/størrelsesgrense (400) og feil økt/utdatert revisjon (409). Nettleserkontrollen med fiktive data dekker desktop-sidestolpe, mobil ved 320/375 piksler uten overløp, forslag uten automatisk lagring, avvisning etter manuell endring, eksplisitt bruk og ny AI-merket versjon, strømmefeil og bevaring av skjema ved avvist godkjenning. Ingen ekte klubbdata er sendt til en modell eller brukt som testdata.
 
 Årsplanen samler nå månedsvisning av treninger, cup, ferie/fridager og øvrige heldagshendelser. Den separate kalendersiden er fjernet; tidligere lenker videresendes med år og måned bevart. Hendelser krever ikke en lagret årsplan, kan krysse årsskiftet og avlyser ikke treninger automatisk. Månedsvalg følger URL og skjemaer. Nye øktversjoner tar med relevante hendelser, mens gamle snapshots bevares. Oppretter/siste endrer og revisjonsvern er på plass; full audit er fortsatt uavkrysset.
 

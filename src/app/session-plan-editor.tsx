@@ -5,6 +5,7 @@ import { checkSessionPlan, stageLabels, type EventInput, type Exercise, type Ses
 import { saveTrainingPlan } from "./actions";
 import { minutesBetween, timeRangeSchema } from "@/lib/validation";
 import { ActionButton, NativeInput, OptionSelect, SubmitButton, TextAreaInput, TextInput } from "./ui";
+import { SessionAIChat } from "./session-ai-chat";
 
 const exerciseTexts = [
   ["objectives", "Målsetting"], ["organization", "Organisering, grupper, bane og rotasjon"],
@@ -23,6 +24,7 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
 }) {
   const [event, setEvent] = useState(initialEvent);
   const [plan, setPlan] = useState(initialPlan);
+  const [origin, setOrigin] = useState<"manual" | "ai">("manual");
   const [state, action, pending] = useActionState(saveTrainingPlan, null);
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -58,9 +60,11 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
       return { ...current, exercises };
     });
   }
-  return <form ref={formRef} action={action} className="session-editor">
+  return <div className="session-editor-layout"><form ref={formRef} action={action} className="session-editor">
     <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="eventId" value={eventId} />
     <input type="hidden" name="revision" value={revision} /><input type="hidden" name="plan" value={JSON.stringify(plan)} />
+    <input type="hidden" name="origin" value={origin} />
+    {origin === "ai" && <p className="notice">AI-forslaget er tatt inn i skjemaet. Kontroller endringene og lagre som utkast eller godkjenn eksplisitt.</p>}
     {state?.error && <p className="notice error" role="alert">{state.error}</p>}
     <h3>Øktens rammer</h3>
     <TextInput label="Økttittel" name="title" isRequired minLength={2} maxLength={150} value={event.title} onChange={(value) => setEvent({ ...event, title: value })} />
@@ -126,5 +130,6 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
       <SubmitButton name="intent" value="approve" variant="secondary" isDisabled={pending}>Godkjenn som planlagt</SubmitButton>
     </div>
     <small>Hver lagring lager en ny, uforanderlig planversjon. Utkast kan være ufullstendige. Godkjenning krever utfylte rammer og tallkontroll, men er ingen garanti for praktisk gjennomførbarhet.</small>
-  </form>;
+  </form><SessionAIChat groupId={groupId} eventId={eventId} revision={revision} draft={{ event, plan }} saving={pending}
+    onApply={({ draft }) => { setEvent(draft.event); setPlan(draft.plan); setOrigin("ai"); }} /></div>;
 }

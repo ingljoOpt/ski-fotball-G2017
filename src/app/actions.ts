@@ -312,14 +312,17 @@ export async function saveTrainingPlan(_previous: { error: string } | null, form
       throw error;
     }
     await saveSessionPlan(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"),
-      eventFields(form), plan, field(form, "revision"), field(form, "intent") === "approve" ? "planned" : "draft");
+      eventFields(form), plan, field(form, "revision"), field(form, "intent") === "approve" ? "planned" : "draft",
+      field(form, "origin") === "ai" ? "ai" : "manual");
   } catch (error) {
     if (error instanceof ZodError) return { error: error.issues.map((issue) => issue.message).join(" ") };
     if (error instanceof DomainError) return { error: error.message };
     console.error("Øktplanen kunne ikke lagres:", error);
     return { error: "Lagring feilet. Kontroller serverloggen og prøv igjen. Endringene er beholdt i skjemaet." };
   }
-  redirect(await canonicalDestination(await getDatabase(), user.id, `${eventPath(form)}?melding=${encodeURIComponent("Ny planversjon er lagret.")}`));
+  const destination = await canonicalDestination(await getDatabase(), user.id, `${eventPath(form)}?melding=${encodeURIComponent("Ny planversjon er lagret.")}`);
+  revalidatePath(destination.split("?")[0]);
+  redirect(destination);
 }
 
 export async function setTrainingStatus(form: FormData) {

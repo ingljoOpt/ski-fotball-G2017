@@ -44,18 +44,20 @@ export default async function TrainingSession({ params, searchParams }: {
     </header>
     <SessionPlanView plan={latest.plan} durationMinutes={event.durationMinutes} theme={event.theme} objectives={event.objectives}
       ageLabel={context.birthYear === null ? "Årskull ikke oppgitt" : nffAgeSource(context.year, context.birthYear).label} />
-    <div className="columns session-administration">
-      <section className="stack">
+    <div className="session-administration">
         {event.status !== "cancelled" ? <Card className="app-card">
           <details id="rediger-okt" open={latest.plan.exercises.length === 0} className="plan-editor-details">
             <summary><h2>Rediger øktplanen</h2></summary>
             <SessionPlanEditor key={event.revision} groupId={groupId} eventId={eventId} revision={event.revision} initialEvent={event} initialPlan={latest.plan} />
           </details>
         </Card> : <p className="notice">Økten er avlyst. Plan og versjonshistorikk beholdes. Gjenåpne som utkast for å redigere.</p>}
+    </div>
+    <div className="columns session-administration">
+      <section className="stack">
         <Card className="app-card"><details className="plan-editor-details"><summary><h2>Planversjoner</h2></summary>
           <p>Dato, tema, rammer og årsplankontekst er bevart per versjon. Endringer i årsplanen endrer ikke lagrede økter.</p>
           {versions.map((version) => <details className="exercise-detail" key={version.id}>
-            <summary>Versjon {version.version} · {version.origin === "manual" ? "Manuell" : "AI-utkast"} · {new Intl.DateTimeFormat("nb-NO", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Oslo" }).format(version.createdAt)}</summary>
+            <summary>Versjon {version.version} · {version.origin === "manual" ? "Manuell" : "AI-assistert"} · {new Intl.DateTimeFormat("nb-NO", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Oslo" }).format(version.createdAt)}</summary>
             <h3>{version.eventSnapshot.title}</h3>
             <p>{formatDate(version.eventSnapshot.date)} kl. {formatTimeRange(version.eventSnapshot.startTime, version.eventSnapshot.endTime)} · {version.eventSnapshot.theme || "Tema ikke satt"} · {eventStatusLabels[version.eventSnapshot.status]}</p>
             <p className="preserve-lines">{version.eventSnapshot.objectives}</p>
@@ -69,7 +71,7 @@ export default async function TrainingSession({ params, searchParams }: {
           <p className="preserve-lines">{context.annualObjectives || "Ingen årsmål registrert."}</p>
           {context.periods.map((period) => <div key={period.id}><h3>{period.theme}</h3><p className="preserve-lines">{period.objectives}</p><p className="preserve-lines">{period.progression}</p></div>)}
           <AppLink href={`${basePath}/aarsplan?year=${context.year}`}>Åpne årsplan →</AppLink>
-          <p className="notice">Manuell planlegging er aktiv. AI-generering og aldersriktige NFF-temaforslag kommer i steg 4. Årsplan, øktdata og kildefelt er tilrettelagt.</p>
+          <p className="notice">Øktassistenten i redigeringen bruker årsplan, hendelser og tidligere planer. AI-forslag må kontrolleres og lagres av treneren. Automatikk og ny NFF-/Tiim-kildekontroll er ikke aktivert.</p>
         </Card>
         <Card className="app-card"><h2>Øktstatus</h2>
           <form action={setTrainingStatus}>

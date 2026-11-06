@@ -228,12 +228,13 @@ export async function trainingEventDetails(db: Database, userId: string, groupId
 
 export async function saveSessionPlan(
   db: Database, userId: string, groupId: string, eventId: string,
-  input: unknown, planInput: unknown, revision: unknown, status: "draft" | "planned",
+  input: unknown, planInput: unknown, revision: unknown, status: "draft" | "planned", origin: "manual" | "ai" = "manual",
 ) {
   idSchema.parse(eventId);
   const data = eventSchema.parse(input);
   const plan = sessionPlanSchema.parse(planInput);
   z.enum(["draft", "planned"]).parse(status);
+  z.enum(["manual", "ai"]).parse(origin);
   if (status === "planned") {
     const { warnings } = checkSessionPlan(plan, data.durationMinutes);
     if (!data.theme || !data.objectives) warnings.unshift("Tema og øvingsmål må fylles inn.");
@@ -260,7 +261,7 @@ export async function saveSessionPlan(
     const [latest] = await tx.select({ version: sessionVersions.version }).from(sessionVersions)
       .where(eq(sessionVersions.eventId, eventId)).orderBy(desc(sessionVersions.version)).limit(1);
     await tx.insert(sessionVersions).values({
-      clubId: event.clubId, groupId, eventId, version: latest.version + 1, createdBy: userId, origin: "manual",
+      clubId: event.clubId, groupId, eventId, version: latest.version + 1, createdBy: userId, origin,
       eventSnapshot: { ...data, status }, plan, planningContext: await planningSnapshot(tx, userId, groupId, data.date),
     });
     await tx.update(trainingEvents).set({ ...data, status, revision: event.revision + 1 }).where(eq(trainingEvents.id, eventId));

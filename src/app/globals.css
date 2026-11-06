@@ -93,6 +93,27 @@ summary { cursor: pointer; }
 .session-timeline li { padding: .5rem 0; border-bottom: 1px solid var(--line); }
 .plan-editor-details > summary h2 { display: inline; }
 .session-editor { margin-top: 1.5rem; }
+.session-editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 1.5rem; align-items: start; }
+.session-page:has(.plan-editor-details[open] .session-editor-layout) { max-width: none; }
+.session-ai-sidebar { position: sticky; top: 6rem; min-width: 0; margin-top: 1.5rem; }
+.ai-chat-panel { border: 1px solid var(--club-border); border-radius: .75rem; padding: 1rem; background: var(--club-soft); max-height: calc(100dvh - 7rem); overflow-y: auto; }
+.ai-chat-panel > summary h3 { display: inline; font-size: 1.1rem; }
+.ai-privacy { font-size: .75rem; }
+.ai-messages { max-height: 45vh; overflow-y: auto; overscroll-behavior: contain; margin-block: 1rem; }
+.ai-message { padding: .75rem; margin-bottom: .75rem; background: white; border: 1px solid var(--line); border-radius: .5rem; overflow-wrap: anywhere; }
+.ai-message-user { background: var(--club-accent); color: var(--club-accent-foreground); }
+.ai-message p { font-size: .9rem; }
+.ai-proposal { display: grid; gap: .75rem; margin-block: .75rem; }
+.ai-proposal h4 { font-size: 1rem; }
+.ai-proposal ol, .ai-proposal ul { padding-inline-start: 1.25rem; }
+.ai-chat-panel .row { gap: .5rem; }
+.ai-chat-panel button { white-space: normal; height: auto; min-height: 44px; }
+.ai-chat-panel form { margin-block: 1rem; }
+@media (max-width: 1100px) {
+  .session-editor-layout { grid-template-columns: minmax(0, 1fr); }
+  .session-ai-sidebar { position: static; order: -1; }
+  .ai-chat-panel { max-height: none; }
+}
 .session-editor .exercise-detail { border: 2px solid var(--club-border); border-radius: 1rem; }
 .session-editor .exercise-detail > summary { color: var(--club-primary); font-weight: 600; padding-block: .5rem; }
 .session-page { max-width: 940px; margin-inline: auto; }
