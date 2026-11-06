@@ -60,7 +60,7 @@ export function WeekdaySelect() {
 }
 
 export function MemberSelect({ members }: { members: { userId: string; email: string }[] }) {
-  return <Select name="userId" isRequired className="app-field" placeholder="Velg gruppemedlem">
+  return <Select name="userId" isRequired className="app-field" placeholder="Velg lagmedlem">
     <Label>Ny hovedtrener</Label>
     <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
     <Select.Popover><ListBox>{members.map((member) =>

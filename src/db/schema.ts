@@ -20,7 +20,7 @@ export const annualPlans = pgTable("annual_plans", {
   clubId: uuid("club_id").notNull(),
   groupId: uuid("group_id").notNull(),
   year: integer("year").notNull(),
-  birthYear: integer("birth_year"),
+  legacyBirthYear: integer("birth_year"),
   objectives: text("objectives").notNull().default(""),
   revision: integer("revision").notNull().default(1),
 }, (table) => [
@@ -135,6 +135,7 @@ export const groups = pgTable("groups", {
   id: uuid("id").defaultRandom().primaryKey(),
   clubId: uuid("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  birthYear: integer("birth_year"),
   // Retained only to migrate existing weekly times without discarding the old duration.
   legacyDurationMinutes: integer("duration_minutes").notNull().default(60),
   generationDaysBefore: integer("generation_days_before").notNull().default(3),
@@ -143,6 +144,7 @@ export const groups = pgTable("groups", {
   unique("groups_club_id_id_unique").on(table.clubId, table.id),
   check("duration_range", sql`${table.legacyDurationMinutes} between 15 and 240`),
   check("generation_days_range", sql`${table.generationDaysBefore} between 0 and 30`),
+  check("group_birth_year_range", sql`${table.birthYear} between 1900 and 2100`),
 ]);
 
 export const groupMembers = pgTable("group_members", {

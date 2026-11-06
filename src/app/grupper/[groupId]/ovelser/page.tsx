@@ -23,7 +23,7 @@ export default async function OwnExercises({ params }: { params: Promise<{ group
     <h1>Egne øvelser · {details.group.name}</h1>
     <p>Lag og rediger egne animasjoner med spillere, baller, kjegler og mål.</p>
     <p className="notice">Last ned JSON for å ta vare på arbeidet, og åpne filen her for å redigere videre.
-      Animasjoner lagres foreløpig som filer hos deg, ikke i en delt øvelsesbank for gruppen.</p>
+      Animasjoner lagres foreløpig som filer hos deg, ikke i en delt øvelsesbank for laget.</p>
     <iframe className="exercise-editor-frame" title="Rediger egne øvelser og animasjoner"
       src={`/grupper/${groupId}/ovelser/rediger/editor`} />
   </ClubTheme>;

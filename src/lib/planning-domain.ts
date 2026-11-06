@@ -75,7 +75,7 @@ export async function removePlanPeriod(db: Database, userId: string, groupId: st
   await db.transaction(async (tx) => {
     await lockGroup(tx, userId, groupId);
     const [period] = await tx.select().from(planPeriods).where(and(eq(planPeriods.id, periodId), eq(planPeriods.groupId, groupId)));
-    if (!period) throw new DomainError("Perioden finnes ikke i denne gruppen.");
+    if (!period) throw new DomainError("Perioden finnes ikke for dette laget.");
     const [plan] = await tx.select().from(annualPlans).where(eq(annualPlans.id, period.annualPlanId));
     assertRevision(plan.revision, revision);
     await tx.delete(planPeriods).where(eq(planPeriods.id, period.id));
@@ -85,10 +85,10 @@ export async function removePlanPeriod(db: Database, userId: string, groupId: st
 
 async function planningSnapshot(db: Database, userId: string, groupId: string, date: string): Promise<PlanningSnapshot> {
   const year = Number(date.slice(0, 4));
-  const { plan, periods } = await annualPlanning(db, userId, groupId, year);
+  const { group, plan, periods } = await annualPlanning(db, userId, groupId, year);
   return {
-    year, birthYear: plan?.birthYear ?? null, annualObjectives: plan?.objectives ?? "",
-    curriculum: { provider: "nff", url: nffAgeSource(year, plan?.birthYear ?? null).url || NFF_SOURCE, suggestions: "pending_ai" },
+    year, birthYear: group.birthYear, annualObjectives: plan?.objectives ?? "",
+    curriculum: { provider: "nff", url: nffAgeSource(year, group.birthYear).url || NFF_SOURCE, suggestions: "pending_ai" },
     periods: periodsOnDate(periods, date),
   };
 }
@@ -183,7 +183,7 @@ export async function trainingEventDetails(db: Database, userId: string, groupId
   const access = await getGroupAccess(db, userId, groupId);
   idSchema.parse(eventId);
   const [event] = await db.select().from(trainingEvents).where(and(eq(trainingEvents.id, eventId), eq(trainingEvents.groupId, groupId)));
-  if (!event) throw new DomainError("Økten finnes ikke i denne gruppen.");
+  if (!event) throw new DomainError("Økten finnes ikke for dette laget.");
   const [versions, [club], context] = await Promise.all([
     db.select().from(sessionVersions).where(and(eq(sessionVersions.eventId, event.id), eq(sessionVersions.groupId, groupId))).orderBy(desc(sessionVersions.version)),
     db.select().from(clubs).where(eq(clubs.id, access.group.clubId)),
@@ -209,7 +209,7 @@ export async function saveSessionPlan(
   await db.transaction(async (tx) => {
     await lockGroup(tx, userId, groupId);
     const [event] = await tx.select().from(trainingEvents).where(and(eq(trainingEvents.id, eventId), eq(trainingEvents.groupId, groupId)));
-    if (!event) throw new DomainError("Økten finnes ikke i denne gruppen.");
+    if (!event) throw new DomainError("Økten finnes ikke for dette laget.");
     assertRevision(event.revision, revision);
     if (event.status === "cancelled") throw new DomainError("Gjenåpne økten før du redigerer planen.");
     const [conflict] = await tx.select().from(trainingEvents).where(and(
@@ -242,7 +242,7 @@ export async function changeTrainingStatus(
   await db.transaction(async (tx) => {
     await lockGroup(tx, userId, groupId);
     const [event] = await tx.select().from(trainingEvents).where(and(eq(trainingEvents.id, eventId), eq(trainingEvents.groupId, groupId)));
-    if (!event) throw new DomainError("Økten finnes ikke i denne gruppen.");
+    if (!event) throw new DomainError("Økten finnes ikke for dette laget.");
     assertRevision(event.revision, revision);
     await tx.update(trainingEvents).set({ status, revision: event.revision + 1 }).where(eq(trainingEvents.id, eventId));
   });

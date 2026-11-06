@@ -43,6 +43,13 @@
       "when": 1793948224810,
       "tag": "0005_sour_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793949365813,
+      "tag": "0006_worried_luminals",
+      "breakpoints": true
     }
   ]
 }

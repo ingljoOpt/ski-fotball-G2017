@@ -4,8 +4,11 @@ export const nameSchema = z.string().trim().min(2, "Navnet må ha minst to tegn.
 export const emailSchema = z.email("Oppgi en gyldig e-postadresse.").trim().toLowerCase().max(254);
 export const idSchema = z.uuid("Ugyldig ID.");
 export const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/, "Ugyldig lenke.");
+export const birthYearSchema = z.preprocess((value) => value === "" ? null : value,
+  z.coerce.number().int().min(1900, "Årgang må være mellom 1900 og 2100.").max(2100, "Årgang må være mellom 1900 og 2100.").nullable());
 export const settingsSchema = z.object({
   generationDaysBefore: z.coerce.number().int().min(0).max(30),
+  birthYear: birthYearSchema.optional(),
 });
 export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Oppgi klokkeslett som TT:MM.");
 export function minutesBetween(startTime: string, endTime: string) {

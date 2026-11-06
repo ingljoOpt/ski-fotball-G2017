@@ -13,7 +13,7 @@ export default async function NewClub({ searchParams }: { searchParams: SearchPa
     <h1>Opprett klubb</h1>
     <Notices searchParams={searchParams} />
     <Card className="app-card settings-content">
-      <p>Du blir klubbadministrator og kan opprette grupper og invitere hovedtrenere.</p>
+      <p>Du blir klubbadministrator og kan opprette lag og invitere hovedtrenere.</p>
       <form action={newClub}>
         <TextInput label="Klubbnavn" name="name" isRequired minLength={2} maxLength={100} />
         <SubmitButton>Opprett klubb</SubmitButton>

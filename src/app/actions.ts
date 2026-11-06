@@ -91,10 +91,10 @@ export async function newGroup(form: FormData) {
   const user = await requireUser();
   return run(`${clubPath(form)}/grupper/ny`, async () => {
     const { group, token, email } = await createGroup(
-      await getDatabase(), user.id, field(form, "clubId"), field(form, "name"), field(form, "email"),
+      await getDatabase(), user.id, field(form, "clubId"), field(form, "name"), field(form, "email"), field(form, "birthYear"),
     );
     console.log(`[LOKAL INVITASJON til ${email}] ${localConfig().appUrl}/invitasjon/${token}`);
-    return `/grupper/${group.id}?melding=${encodeURIComponent("Gruppen er opprettet. Invitasjonen til hovedtrener ligger i serverterminalen.")}`;
+    return `/grupper/${group.id}?melding=${encodeURIComponent("Laget er opprettet. Invitasjonen til hovedtrener ligger i serverterminalen.")}`;
   });
 }
 
@@ -128,6 +128,7 @@ export async function saveGroupSettings(form: FormData) {
   return run(`${groupPath(form)}/innstillinger`, async () => {
     await updateGroupSettings(await getDatabase(), user.id, field(form, "groupId"), {
       generationDaysBefore: field(form, "generationDaysBefore"),
+      birthYear: field(form, "birthYear"),
     });
     return `${groupPath(form)}/innstillinger?melding=${encodeURIComponent("Innstillingene er lagret. Automatisk generering er ikke implementert ennå.")}`;
   });
@@ -229,7 +230,7 @@ export async function saveYearPlan(form: FormData) {
   const user = await requireUser();
   return run(planningPath(form, "arsplan"), async () => {
     await saveAnnualPlan(await getDatabase(), user.id, field(form, "groupId"), {
-      year: field(form, "year"), birthYear: field(form, "birthYear"), objectives: field(form, "objectives"),
+      year: field(form, "year"), objectives: field(form, "objectives"),
     }, field(form, "revision"));
     return `${planningPath(form, "arsplan")}&melding=${encodeURIComponent("Årsplanen er lagret.")}`;
   });

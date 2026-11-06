@@ -6,7 +6,7 @@ Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkte
 
 Den nye Next.js-appen bygges ved siden av dagens øktarkiv og Pages-nettsted. Se [spesifikasjonen](docs/nettsted-spesifikasjon.md) og [implementasjonsplanen](docs/implementasjonsplan.md).
 
-Den lokale appen har magic-link-innlogging, klubber og grupper, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan, kalender og manuell øktplanlegging med versjonshistorikk. AI, automatiske utkast, faktisk gjennomføring/evaluering, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
+Den lokale appen har magic-link-innlogging, klubber og lag, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan, kalender og manuell øktplanlegging med versjonshistorikk. AI, automatiske utkast, faktisk gjennomføring/evaluering, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
 
 ### Start lokalt
 
@@ -28,11 +28,11 @@ PGlite skal bare åpnes av én prosess om gangen. Appen deler én instans mellom
 
 ### Navigasjon og mobil
 
-På desktop (fra 1000 piksler) vises hovedmenyen og klubb-/gruppevalgene i en fast sidemeny til venstre. På mindre skjermer åpner hamburgerknappen **Meny** én samlet meny som glir inn fra venstre, med både hovedvalg og klubb-/gruppevalg. Ingen ekstra faner eller sidemenyer vises i sideinnholdet på mobil. Menyen markerer aktiv side, holder tastaturfokus inne og lukkes med Escape, lukkeknappen, valg av lenke eller trykk på bakgrunnen. Bakgrunnssiden kan ikke rulles mens menyen er åpen. Redusert bevegelse respekteres.
+På desktop (fra 1000 piksler) vises hovedmenyen og klubb-/lagvalgene i en fast sidemeny til venstre. På mindre skjermer åpner hamburgerknappen **Meny** én samlet meny som glir inn fra venstre, med både hovedvalg og klubb-/lagvalg. Ingen ekstra faner eller sidemenyer vises i sideinnholdet på mobil. Menyen markerer aktiv side, holder tastaturfokus inne og lukkes med Escape, lukkeknappen, valg av lenke eller trykk på bakgrunnen. Bakgrunnssiden kan ikke rulles mens menyen er åpen. Redusert bevegelse respekteres.
 
 - **Mine klubber** viser klubbene; **Opprett klubb** har egen side.
-- **Klubb → Grupper** viser gruppene; oppretting av gruppe, **Brukere** (klubbadministratorer) og **Innstillinger** (logo/farger) har egne sider.
-- **Gruppe → Oversikt** viser snarveier til kalender/årsplan og faste tider uten administrasjonsskjemaer. **Brukere** samler trenere, invitasjoner og rolleoverføring. **Innstillinger** samler treningstider og automatiseringsrammer.
+- **Klubb → Lag** viser lagene; oppretting av lag, **Brukere** (klubbadministratorer) og **Innstillinger** (logo/farger) har egne sider.
+- **Lag → Økter** viser neste trening og siste lagrede økter. Lagmenyen har også **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**. **Innstillinger** samler årgang, treningstider og automatiseringsrammer.
 - **Kalender** viser valgt måned. Årsoversikten åpnes med **Velg måned**, og **Ny enkeltøkt** åpner et separat skjema. På mobil viser kalenderdagene antall økter; klokkeslett, tema og handlinger finnes i listen under.
 - **Kontoavataren** øverst til høyre viser brukerens forbokstav og åpner en egen meny med innloggingsinformasjon og **Logg ut**. Escape lukker menyen og flytter fokus tilbake til avataren.
 
@@ -42,9 +42,9 @@ Administratorsider og redigeringshandlinger beholder eksisterende tilgangskontro
 
 Under **Klubb → Brukere** kan en klubbadministrator invitere flere administratorer, tilbakekalle invitasjoner og fjerne administratorroller. Mottakeren må logge inn med riktig e-postadresse og eksplisitt akseptere før tilgangen gis. En ny invitasjon erstatter en eventuell ubenyttet invitasjon til samme mottaker. Invitasjoner varer i sju dager.
 
-Den siste administratoren kan ikke fjernes eller fratre før en annen har akseptert. Administratorendringer serialiseres i en databasetransaksjon. Fjerning bevarer eventuelle gruppemedlemskap, men tilbakekaller ubrukte administratorinvitasjoner til eller opprettet av personen.
+Den siste administratoren kan ikke fjernes eller fratre før en annen har akseptert. Administratorendringer serialiseres i en databasetransaksjon. Fjerning bevarer eventuelle lagmedlemskap, men tilbakekaller ubrukte administratorinvitasjoner til eller opprettet av personen.
 
-Under **Gruppe → Brukere** kan klubbadministrator overføre hovedtrenerrollen til en eksisterende trener i samme gruppe. Tidligere hovedtrener blir vanlig trener, og ubrukte hovedtrenerinvitasjoner trekkes tilbake. Rollebyttet skjer samlet; vanlige trenere og hovedtrenere kan ikke utføre overføringen.
+Under **Lag → Brukere** kan klubbadministrator overføre hovedtrenerrollen til en eksisterende trener i samme lag. Tidligere hovedtrener blir vanlig trener, og ubrukte hovedtrenerinvitasjoner trekkes tilbake. Rollebyttet skjer samlet; vanlige trenere og hovedtrenere kan ikke utføre overføringen.
 
 ### Tidligere lokal database
 
@@ -58,19 +58,20 @@ Standarddesignet er inspirert av [Tiims øktvisning](https://tiim.no/trenerskapt
 
 Logoen kan være maksimalt 512 KiB og 2048 × 2048 piksler. Serveren kontrollerer faktisk bildeformat, filstørrelse, dimensjoner og at bildet ikke er animert. Bildet skaleres ned til maksimalt 512 × 512 piksler og kodes om til WebP uten opprinnelige metadata. SVG og eksterne logolenker støttes ikke.
 
-Små logoer lagres som normaliserte bildedata i klubbens databasepost, ikke som filer i Git eller på Vercels midlertidige disk. Dette fungerer lokalt uten en ekstra lagringstjeneste. Farger og logo vises på klubbkort, klubbsiden og gruppesidene, med klubben som tekstalternativ for logoen. Vanlige trenere og hovedtrenere kan se profilen, men ikke endre den. Profilen påvirker ikke andre klubber eller appens globale navigasjon.
+Små logoer lagres som normaliserte bildedata i klubbens databasepost, ikke som filer i Git eller på Vercels midlertidige disk. Dette fungerer lokalt uten en ekstra lagringstjeneste. Farger og logo vises på klubbkort, klubbsiden og lagsidene, med klubben som tekstalternativ for logoen. Vanlige trenere og hovedtrenere kan se profilen, men ikke endre den. Profilen påvirker ikke andre klubber eller appens globale navigasjon.
 
 Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo** lagrer standardprofilen umiddelbart. Offentlige økt-/kalendersider er ennå ikke implementert; den delte profilkomponenten skal brukes også der når de bygges.
 
 ### Årsplan, kalender og øktplanlegging
 
-Åpne en gruppe og velg **Årsplan** eller gå til kalenderen fra **Økter**. Alle gruppens trenere og klubbadministratorer kan planlegge; faste treningstider og gruppens standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
+Åpne et lag og velg **Årsplan** eller gå til kalenderen fra **Økter**. Alle lagets trenere og klubbadministratorer kan planlegge; faste treningstider og lagets standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
 
 Øktvisningen har en samlet toppdel med tittel, tidspunkt, status og siste planoppdatering, faktaboks med tema/alder/varighet/oppmøte, øvingsmål og navigasjon til øvelsene. Øvelsene vises i **Oppvarming**, **Hoveddel** (temaarbeid og spill) og **Avslutning**, med varighet per del. Lagringsrekkefølgen og alle tidsverdier bevares; blandet rekkefølge gir gjentatte deloverskrifter fremfor at øvelser flyttes. Hvert kort viser gjennomføring og sammenleggbare felt for målsetting, læringsmomenter, organisering, variasjoner, ressurser og kilde. Ressurskontroll, redigering, avlysning og historiske planversjoner er fortsatt tilgjengelige. Historiske kort har egne anker-ID-er. **Skriv ut** gir en utskriftsvisning uten administrasjonsmenyer; **Rediger øktplan** åpner øktbyggeren.
 
-- Lagre planår, eventuelt fødselsår, og årsmål. Legg til daterte temaperioder med øvingsmål og progresjon. Perioder kan gå over flere måneder innenfor samme år, men ikke overlappe.
+- Sett eventuelt **Årgang** (for eksempel 2017) under **Lag → Innstillinger**, eller ved oppretting. Bare hovedtrener og klubbadministrator kan endre årgang. Den gjelder på tvers av årsplaner, og alder/NFF-kilde beregnes for valgt planår. Lagre planår og årsmål i årsplanen, og legg til daterte temaperioder med øvingsmål og progresjon. Perioder kan gå over flere måneder innenfor samme år, men ikke overlappe.
+- Migreringen overfører årgang fra tidligere årsplaner bare når alle oppgitte årganger er like. Ved konflikt står årgang tom, med beskjed i laginnstillingene om hvilke verdier som må avklares. Ukjent årgang utledes ikke fra lagnavnet. Gamle årsplanverdier og øktversjoner bevares; nye kontekstsnapshots bruker lagets innstilling. Eksisterende `/grupper/…`-lenker og interne `groups`-navn beholdes.
 - Kalenderen har årsoversikt og månedsvisning. Faste uketider vises som forventede treninger uten å fylle databasen med tomme øktplaner. Velg **Planlegg denne treningen**, avlys en enkeltforekomst eller opprett en ekstra enkeltøkt.
-- Hver fast treningstid og økt har **Fra** og **Til**. Varighet beregnes automatisk fra tidsrommet (15–240 minutter), og gruppen har ikke en felles standardvarighet. Når en bestemt trening planlegges fra kalenderen, brukes tidsrommet fra den treningstiden, også når gruppens treninger har ulik lengde. Enkeltøkter får egne fra-/til-tider. Tidligere til-tid betyr avslutning neste dag og merkes i visningen.
+- Hver fast treningstid og økt har **Fra** og **Til**. Varighet beregnes automatisk fra tidsrommet (15–240 minutter), og laget har ikke en felles standardvarighet. Når en bestemt trening planlegges fra kalenderen, brukes tidsrommet fra den treningstiden, også når lagets treninger har ulik lengde. Enkeltøkter får egne fra-/til-tider. Tidligere til-tid betyr avslutning neste dag og merkes i visningen.
 - En lagret økt kan flyttes eller avlyses uten å endre ukerytmen. Opprinnelig forekomst dukker ikke opp igjen etter flytting, heller ikke ved flytting til et nytt år. Avlyste økter beholder planen og kan gjenåpnes som utkast. Endret ukerytme påvirker forventede treninger, ikke allerede lagrede økter.
 - Øktbyggeren har tema, mål, rammer og ordnede øvelseskort med oppvarming, temaarbeid, spill og avslutning. Kortene har organisering, instruksjon, læringsmomenter, enklere/vanskeligere variant, kildelenke og lokale tilpasninger. Legg til, flytt og fjern kort etter behov.
 - Oppgi forventet spillerantall, bekreftet treneroppmøte og tilgjengelig utstyr. Ukjente antall står tomme, ikke som null. Hvert kort er en sekvensiell blokk; oppgi **samlet** behov for alle samtidige grupper i blokken, inkludert reserveballer.
@@ -79,15 +80,15 @@ Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo
 
 Dato og klokkeslett er lokale i `Europe/Oslo`. En plan er aldri dokumentasjon på faktisk gjennomføring. Det opprettes ingen økter eller historikk i det eksisterende Markdown-/Pages-arkivet fra disse skjermene.
 
-Ved oppgradering får eksisterende faste treningstider en beregnet til-tid ut fra gruppens tidligere varighet. Eksisterende økter og historiske versjoner får til-tid ut fra sin egen bevarte starttid og varighet, ikke fra dagens gruppedata. Den gamle gruppekolonnen beholdes som migreringsgrunnlag, men brukes ikke til nye økter eller i gruppeinnstillingene.
+Ved oppgradering får eksisterende faste treningstider en beregnet til-tid ut fra lagets tidligere varighet. Eksisterende økter og historiske versjoner får til-tid ut fra sin egen bevarte starttid og varighet, ikke fra dagens gruppedata. Den gamle gruppekolonnen beholdes som migreringsgrunnlag, men brukes ikke til nye økter eller i gruppeinnstillingene.
 
-Fødselsår oppgis eksplisitt, ikke utledet fra gruppenavnet. Årsplanen lenker til [NFFs sportsplan/fagplan](https://www.fotball.no/barn-og-ungdom/) for beregnet alder i planåret. NFF skal være standard faglig kilde til AI-forslag til temaer og øvingsmål i steg 4; **ingen temaer genereres eller forhåndsutfylles fra NFF nå**. Strukturert øktkontrakt, kildefelt og kontekstsnapshots er klare for senere AI-generering og revisjon.
+Fødselsår oppgis eksplisitt, ikke utledet fra lagnavnet. Årsplanen lenker til [NFFs sportsplan/fagplan](https://www.fotball.no/barn-og-ungdom/) for beregnet alder i planåret. NFF skal være standard faglig kilde til AI-forslag til temaer og øvingsmål i steg 4; **ingen temaer genereres eller forhåndsutfylles fra NFF nå**. Strukturert øktkontrakt, kildefelt og kontekstsnapshots er klare for senere AI-generering og revisjon.
 
-Gruppemenyen har **Økter**, **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**:
+Lagmenyen har **Økter**, **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**:
 
-- Økter er gruppens startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. AI-jobber er ikke aktivert; datoen er ingen bekreftet bestilling. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Kalenderen er fortsatt tilgjengelig fra Økter.
+- Økter er lagets startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. AI-jobber er ikke aktivert; datoen er ingen bekreftet bestilling. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Kalenderen er fortsatt tilgjengelig fra Økter.
 - Årsplan vises som et klikkbart årshjul og en vertikalt rullbar månedsoversikt med temaer, øvingsmål og progresjon. Redigering av årsretning og temaperioder beholdes under oversikten.
-- Egne øvelser integrerer den eksisterende animasjonseditoren direkte i appen, uten avhengighet til GitHub Pages. Gruppemedlemskap kontrolleres også for editorens HTML og ressurser. JSON kan åpnes, redigeres og lastes ned; felles databaselagring av egne øvelser og tilknytning til øktkort gjenstår. Last ned filen før du forlater en endret tavle.
+- Egne øvelser integrerer den eksisterende animasjonseditoren direkte i appen, uten avhengighet til GitHub Pages. Lagmedlemskap kontrolleres også for editorens HTML og ressurser. JSON kan åpnes, redigeres og lastes ned; felles databaselagring av egne øvelser og tilknytning til øktkort gjenstår. Last ned filen før du forlater en endret tavle.
 
 ### Verifisering og migreringer
 

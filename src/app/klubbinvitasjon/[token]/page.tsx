@@ -11,7 +11,7 @@ export default async function ClubInvitation({ params }: { params: Promise<{ tok
   return <Card className="app-card narrow">
     <span className="eyebrow">Invitasjon til klubbadministrasjon</span>
     <h1>Bli klubbadministrator</h1>
-    <p>Rollen gir administratortilgang til klubben og alle dens grupper. Invitasjonen må aksepteres med e-postadressen den er sendt til.</p>
+    <p>Rollen gir administratortilgang til klubben og alle dens lag. Invitasjonen må aksepteres med e-postadressen den er sendt til.</p>
     {user ? <>
       <p>Du er logget inn som <strong>{user.email}</strong>.</p>
       <form action={joinClubAdministration}>

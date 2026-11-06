@@ -38,7 +38,7 @@ export default async function AnnualPlan({ params, searchParams }: {
     throw error;
   }
   const { plan } = details;
-  const ageSource = nffAgeSource(year, plan?.birthYear ?? null);
+  const ageSource = nffAgeSource(year, details.group.birthYear);
   const hidden = <>
     <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={year} />
     <input type="hidden" name="revision" value={plan?.revision ?? 0} />
@@ -55,7 +55,6 @@ export default async function AnnualPlan({ params, searchParams }: {
         <Card className="app-card">
           <h2>Årets retning</h2>
           <form action={saveYearPlan}>{hidden}
-            <NativeInput label="Fødselsår for gruppen (valgfritt)" name="birthYear" type="number" min={year - 25} max={year - 5} defaultValue={plan?.birthYear ?? ""} />
             <TextAreaInput label="Årsmål og føringer" name="objectives" rows={5} maxLength={8000} defaultValue={plan?.objectives} />
             <SubmitButton>Lagre årsplan</SubmitButton>
           </form>
@@ -84,7 +83,8 @@ export default async function AnnualPlan({ params, searchParams }: {
         <p>{ageSource.label}</p>
         <AppLink href={ageSource.url}>Åpne NFFs sportsplan og fagplan →</AppLink>
         <p>Automatiske forslag til temaer og øvingsmål er ikke aktivert. Når AI er på plass, skal NFFs aldersriktige fagplan være standard kilde, med kildekontroll og trenergodkjenning.</p>
-        <p className="muted">Årskullet oppgis eksplisitt og utledes ikke fra gruppenavnet. Alder beregnes for valgt planår.</p>
+        <p className="muted">{details.group.birthYear === null ? "Årgang er ikke oppgitt." : `Lagets årgang er ${details.group.birthYear}.`} Alder beregnes for valgt planår. Årgang utledes ikke fra lagnavnet.</p>
+        <AppLink href={`/grupper/${groupId}/innstillinger`}>Se årgang i laginnstillingene →</AppLink>
         <AppLink href={`/grupper/${groupId}/kalender?year=${year}`}>Se temaene i kalenderen →</AppLink>
       </Card>
     </div>

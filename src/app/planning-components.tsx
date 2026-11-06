@@ -17,7 +17,7 @@ export async function planningSelection(searchParams: SearchParams) {
   return { year: year.data, month: month.data };
 }
 export function PlanningNavigation({ groupId, year }: { groupId: string; year: number }) {
-  return <NavigationLinks className="context-navigation" label="Gruppeplanlegging" items={[
+  return <NavigationLinks className="context-navigation" label="Lagmeny" items={[
     { href: `/grupper/${groupId}`, label: "Økter" },
     { href: `/grupper/${groupId}/arsplan?year=${year}`, label: "Årsplan" },
     { href: `/grupper/${groupId}/brukere`, label: "Brukere" },

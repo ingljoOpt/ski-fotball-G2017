@@ -17,13 +17,7 @@ export const sourceUrlSchema = z.union([
 ]);
 export const annualPlanSchema = z.object({
   year: yearSchema,
-  birthYear: z.preprocess((value) => value === "" || value === undefined ? null : value,
-    yearSchema.nullable()),
   objectives: text,
-}).superRefine((value, context) => {
-  if (value.birthYear !== null && (value.year - value.birthYear < 5 || value.year - value.birthYear > 25)) {
-    context.addIssue({ code: "custom", path: ["birthYear"], message: "Årskullet må være mellom 5 og 25 år i planåret." });
-  }
 });
 export const periodSchema = z.object({
   startDate: dateSchema, endDate: dateSchema,

@@ -23,8 +23,8 @@ export default function Home() {
         </div>
       </section>
       <section aria-label="Løsningens retning" className="grid">
-        <Card className="app-card"><span className="eyebrow">01 · Organisering</span><h2>Klubben som ramme</h2><p>Opprett klubber og grupper, inviter hovedtrener og la gruppene organisere seg selv.</p></Card>
-        <Card className="app-card"><span className="eyebrow">02 · Treningsrytme</span><h2>Gruppens egne tider</h2><p>Registrer ukedager, klokkeslett, øktlengde og ønsket tidspunkt for nye utkast.</p></Card>
+        <Card className="app-card"><span className="eyebrow">01 · Organisering</span><h2>Klubben som ramme</h2><p>Opprett klubber og lag, inviter hovedtrener og la lagene organisere seg selv.</p></Card>
+        <Card className="app-card"><span className="eyebrow">02 · Treningsrytme</span><h2>Lagets egne tider</h2><p>Registrer ukedager, klokkeslett, øktlengde og ønsket tidspunkt for nye utkast.</p></Card>
         <Card className="app-card"><span className="eyebrow">03 · Neste steg</span><h2>Planer som lærer</h2><p className="muted">Kalender, AI-forslag, evaluering og deling kommer i senere implementasjonssteg.</p></Card>
       </section>
     </>

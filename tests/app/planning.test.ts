@@ -5,7 +5,7 @@ import {
   generationDate, osloToday, periodSchema, sessionPlanSchema, sessionSections, sourceUrlSchema, weekdayFor,
 } from "../../src/lib/planning.ts";
 import { completePlan } from "./planning-fixtures.ts";
-import { formatTimeRange, timeRangeSchema } from "../../src/lib/validation.ts";
+import { birthYearSchema, formatTimeRange, settingsSchema, timeRangeSchema } from "../../src/lib/validation.ts";
 
 test("from/to times determine duration, including boundaries and midnight, never submitted duration", () => {
   const input = { date: "2026-11-04", startTime: "17:00", endTime: "18:15", durationMinutes: 999, title: "Økt", theme: "", objectives: "" };
@@ -67,8 +67,20 @@ test("annual plans calculate NFF age sources per year without generating themes"
   assert.ok(nffAgeSource(2029, 2017).url.endsWith("/barn_12/"));
   assert.ok(nffAgeSource(2030, 2017).url.endsWith("/ungdom_13-16/"));
   assert.equal(nffAgeSource(2026, null).age, null);
-  assert.equal(annualPlanSchema.safeParse({ year: 2026, birthYear: 2025, objectives: "" }).success, false);
-  assert.equal(annualPlanSchema.parse({ year: "2026", birthYear: "", objectives: "" }).birthYear, null);
+  assert.deepEqual(annualPlanSchema.parse({ year: "2026", birthYear: 2025, objectives: "" }), { year: 2026, objectives: "" }, "annual input cannot own the team cohort");
+});
+
+test("team cohort settings allow explicit years or unknown without resetting omitted values", () => {
+  assert.equal(birthYearSchema.parse("2017"), 2017);
+  assert.equal(birthYearSchema.parse(""), null);
+  assert.equal(birthYearSchema.parse(null), null);
+  for (const value of [1899, 2101, 2017.5, "invalid", undefined]) {
+    assert.equal(birthYearSchema.safeParse(value).success, false);
+  }
+  assert.equal(birthYearSchema.parse(1900), 1900);
+  assert.equal(birthYearSchema.parse(2100), 2100);
+  assert.deepEqual(settingsSchema.parse({ generationDaysBefore: 3 }), { generationDaysBefore: 3 });
+  assert.equal(settingsSchema.parse({ generationDaysBefore: 3, birthYear: "" }).birthYear, null);
 });
 
 test("period boundaries, times and source URLs are validated", () => {

@@ -8,7 +8,7 @@ import { connectLocalDatabase } from "../../src/db/local.ts";
 import { annualPlans, planPeriods, sessionVersions, trainingEvents, users } from "../../src/db/schema.ts";
 import { migrateLocalDatabase } from "../../scripts/migrate.ts";
 import {
-  acceptInvitation, addTrainingTime, createClub, createGroup, DomainError, inviteCoach, removeMember,
+  acceptInvitation, addTrainingTime, createClub, createGroup, DomainError, groupDetails, inviteCoach, removeMember, updateGroupSettings,
 } from "../../src/lib/domain.ts";
 import {
   annualPlanning, changeTrainingStatus, createTrainingEvent, groupCalendar, groupSessions, removePlanPeriod,
@@ -29,7 +29,7 @@ test("calendar, annual themes and immutable session plans", async (t) => {
     ).returning();
     const club = await createClub(db, admin.id, "Planning club");
     const otherClub = await createClub(db, outsider.id, "Other club");
-    const { group, token } = await createGroup(db, admin.id, club.id, "G2017", head.email);
+    const { group, token } = await createGroup(db, admin.id, club.id, "G2017", head.email, 2017);
     const { group: otherGroup } = await createGroup(db, outsider.id, otherClub.id, "G2017", outsider.email);
     await acceptInvitation(db, head.id, token);
     const invitation = await inviteCoach(db, head.id, group.id, coach.email);
@@ -40,12 +40,33 @@ test("calendar, annual themes and immutable session plans", async (t) => {
     const eventInput = { date: "2026-11-04", startTime: "18:00", endTime: "19:00", durationMinutes: 60, title: "Planøkt", theme: "Pasning", objectives: "Se før pasning" };
     let eventId: string;
 
+    await t.test("team settings own the cohort, enforce roles and do not infer it from names", async () => {
+      assert.equal(otherGroup.birthYear, null, "name G2017 does not imply cohort");
+      await assert.rejects(updateGroupSettings(db, coach.id, group.id, { generationDaysBefore: 3, birthYear: 2018 }), DomainError);
+      await assert.rejects(updateGroupSettings(db, outsider.id, group.id, { generationDaysBefore: 3, birthYear: 2018 }), DomainError);
+      await assert.rejects(updateGroupSettings(db, admin.id, group.id, { generationDaysBefore: 3, birthYear: 2017.5 }));
+      await updateGroupSettings(db, admin.id, group.id, { generationDaysBefore: 3, birthYear: "" });
+      assert.equal((await groupDetails(db, head.id, group.id)).group.birthYear, null);
+      await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 3, birthYear: "2017" });
+      await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2 });
+      assert.equal((await groupDetails(db, coach.id, group.id)).group.birthYear, 2017);
+      await db.insert(annualPlans).values([
+        { clubId: otherClub.id, groupId: otherGroup.id, year: 2026, legacyBirthYear: 2017 },
+        { clubId: otherClub.id, groupId: otherGroup.id, year: 2027, legacyBirthYear: 2018 },
+      ]);
+      assert.deepEqual((await groupDetails(db, outsider.id, otherGroup.id)).conflictingBirthYears.sort(), [2017, 2018]);
+      await updateGroupSettings(db, outsider.id, otherGroup.id, { generationDaysBefore: 3, birthYear: 2017 });
+      assert.deepEqual((await groupDetails(db, outsider.id, otherGroup.id)).conflictingBirthYears, []);
+      await updateGroupSettings(db, outsider.id, otherGroup.id, { generationDaysBefore: 3, birthYear: null });
+    });
+
     await t.test("all coaches can plan, while outsiders and other clubs are denied", async () => {
       await assert.rejects(annualPlanning(db, outsider.id, group.id, 2026), DomainError);
       await assert.rejects(saveAnnualPlan(db, outsider.id, group.id, { year: 2026, birthYear: 2017, objectives: "" }, 0), DomainError);
-      await saveAnnualPlan(db, coach.id, group.id, { year: 2026, birthYear: 2017, objectives: "Utvikle samspill" }, 0);
+      await saveAnnualPlan(db, coach.id, group.id, { year: 2026, birthYear: 2018, objectives: "Utvikle samspill" }, 0);
       const annual = await annualPlanning(db, head.id, group.id, 2026);
-      assert.equal(annual.plan?.birthYear, 2017);
+      assert.equal(annual.group.birthYear, 2017, "annual input cannot change the team's cohort");
+      assert.equal(annual.plan?.legacyBirthYear, null, "annual input no longer stores a cohort");
       assert.equal(annual.periods.length, 0, "NFF themes are not generated or seeded");
       await assert.rejects(savePlanPeriod(db, outsider.id, group.id, 2026, periodInput, 1), DomainError);
       await savePlanPeriod(db, head.id, group.id, 2026, periodInput, 1);
@@ -80,6 +101,7 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(details.versions[0].origin, "manual");
       assert.equal(details.versions[0].planningContext.curriculum.provider, "nff");
       assert.equal(details.versions[0].planningContext.curriculum.suggestions, "pending_ai");
+      assert.equal(details.versions[0].planningContext.birthYear, 2017);
       assert.equal(details.versions[0].planningContext.periods[0].theme, "Pasning");
       assert.equal(details.versions[0].plan.availableBalls, null);
       assert.equal((await groupCalendar(db, coach.id, group.id, 2026)).entries.length, 104);
@@ -161,6 +183,19 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       await assert.rejects(removePlanPeriod(db, outsider.id, group.id, updated.periods[0].id, updated.plan!.revision), DomainError);
       await removePlanPeriod(db, coach.id, group.id, updated.periods[0].id, updated.plan!.revision);
       assert.equal((await trainingEventDetails(db, coach.id, group.id, eventId)).versions[0].planningContext.periods[0].theme, "Pasning");
+    });
+
+    await t.test("cohort changes affect future contexts but preserve every historical version", async () => {
+      const original = await trainingEventDetails(db, coach.id, group.id, eventId);
+      await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 3, birthYear: 2018 });
+      const revised = await trainingEventDetails(db, coach.id, group.id, eventId);
+      assert.equal(revised.context.birthYear, 2018);
+      assert.deepEqual(revised.versions, original.versions);
+      const newId = await createTrainingEvent(db, coach.id, group.id, { ...eventInput, date: "2027-02-01" });
+      const newDetails = await trainingEventDetails(db, coach.id, group.id, newId);
+      assert.equal(newDetails.versions[0].planningContext.birthYear, 2018, "team cohort is used even without an annual plan");
+      assert.ok(newDetails.versions[0].planningContext.curriculum.url.endsWith("/barn_8-9/"));
+      await updateGroupSettings(db, admin.id, group.id, { generationDaysBefore: 3, birthYear: 2017 });
     });
 
     await t.test("moving a recurring event across years suppresses the original without changing weekly times", async () => {

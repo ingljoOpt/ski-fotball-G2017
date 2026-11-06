@@ -1,4 +1,4 @@
-import { AppLink, Card, SubmitButton, TextInput } from "@/app/ui";
+import { AppLink, Card, NativeInput, SubmitButton, TextInput } from "@/app/ui";
 import { createHash } from "node:crypto";
 import { notFound } from "next/navigation";
 import { ZodError } from "zod";
@@ -33,29 +33,30 @@ export async function ClubScreen({ params, searchParams, section = "grupper" }: 
       <AppLink className="back" href="/oversikt">← Mine klubber</AppLink>
       <ClubIdentity club={details.club} />
       <NavigationLinks className="context-navigation" label="Klubbmeny" items={[
-        { href: `/klubber/${clubId}`, label: "Grupper" },
+        { href: `/klubber/${clubId}`, label: "Lag" },
         ...(details.club.isAdmin ? [
           { href: `/klubber/${clubId}/brukere`, label: "Brukere" },
           { href: `/klubber/${clubId}/innstillinger`, label: "Innstillinger" },
         ] : []),
       ]} />
-      <h1>{section === "grupper" ? "Grupper" : section === "ny-gruppe" ? "Opprett gruppe" : section === "brukere" ? "Brukere" : "Klubbinnstillinger"}</h1>
+      <h1>{section === "grupper" ? "Lag" : section === "ny-gruppe" ? "Opprett lag" : section === "brukere" ? "Brukere" : "Klubbinnstillinger"}</h1>
       <Notices searchParams={searchParams} />
       {section === "innstillinger" && <div className="settings-content" id="klubbprofil"><ClubProfileEditor key={profileKey} clubId={clubId} club={details.club} /></div>}
       {section === "grupper" && <div className="page-content">
-        {details.club.isAdmin && <AppLink href={`/klubber/${clubId}/grupper/ny`}>+ Opprett gruppe</AppLink>}
+        {details.club.isAdmin && <AppLink href={`/klubber/${clubId}/grupper/ny`}>+ Opprett lag</AppLink>}
         <section className="stack">
           {details.groups.length ? details.groups.map((group) => <Card className="app-card" key={group.id}>
-            <h2>{group.name}</h2><AppLink href={`/grupper/${group.id}`}>Åpne gruppen →</AppLink>
-          </Card>) : <Card className="app-card"><p>Ingen grupper tilgjengelig ennå.</p></Card>}
+            <h2>{group.name}</h2><AppLink href={`/grupper/${group.id}`}>Åpne laget →</AppLink>
+          </Card>) : <Card className="app-card"><p>Ingen lag tilgjengelig ennå.</p></Card>}
         </section>
       </div>}
       {section === "ny-gruppe" && <Card className="app-card settings-content">
-          <h2>Opprett gruppe</h2>
+          <h2>Opprett lag</h2>
           <p className="muted">Inviter hovedtrener som første medlem. Hovedtrener kan deretter invitere flere trenere.</p>
           <form action={newGroup}>
             <input type="hidden" name="clubId" value={clubId} />
-            <TextInput label="Gruppenavn" name="name" placeholder="G2017" isRequired minLength={2} maxLength={100} />
+            <TextInput label="Lagnavn" name="name" placeholder="G2017" isRequired minLength={2} maxLength={100} />
+            <NativeInput label="Årgang (valgfritt)" name="birthYear" type="number" min={1900} max={2100} step={1} />
             <TextInput label="Hovedtrenerens e-post" name="email" type="email" isRequired />
             <SubmitButton>Opprett og inviter hovedtrener</SubmitButton>
           </form>
@@ -64,7 +65,7 @@ export async function ClubScreen({ params, searchParams, section = "grupper" }: 
       {administration && <div className="columns">
         <Card className="app-card">
           <h2>Klubbadministratorer</h2>
-          <p className="muted">Administratorer kan administrere hele klubben og alle gruppene. Gruppenes trenerroller er separate.</p>
+          <p className="muted">Administratorer kan administrere hele klubben og alle lagene. Lagenes trenerroller er separate.</p>
           <ul className="clean">{administration.admins.map((admin) => <li className="row" key={admin.userId}>
             <span>{admin.email}{admin.userId === user.id && <small> · deg</small>}</span>
             <form action={deleteClubAdmin}>
