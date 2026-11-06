@@ -10,6 +10,7 @@ import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubIdentity, ClubTheme } from "@/app/club-theme";
 import { ClubProfileEditor } from "@/app/club-profile-editor";
 import { NavigationLinks } from "@/app/navigation";
+import { clubUrl, teamUrl } from "@/lib/slugs";
 
 export async function ClubScreen({ params, searchParams, section = "grupper" }: {
   params: Promise<{ clubId: string }>; searchParams: SearchParams; section?: "grupper" | "ny-gruppe" | "brukere" | "innstillinger";
@@ -24,6 +25,7 @@ export async function ClubScreen({ params, searchParams, section = "grupper" }: 
     throw error;
   }
   if (section !== "grupper" && !details.club.isAdmin) notFound();
+  const basePath = clubUrl(details.club);
   const administration = section === "brukere"
     ? await clubAdministration(await getDatabase(), user.id, clubId) : null;
   const profileKey = `${details.club.primaryColor}-${details.club.accentColor}-${createHash("sha256").update(details.club.logoData ?? "").digest("hex")}`;
@@ -33,20 +35,20 @@ export async function ClubScreen({ params, searchParams, section = "grupper" }: 
       <AppLink className="back" href="/oversikt">← Mine klubber</AppLink>
       <ClubIdentity club={details.club} />
       <NavigationLinks className="context-navigation" label="Klubbmeny" items={[
-        { href: `/klubber/${clubId}`, label: "Lag" },
+        { href: basePath, label: "Lag" },
         ...(details.club.isAdmin ? [
-          { href: `/klubber/${clubId}/brukere`, label: "Brukere" },
-          { href: `/klubber/${clubId}/innstillinger`, label: "Innstillinger" },
+          { href: `${basePath}/brukere`, label: "Brukere" },
+          { href: `${basePath}/innstillinger`, label: "Innstillinger" },
         ] : []),
       ]} />
       <h1>{section === "grupper" ? "Lag" : section === "ny-gruppe" ? "Opprett lag" : section === "brukere" ? "Brukere" : "Klubbinnstillinger"}</h1>
       <Notices searchParams={searchParams} />
-      {section === "innstillinger" && <div className="settings-content" id="klubbprofil"><ClubProfileEditor key={profileKey} clubId={clubId} club={details.club} /></div>}
+      {section === "innstillinger" && <div className="settings-content" id="klubbprofil"><p className="muted">Klubbens nettadresse: {basePath}</p><ClubProfileEditor key={profileKey} clubId={clubId} club={details.club} /></div>}
       {section === "grupper" && <div className="page-content">
-        {details.club.isAdmin && <AppLink href={`/klubber/${clubId}/grupper/ny`}>+ Opprett lag</AppLink>}
+        {details.club.isAdmin && <AppLink href={`${basePath}/lag/ny`}>+ Opprett lag</AppLink>}
         <section className="stack">
           {details.groups.length ? details.groups.map((group) => <Card className="app-card" key={group.id}>
-            <h2>{group.name}</h2><AppLink href={`/grupper/${group.id}`}>Åpne laget →</AppLink>
+            <h2>{group.name}</h2><AppLink href={teamUrl(details.club, group)}>Åpne laget →</AppLink>
           </Card>) : <Card className="app-card"><p>Ingen lag tilgjengelig ennå.</p></Card>}
         </section>
       </div>}

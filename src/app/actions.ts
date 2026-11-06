@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { getDatabase } from "@/db";
 import { requireUser, SESSION_COOKIE } from "@/lib/auth";
@@ -16,9 +17,10 @@ import {
 import { idSchema } from "@/lib/validation";
 import { logoFromForm } from "@/lib/logo";
 import {
-  changeTrainingStatus, createTrainingEvent, removePlanPeriod, saveAnnualPlan, savePlanPeriod, saveSessionPlan,
+  changeTrainingStatus, createTrainingEvent, removeAnnualEvent, removePlanPeriod, saveAnnualEvent, saveAnnualPlan, savePlanPeriod, saveSessionPlan,
 } from "@/lib/planning-domain";
 import { yearSchema } from "@/lib/planning";
+import { canonicalDestination } from "@/lib/tenant-routing";
 
 const field = (form: FormData, key: string) => {
   const value = form.get(key);
@@ -47,6 +49,16 @@ async function run(fallback: string, operation: () => Promise<string>): Promise<
     }
     destination = `${fallback}${fallback.includes("?") ? "&" : "?"}feil=${encodeURIComponent(message)}`;
   }
+  if (/^\/(?:grupper|klubber)\/(?!ny(?:[/?]|$))/.test(destination)) {
+    try {
+      const user = await requireUser();
+      destination = await canonicalDestination(await getDatabase(), user.id, destination);
+    } catch (error) {
+      if (!(error instanceof DomainError || error instanceof ZodError)) throw error;
+      destination = `/oversikt?feil=${encodeURIComponent("Klubben eller laget finnes ikke, eller du mangler tilgang.")}`;
+    }
+  }
+  revalidatePath(destination.split("?")[0]);
   redirect(destination);
 }
 
@@ -213,9 +225,13 @@ export async function resetClubProfile(form: FormData) {
   });
 }
 
-const planningPath = (form: FormData, page: "arsplan" | "kalender") => {
+const planningPath = (form: FormData) => {
   const year = yearSchema.safeParse(field(form, "year"));
-  return `${groupPath(form)}/${page}${year.success ? `?year=${year.data}` : ""}`;
+  const query = new URLSearchParams();
+  if (year.success) query.set("year", String(year.data));
+  const month = Number(field(form, "month"));
+  if (Number.isInteger(month) && month >= 1 && month <= 12) query.set("month", String(month));
+  return `${groupPath(form)}/arsplan?${query}`;
 };
 const eventFields = (form: FormData) => ({
   date: field(form, "date"), startTime: field(form, "startTime"), endTime: field(form, "endTime"),
@@ -228,30 +244,30 @@ const eventPath = (form: FormData) => {
 
 export async function saveYearPlan(form: FormData) {
   const user = await requireUser();
-  return run(planningPath(form, "arsplan"), async () => {
+  return run(planningPath(form), async () => {
     await saveAnnualPlan(await getDatabase(), user.id, field(form, "groupId"), {
       year: field(form, "year"), objectives: field(form, "objectives"),
     }, field(form, "revision"));
-    return `${planningPath(form, "arsplan")}&melding=${encodeURIComponent("Årsplanen er lagret.")}`;
+    return `${planningPath(form)}&melding=${encodeURIComponent("Årsplanen er lagret.")}`;
   });
 }
 
 export async function saveThemePeriod(form: FormData) {
   const user = await requireUser();
-  return run(planningPath(form, "arsplan"), async () => {
+  return run(planningPath(form), async () => {
     await savePlanPeriod(await getDatabase(), user.id, field(form, "groupId"), yearSchema.parse(field(form, "year")), {
       startDate: field(form, "startDate"), endDate: field(form, "endDate"), theme: field(form, "theme"),
       objectives: field(form, "objectives"), progression: field(form, "progression"), sourceUrl: field(form, "sourceUrl"),
     }, field(form, "revision"), field(form, "periodId") || undefined);
-    return `${planningPath(form, "arsplan")}&melding=${encodeURIComponent("Temaperioden er lagret. Eksisterende øktplaner er ikke endret.")}`;
+    return `${planningPath(form)}&melding=${encodeURIComponent("Temaperioden er lagret. Eksisterende øktplaner er ikke endret.")}`;
   });
 }
 
 export async function deleteThemePeriod(form: FormData) {
   const user = await requireUser();
-  return run(planningPath(form, "arsplan"), async () => {
+  return run(planningPath(form), async () => {
     await removePlanPeriod(await getDatabase(), user.id, field(form, "groupId"), field(form, "periodId"), field(form, "revision"));
-    return `${planningPath(form, "arsplan")}&melding=${encodeURIComponent("Perioden er fjernet. Lagrede planversjoner beholdes.")}`;
+    return `${planningPath(form)}&melding=${encodeURIComponent("Perioden er fjernet. Lagrede planversjoner beholdes.")}`;
   });
 }
 
@@ -260,10 +276,29 @@ export async function newTrainingEvent(form: FormData) {
   const month = Number(field(form, "month"));
   const year = yearSchema.safeParse(field(form, "year"));
   const singlePath = `${groupPath(form)}/okter/ny${year.success && Number.isInteger(month) && month >= 1 && month <= 12 ? `?year=${year.data}&month=${month}` : ""}`;
-  return run(field(form, "singleSession") === "1" ? singlePath : planningPath(form, "kalender"), async () => {
+  return run(field(form, "singleSession") === "1" ? singlePath : planningPath(form), async () => {
     const eventId = await createTrainingEvent(await getDatabase(), user.id, field(form, "groupId"),
       eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel");
     return `${groupPath(form)}/okter/${eventId}`;
+  });
+}
+
+export async function saveYearEvent(form: FormData) {
+  const user = await requireUser();
+  return run(planningPath(form), async () => {
+    await saveAnnualEvent(await getDatabase(), user.id, field(form, "groupId"), {
+      title: field(form, "title"), kind: field(form, "kind"), startDate: field(form, "startDate"),
+      endDate: field(form, "endDate"), description: field(form, "description"),
+    }, field(form, "annualEventId") || undefined, field(form, "revision"));
+    return `${planningPath(form)}&melding=${encodeURIComponent("Hendelsen er lagret. Treninger er ikke avlyst automatisk.")}`;
+  });
+}
+
+export async function deleteYearEvent(form: FormData) {
+  const user = await requireUser();
+  return run(planningPath(form), async () => {
+    await removeAnnualEvent(await getDatabase(), user.id, field(form, "groupId"), field(form, "annualEventId"), field(form, "revision"));
+    return `${planningPath(form)}&melding=${encodeURIComponent("Hendelsen er fjernet. Treninger og lagrede øktversjoner er uendret.")}`;
   });
 }
 
@@ -284,7 +319,7 @@ export async function saveTrainingPlan(_previous: { error: string } | null, form
     console.error("Øktplanen kunne ikke lagres:", error);
     return { error: "Lagring feilet. Kontroller serverloggen og prøv igjen. Endringene er beholdt i skjemaet." };
   }
-  redirect(`${eventPath(form)}?melding=${encodeURIComponent("Ny planversjon er lagret.")}`);
+  redirect(await canonicalDestination(await getDatabase(), user.id, `${eventPath(form)}?melding=${encodeURIComponent("Ny planversjon er lagret.")}`));
 }
 
 export async function setTrainingStatus(form: FormData) {

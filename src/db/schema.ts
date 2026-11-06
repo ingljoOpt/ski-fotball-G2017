@@ -100,6 +100,26 @@ export const loginLinks = pgTable("login_links", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
 
+export const annualEvents = pgTable("annual_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  title: text("title").notNull(),
+  kind: text("kind", { enum: ["cup", "holiday", "other"] }).notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  description: text("description").notNull().default(""),
+  revision: integer("revision").notNull().default(1),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  updatedBy: uuid("updated_by").notNull().references(() => users.id),
+  createdAt: createdAt(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  foreignKey({ columns: [table.clubId, table.groupId], foreignColumns: [groups.clubId, groups.id] }).onDelete("cascade"),
+  check("annual_event_date_order", sql`${table.endDate} >= ${table.startDate}`),
+  check("annual_event_kind", sql`${table.kind} in ('cup', 'holiday', 'other')`),
+]);
+
 export const authSessions = pgTable("auth_sessions", {
   tokenHash: text("token_hash").primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -109,11 +129,14 @@ export const authSessions = pgTable("auth_sessions", {
 export const clubs = pgTable("clubs", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
   primaryColor: text("primary_color").notNull().default(DEFAULT_PRIMARY),
   accentColor: text("accent_color").notNull().default(DEFAULT_ACCENT),
   logoData: text("logo_data"),
   createdAt: createdAt(),
-});
+}, (table) => [
+  check("club_slug_format", sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and length(${table.slug}) <= 120`),
+]);
 
 export const clubAdmins = pgTable("club_admins", {
   clubId: uuid("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
@@ -135,12 +158,15 @@ export const groups = pgTable("groups", {
   id: uuid("id").defaultRandom().primaryKey(),
   clubId: uuid("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  slug: text("slug").notNull(),
   birthYear: integer("birth_year"),
   // Retained only to migrate existing weekly times without discarding the old duration.
   legacyDurationMinutes: integer("duration_minutes").notNull().default(60),
   generationDaysBefore: integer("generation_days_before").notNull().default(3),
   createdAt: createdAt(),
 }, (table) => [
+  unique("groups_club_slug_unique").on(table.clubId, table.slug),
+  check("team_slug_format", sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and length(${table.slug}) <= 120`),
   unique("groups_club_id_id_unique").on(table.clubId, table.id),
   check("duration_range", sql`${table.legacyDurationMinutes} between 15 and 240`),
   check("generation_days_range", sql`${table.generationDaysBefore} between 0 and 30`),

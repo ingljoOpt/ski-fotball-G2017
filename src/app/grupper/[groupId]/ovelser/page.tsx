@@ -1,30 +1,6 @@
-import { notFound } from "next/navigation";
-import { ZodError } from "zod";
-import { getDatabase } from "@/db";
-import { requireUser } from "@/lib/auth";
-import { DomainError, groupDetails } from "@/lib/domain";
-import { osloToday } from "@/lib/planning";
-import { Account } from "@/app/components";
-import { ClubIdentity, ClubTheme } from "@/app/club-theme";
-import { PlanningNavigation } from "@/app/planning-components";
+import { legacyRedirect } from "@/app/legacy-redirect";
+import type { SearchParams } from "@/app/components";
 
-export default async function OwnExercises({ params }: { params: Promise<{ groupId: string }> }) {
-  const user = await requireUser();
-  const { groupId } = await params;
-  let details;
-  try { details = await groupDetails(await getDatabase(), user.id, groupId); }
-  catch (error) {
-    if (error instanceof DomainError || error instanceof ZodError) notFound();
-    throw error;
-  }
-  return <ClubTheme club={details.club}>
-    <Account email={user.email} /><ClubIdentity club={details.club} />
-    <PlanningNavigation groupId={groupId} year={Number(osloToday().slice(0, 4))} />
-    <h1>Egne øvelser · {details.group.name}</h1>
-    <p>Lag og rediger egne animasjoner med spillere, baller, kjegler og mål.</p>
-    <p className="notice">Last ned JSON for å ta vare på arbeidet, og åpne filen her for å redigere videre.
-      Animasjoner lagres foreløpig som filer hos deg, ikke i en delt øvelsesbank for laget.</p>
-    <iframe className="exercise-editor-frame" title="Rediger egne øvelser og animasjoner"
-      src={`/grupper/${groupId}/ovelser/rediger/editor`} />
-  </ClubTheme>;
+export default async function LegacyExercises({ params, searchParams }: { params: Promise<{ groupId: string }>; searchParams: SearchParams }) {
+  return legacyRedirect(`/grupper/${(await params).groupId}/ovelser`, searchParams);
 }

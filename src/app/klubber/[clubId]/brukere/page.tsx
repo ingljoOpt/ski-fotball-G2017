@@ -1,6 +1,6 @@
-import { ClubScreen } from "@/app/club-screen";
+import { legacyRedirect } from "@/app/legacy-redirect";
 import type { SearchParams } from "@/app/components";
 
-export default function ClubUsers(props: { params: Promise<{ clubId: string }>; searchParams: SearchParams }) {
-  return <ClubScreen {...props} section="brukere" />;
+export default async function ClubUsers(props: { params: Promise<{ clubId: string }>; searchParams: SearchParams }) {
+  return legacyRedirect(`/klubber/${(await props.params).clubId}/brukere`, props.searchParams);
 }

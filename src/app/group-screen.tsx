@@ -11,6 +11,7 @@ import { generationDate, osloToday } from "@/lib/planning";
 import { groupSessions } from "@/lib/planning-domain";
 import { eventStatusLabels, formatDate, PlanningNavigation } from "@/app/planning-components";
 import { formatTimeRange } from "@/lib/validation";
+import { clubUrl, teamUrl } from "@/lib/slugs";
 
 const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 const roleName = (role: string) => role === "head_coach" ? "Hovedtrener" : "Trener";
@@ -28,20 +29,21 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
     throw error;
   }
   const { group, canManage } = details;
+  const basePath = teamUrl(details.club, group);
   const sessions = section === "oversikt" ? await groupSessions(await getDatabase(), user.id, groupId) : null;
   const upcoming = sessions?.upcoming;
   return (
     <ClubTheme club={details.club}>
       <Account email={user.email} />
-      <AppLink className="back" href={`/klubber/${group.clubId}`}>← Til klubben</AppLink>
+      <AppLink className="back" href={clubUrl(details.club)}>← Til klubben</AppLink>
       <ClubIdentity club={details.club} />
       <span className="eyebrow">{section === "oversikt" ? "Lagets trenerrom" : group.name}</span>
       <h1>{section === "oversikt" ? `Økter · ${group.name}` : section === "brukere" ? "Trenere og brukere" : "Laginnstillinger"}</h1>
-      <PlanningNavigation groupId={groupId} year={Number(osloToday().slice(0, 4))} />
+      <PlanningNavigation basePath={basePath} year={Number(osloToday().slice(0, 4))} />
       <Notices searchParams={searchParams} />
       {section === "oversikt" && <div className="page-content">
-        <div className="row"><AppLink href={`/grupper/${groupId}/okter/ny`}>+ Opprett økt manuelt</AppLink>
-          <AppLink href={`/grupper/${groupId}/kalender`}>Se alle treninger i kalenderen →</AppLink></div>
+        <div className="row"><AppLink href={`${basePath}/okter/ny`}>+ Opprett økt manuelt</AppLink>
+          <AppLink href={`${basePath}/aarsplan`}>Se treninger og hendelser i årsplanen →</AppLink></div>
         <Card className="app-card"><h2>Kommende økt</h2>
           {upcoming ? <>
             <p><strong>{formatDate(upcoming.date)} kl. {formatTimeRange(upcoming.startTime, upcoming.endTime)}</strong></p>
@@ -57,15 +59,15 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
                   .map(([key, value]) => <input type="hidden" name={key} value={value} key={key} />)}
                 <SubmitButton name="intent" value="create">Opprett denne økten manuelt</SubmitButton>
               </form>
-            </> : <><p>{eventStatusLabels[upcoming.status]}</p><AppLink href={`/grupper/${groupId}/okter/${upcoming.id}`}>Åpne øktplan →</AppLink></>}
+            </> : <><p>{eventStatusLabels[upcoming.status]}</p><AppLink href={`${basePath}/okter/${upcoming.id}`}>Åpne øktplan →</AppLink></>}
           </> : <><p>Ingen kommende treninger er registrert.</p>
-            <AppLink href={`/grupper/${groupId}/innstillinger`}>Legg til faste treningstider →</AppLink></>}
+            <AppLink href={`${basePath}/innstillinger`}>Legg til faste treningstider →</AppLink></>}
         </Card>
         <section className="stack" aria-label="Siste økter"><h2>Siste økter</h2>
           {sessions?.recent.length ? sessions.recent.map((event) => <Card className="app-card" key={event.id}>
             <small>{formatDate(event.date)} · {formatTimeRange(event.startTime, event.endTime)} · {eventStatusLabels[event.status]}</small>
             <h3>{event.title}</h3><p>{event.theme || "Tema ikke satt"}</p>
-            <AppLink href={`/grupper/${groupId}/okter/${event.id}`}>Åpne øktplan →</AppLink>
+            <AppLink href={`${basePath}/okter/${event.id}`}>Åpne øktplan →</AppLink>
           </Card>) : <p className="muted">Ingen tidligere økter er lagret. Bare lagrede økter vises her; gjennomføring er ikke bekreftet.</p>}
         </section>
       </div>}
@@ -112,6 +114,7 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
         <div className="stack">
           {section === "innstillinger" && <Card className="app-card">
             <h2>Øktrammer</h2>
+            <p className="muted">Lagets nettadresse: {basePath}</p>
             {details.conflictingBirthYears.length > 0 && <p className="notice error">Tidligere årsplaner har ulike årganger ({details.conflictingBirthYears.sort().join(", ")}). Ingen årgang er valgt automatisk. Hovedtrener eller klubbadministrator må avklare og lagre lagets årgang.</p>}
             {canManage ? <form action={saveGroupSettings}>
               <input type="hidden" name="groupId" value={groupId} />

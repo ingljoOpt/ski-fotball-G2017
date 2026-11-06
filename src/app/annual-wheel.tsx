@@ -1,13 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Period } from "@/lib/planning";
 
-export function AnnualWheel({ year, months, periods, initialMonth }: {
-  year: number; months: string[]; periods: Period[]; initialMonth: number;
+export function SelectedMonthInput({ month }: { month: number }) {
+  const search = useSearchParams();
+  const selected = Number(search.get("month") ?? month);
+  return <input type="hidden" name="month" value={Number.isInteger(selected) && selected >= 1 && selected <= 12 ? selected : month} />;
+}
+
+export function AnnualWheel({ year, months, periods, initialMonth, monthContent }: {
+  year: number; months: string[]; periods: Period[]; initialMonth: number; monthContent: ReactNode[];
 }) {
   const list = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState(initialMonth - 1);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("year", String(year));
+    url.searchParams.set("month", String(selected + 1));
+    window.history.replaceState(null, "", url);
+  }, [selected, year]);
   function showMonth(index: number) {
     const container = list.current;
     const month = container?.children[index];
@@ -23,7 +36,7 @@ export function AnnualWheel({ year, months, periods, initialMonth }: {
     const radians = (angle - 90) * Math.PI / 180;
     return `${(160 + radius * Math.cos(radians)).toFixed(3)},${(160 + radius * Math.sin(radians)).toFixed(3)}`;
   }
-  return <section className="annual-wheel" aria-label={`Årshjul ${year}`}>
+  return <><section className="annual-wheel" aria-label={`Årshjul ${year}`}>
     <div className="wheel-chart">
       <svg viewBox="0 0 320 320" role="group" aria-label="Velg måned i årshjulet">
         {months.map((month, index) => {
@@ -32,7 +45,7 @@ export function AnnualWheel({ year, months, periods, initialMonth }: {
           const prefix = `${year}-${String(index + 1).padStart(2, "0")}`;
           const hasTheme = periods.some((period) => period.startDate <= `${prefix}-31` && period.endDate >= `${prefix}-01`);
           const coordinates = point(index * 30 + 15, 117).split(",");
-          return <a key={month} href={`#arsmaned-${index + 1}`} aria-label={month}
+          return <a key={month} href={`?year=${year}&month=${index + 1}#arsplan-maned`} aria-label={month}
             aria-current={selected === index ? "true" : undefined} onClick={(event) => {
               event.preventDefault(); showMonth(index);
             }}>
@@ -46,6 +59,11 @@ export function AnnualWheel({ year, months, periods, initialMonth }: {
         <text x="160" y="180" textAnchor="middle">{months[selected]}</text>
       </svg>
       <p className="muted">Velg en måned eller rull i årsoversikten. Fargede felt har temaperioder.</p>
+      <label className="app-field">Vis måned
+        <select value={selected} onChange={(event) => showMonth(Number(event.target.value))}>
+          {months.map((month, index) => <option value={index} key={month}>{month}</option>)}
+        </select>
+      </label>
     </div>
     <div className="wheel-months" ref={list} tabIndex={0} role="region" aria-label="Rullbar årsoversikt"
       onScroll={() => {
@@ -69,5 +87,7 @@ export function AnnualWheel({ year, months, periods, initialMonth }: {
         </section>;
       })}
     </div>
-  </section>;
+  </section><section id="arsplan-maned" aria-label="Valgt måned" key={`${year}-${selected}`}>
+    {monthContent[selected]}
+  </section></>;
 }

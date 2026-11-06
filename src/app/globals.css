@@ -70,6 +70,15 @@ small { color: var(--muted); }
 .calendar-day small, .calendar-theme { display: block; font-size: .75rem; }
 .calendar-theme { color: var(--club-primary); font-weight: bold; }
 .calendar-count { display: none; }
+.annual-event-count { display: block; font-size: .7rem; font-weight: bold; }
+.annual-count-symbol { display: none; }
+.annual-event-label { background: var(--club-accent); color: var(--club-accent-foreground); border-radius: .25rem; padding: .15rem; margin-top: .2rem; }
+.annual-event-card { border-inline-start: 4px solid var(--club-primary); }
+.annual-month-view { margin-block: 1.5rem; }
+.annual-day { scroll-margin-top: 6rem; }
+.annual-day h4 { font-size: 1.1rem; margin-top: 1rem; }
+.annual-day h5 { font-size: 1rem; }
+#arsplan-maned { scroll-margin-top: 6rem; }
 .calendar-day.today { border: 2px solid var(--club-primary); }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 1rem; }
 .exercise-detail { border: 1px solid var(--line); border-radius: .5rem; padding: 1rem; margin: .75rem 0; background: white; min-width: 0; overflow-wrap: anywhere; }
@@ -143,6 +152,7 @@ summary { cursor: pointer; }
 }
 .annual-wheel { display: grid; grid-template-columns: minmax(240px, 360px) minmax(0, 1fr); gap: 1.5rem; margin-block: 1.5rem; }
 .wheel-chart svg { width: 100%; max-height: 360px; }
+.wheel-chart select { width: 100%; min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--line); border-radius: .6rem; background: white; color: var(--ink); }
 .wheel-chart text { fill: var(--ink); font-size: 13px; pointer-events: none; }
 .wheel-chart .wheel-year { font-size: 26px; font-weight: bold; }
 .wheel-empty { fill: var(--club-soft); }
@@ -237,6 +247,9 @@ body:has(.mobile-drawer[open]) { overflow: hidden; }
   .calendar-day > a { display: grid; place-items: center; min-height: 40px; }
   .calendar-day small, .calendar-theme { display: none; }
   .calendar-count { display: block; font-size: .65rem; font-weight: bold; color: var(--club-primary); }
+  .annual-event-count { font-size: .6rem; }
+  .annual-count-label { display: none; }
+  .annual-count-symbol { display: inline; }
   .calendar-grid { gap: .15rem; }
 }
 footer { border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: .85rem; padding: 1.5rem; }

@@ -6,7 +6,7 @@ Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkte
 
 Den nye Next.js-appen bygges ved siden av dagens øktarkiv og Pages-nettsted. Se [spesifikasjonen](docs/nettsted-spesifikasjon.md) og [implementasjonsplanen](docs/implementasjonsplan.md).
 
-Den lokale appen har magic-link-innlogging, klubber og lag, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan, kalender og manuell øktplanlegging med versjonshistorikk. AI, automatiske utkast, faktisk gjennomføring/evaluering, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
+Den lokale appen har magic-link-innlogging, klubber og lag, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan med månedens treninger/hendelser og manuell øktplanlegging med versjonshistorikk. AI, automatiske utkast, faktisk gjennomføring/evaluering, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
 
 ### Start lokalt
 
@@ -23,7 +23,7 @@ Kopier miljøfilen bare ved første oppsett; behold egne lokale endringer senere
 
 Velg innlogging med e-post. En engangslenke vises i **serverterminalen**, ikke i e-post. Lenken varer i 15 minutter, og innlogget sesjon i 30 dager. Invitasjoner vises også i terminalen, varer i sju dager og må aksepteres med riktig e-postadresse. Dette er bare en lokal utviklingsflyt; lokal auth avvises uten eksplisitt lokal konfigurasjon og i produksjon, Vercel og CI.
 
-`APP_URL` styrer lenkene som genereres, ikke Next.js-porten. Hvis porten er opptatt, sett for eksempel `APP_URL=http://127.0.0.1:3001` i `.env.local` og start med `npm run dev -- --port 3001`. Bruk samme origin i nettleseren og `APP_URL`. `PGLITE_DATA_DIR` kan settes til en annen lokal mappe; standard er `.local/pglite`. `DATABASE_URL`, `LOCAL_DB_PORT` og `LOCAL_DB_DOCKER` brukes ikke til lokal oppstart.
+`APP_URL` styrer lenkene som genereres, ikke Next.js-porten. Hvis porten er opptatt, sett for eksempel `APP_URL=http://127.0.0.1:3001` i `.env.local` og start med `npm run dev -- --port 3001`. Bruk samme origin i nettleseren og `APP_URL`. Utviklingsressurser tillates også fra `127.0.0.1` gjennom `allowedDevOrigins`; Next.js startes fortsatt uten hostname-flagg. `PGLITE_DATA_DIR` kan settes til en annen lokal mappe; standard er `.local/pglite`. `DATABASE_URL`, `LOCAL_DB_PORT` og `LOCAL_DB_DOCKER` brukes ikke til lokal oppstart.
 
 PGlite skal bare åpnes av én prosess om gangen. Appen deler én instans mellom forespørsler og hot reload, og en fillås hindrer andre app-/migreringsprosesser i å åpne den samme mappen. Stopp appen før du kjører separat lokal migrering. Etter en brå avslutning kan en gammel lås bruke omtrent ti sekunder på å utløpe; ikke slett databasefiler for å løse en låsefeil.
 
@@ -34,7 +34,7 @@ På desktop (fra 1000 piksler) vises hovedmenyen og klubb-/lagvalgene i en fast 
 - **Mine klubber** viser klubbene; **Opprett klubb** har egen side.
 - **Klubb → Lag** viser lagene; oppretting av lag, **Brukere** (klubbadministratorer) og **Innstillinger** (logo/farger) har egne sider.
 - **Lag → Økter** viser neste trening og siste lagrede økter. Lagmenyen har også **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**. **Innstillinger** samler årgang, treningstider og automatiseringsrammer.
-- **Kalender** viser valgt måned. Årsoversikten åpnes med **Velg måned**, og **Ny enkeltøkt** åpner et separat skjema. På mobil viser kalenderdagene antall økter; klokkeslett, tema og handlinger finnes i listen under.
+- **Årsplan** samler årshjul, temaer og månedsvisning av treninger og hendelser. Velg måned i hjulet, månedsmenyen eller den rullbare oversikten. På mobil viser dagene antall økter og hendelser; detaljer og handlinger finnes under. Det er ingen separat kalenderside.
 - **Kontoavataren** øverst til høyre viser brukerens forbokstav og åpner en egen meny med innloggingsinformasjon og **Logg ut**. Escape lukker menyen og flytter fokus tilbake til avataren.
 
 Administratorsider og redigeringshandlinger beholder eksisterende tilgangskontroll. Lagring og valideringsfeil returnerer til den aktuelle administrasjonssiden.
@@ -63,15 +63,20 @@ Små logoer lagres som normaliserte bildedata i klubbens databasepost, ikke som 
 
 Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo** lagrer standardprofilen umiddelbart. Offentlige økt-/kalendersider er ennå ikke implementert; den delte profilkomponenten skal brukes også der når de bygges.
 
-### Årsplan, kalender og øktplanlegging
+### Årsplan og øktplanlegging
 
-Åpne et lag og velg **Årsplan** eller gå til kalenderen fra **Økter**. Alle lagets trenere og klubbadministratorer kan planlegge; faste treningstider og lagets standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
+Klubber og lag har stabile slugs som genereres fra navnet ved oppretting, for eksempel `/ski-il-fotball/g2017/okter/[økt-id]` og `/ski-il-fotball/g2017/aarsplan?year=2026`. Klubbens slug er unik globalt; lagets slug er unik innen klubben. Æ, ø og å normaliseres, og kollisjoner eller reserverte menynavn får et unikt suffiks. Nettadressen vises i innstillingene og endres ikke ved senere navneendringer. Slugs gir ikke tilgang: medlemskap og klubbtilhørighet kontrolleres fortsatt.
+
+Eksisterende ID-baserte klubb-/lagadresser videresendes etter tilgangskontroll, med valgt planår og meldinger bevart. Gamle kalenderlenker videresendes til årsplanen med år og måned bevart. Brukere, innstillinger, oppretting og animasjonseditor bruker også slugadresser. Migreringen fyller inn slugs på eksisterende klubber og lag uten å endre ID-er, medlemskap eller øktversjoner. Kjør `npm run db:migrate` manuelt mens appen er stoppet.
+
+Åpne et lag og velg **Årsplan**. Alle lagets trenere og klubbadministratorer kan planlegge; faste treningstider og lagets standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
 
 Øktvisningen har en samlet toppdel med tittel, tidspunkt, status og siste planoppdatering, faktaboks med tema/alder/varighet/oppmøte, øvingsmål og navigasjon til øvelsene. Øvelsene vises i **Oppvarming**, **Hoveddel** (temaarbeid og spill) og **Avslutning**, med varighet per del. Lagringsrekkefølgen og alle tidsverdier bevares; blandet rekkefølge gir gjentatte deloverskrifter fremfor at øvelser flyttes. Hvert kort viser gjennomføring og sammenleggbare felt for målsetting, læringsmomenter, organisering, variasjoner, ressurser og kilde. Ressurskontroll, redigering, avlysning og historiske planversjoner er fortsatt tilgjengelige. Historiske kort har egne anker-ID-er. **Skriv ut** gir en utskriftsvisning uten administrasjonsmenyer; **Rediger øktplan** åpner øktbyggeren.
 
 - Sett eventuelt **Årgang** (for eksempel 2017) under **Lag → Innstillinger**, eller ved oppretting. Bare hovedtrener og klubbadministrator kan endre årgang. Den gjelder på tvers av årsplaner, og alder/NFF-kilde beregnes for valgt planår. Lagre planår og årsmål i årsplanen, og legg til daterte temaperioder med øvingsmål og progresjon. Perioder kan gå over flere måneder innenfor samme år, men ikke overlappe.
 - Migreringen overfører årgang fra tidligere årsplaner bare når alle oppgitte årganger er like. Ved konflikt står årgang tom, med beskjed i laginnstillingene om hvilke verdier som må avklares. Ukjent årgang utledes ikke fra lagnavnet. Gamle årsplanverdier og øktversjoner bevares; nye kontekstsnapshots bruker lagets innstilling. Eksisterende `/grupper/…`-lenker og interne `groups`-navn beholdes.
-- Kalenderen har årsoversikt og månedsvisning. Faste uketider vises som forventede treninger uten å fylle databasen med tomme øktplaner. Velg **Planlegg denne treningen**, avlys en enkeltforekomst eller opprett en ekstra enkeltøkt.
+- Årsplanens månedsvisning viser faste uketider som forventede treninger uten å fylle databasen med tomme øktplaner. Velg **Planlegg denne treningen**, avlys en enkeltforekomst eller opprett en ekstra enkeltøkt.
+- Legg til, rediger og fjern **Cup**, **Ferie/fridag** eller **Annet**, med tittel, fra-/til-dato og valgfri beskrivelse. Hendelser gjelder hele dager og kan gå over måned-/årsskifter. De kan opprettes uten å lagre årsmål først. Hendelser avlyser ikke treninger automatisk; avlys aktuelle enkelttreninger eksplisitt. Nye planversjoner tar med hendelser på treningsdatoen; senere endring eller fjerning endrer ikke historiske versjoner. Oppretter/siste endrer registreres, men full hendelsesaudit er ikke implementert.
 - Hver fast treningstid og økt har **Fra** og **Til**. Varighet beregnes automatisk fra tidsrommet (15–240 minutter), og laget har ikke en felles standardvarighet. Når en bestemt trening planlegges fra kalenderen, brukes tidsrommet fra den treningstiden, også når lagets treninger har ulik lengde. Enkeltøkter får egne fra-/til-tider. Tidligere til-tid betyr avslutning neste dag og merkes i visningen.
 - En lagret økt kan flyttes eller avlyses uten å endre ukerytmen. Opprinnelig forekomst dukker ikke opp igjen etter flytting, heller ikke ved flytting til et nytt år. Avlyste økter beholder planen og kan gjenåpnes som utkast. Endret ukerytme påvirker forventede treninger, ikke allerede lagrede økter.
 - Øktbyggeren har tema, mål, rammer og ordnede øvelseskort med oppvarming, temaarbeid, spill og avslutning. Kortene har organisering, instruksjon, læringsmomenter, enklere/vanskeligere variant, kildelenke og lokale tilpasninger. Legg til, flytt og fjern kort etter behov.
@@ -87,8 +92,8 @@ Fødselsår oppgis eksplisitt, ikke utledet fra lagnavnet. Årsplanen lenker til
 
 Lagmenyen har **Økter**, **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**:
 
-- Økter er lagets startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. AI-jobber er ikke aktivert; datoen er ingen bekreftet bestilling. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Kalenderen er fortsatt tilgjengelig fra Økter.
-- Årsplan vises som et klikkbart årshjul og en vertikalt rullbar månedsoversikt med temaer, øvingsmål og progresjon. Redigering av årsretning og temaperioder beholdes under oversikten.
+- Økter er lagets startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. AI-jobber er ikke aktivert; datoen er ingen bekreftet bestilling. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Årsplanen nås fra Økter.
+- Årsplan vises som et klikkbart årshjul og en vertikalt rullbar månedsoversikt med temaer, øvingsmål og progresjon. Valgt måneds treninger og hendelser vises samlet, og månedsvalget beholdes i URL-en. Redigering av årsretning og temaperioder beholdes under oversikten.
 - Egne øvelser integrerer den eksisterende animasjonseditoren direkte i appen, uten avhengighet til GitHub Pages. Lagmedlemskap kontrolleres også for editorens HTML og ressurser. JSON kan åpnes, redigeres og lastes ned; felles databaselagring av egne øvelser og tilknytning til øktkort gjenstår. Last ned filen før du forlater en endret tavle.
 
 ### Verifisering og migreringer

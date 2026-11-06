@@ -68,7 +68,7 @@ test("end-time migration preserves legacy durations, overnight slots and histori
     assert.deepEqual(profiles.rows, [
       { primary_color: "#123456", accent_color: "#abcdef" }, { primary_color: "#176345", accent_color: "#e7d995" },
     ], "default migration never overwrites stored club colors, including the former defaults");
-    const fresh = await connection.client.query<{ primary_color: string; accent_color: string }>("insert into clubs (name) values ('New defaults') returning primary_color, accent_color");
+    const fresh = await connection.client.query<{ primary_color: string; accent_color: string }>("insert into clubs (name, slug) values ('New defaults', 'new-defaults') returning primary_color, accent_color");
     assert.deepEqual(fresh.rows[0], { primary_color: DEFAULT_PRIMARY, accent_color: DEFAULT_ACCENT });
     const times = await connection.client.query<{ end_time: string }>("select end_time from training_times order by start_time");
     assert.deepEqual(times.rows.map((row) => row.end_time), ["19:15", "01:00"]);

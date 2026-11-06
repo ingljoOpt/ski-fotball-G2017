@@ -8,6 +8,7 @@ import {
 import { birthYearSchema, emailSchema, idSchema, nameSchema, safeReturnPath, settingsSchema, tokenSchema, trainingTimeSchema } from "./validation.ts";
 import { brandingSchema, DEFAULT_ACCENT, DEFAULT_PRIMARY } from "./branding.ts";
 import { normalizeLogo } from "./logo.ts";
+import { reservedClubSlugs, reservedTeamSlugs, slugBase, slugSchema, teamUrl } from "./slugs.ts";
 
 export class DomainError extends Error {}
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
@@ -84,7 +85,12 @@ export async function requireGroupManager(db: Database, userId: string, groupId:
 export async function createClub(db: Database, userId: string, name: string) {
   const cleanName = nameSchema.parse(name);
   return db.transaction(async (tx) => {
-    const [club] = await tx.insert(clubs).values({ name: cleanName, primaryColor: DEFAULT_PRIMARY, accentColor: DEFAULT_ACCENT }).returning();
+    const base = slugBase(cleanName, "club");
+    const id = crypto.randomUUID();
+    const slug = reservedClubSlugs.includes(base) ? `${base}-${id}` : base;
+    let [club] = await tx.insert(clubs).values({ id, name: cleanName, slug, primaryColor: DEFAULT_PRIMARY, accentColor: DEFAULT_ACCENT })
+      .onConflictDoNothing({ target: clubs.slug }).returning();
+    if (!club) [club] = await tx.insert(clubs).values({ id, name: cleanName, slug: `${base}-${id}`, primaryColor: DEFAULT_PRIMARY, accentColor: DEFAULT_ACCENT }).returning();
     await tx.insert(clubAdmins).values({ clubId: club.id, userId });
     return club;
   });
@@ -221,7 +227,7 @@ export async function transferHeadCoach(db: Database, userId: string, groupId: s
 
 export async function listClubs(db: Database, userId: string) {
   return db.select({
-    id: clubs.id, name: clubs.name,
+    id: clubs.id, name: clubs.name, slug: clubs.slug,
     primaryColor: clubs.primaryColor, accentColor: clubs.accentColor, logoData: clubs.logoData,
     isAdmin: sql<boolean>`${clubAdmins.userId} is not null`,
   }).from(clubs)
@@ -250,13 +256,41 @@ export async function createGroup(db: Database, userId: string, clubId: string, 
   const birthYear = birthYearSchema.parse(birthYearInput);
   const token = newToken();
   return db.transaction(async (tx) => {
-    const [group] = await tx.insert(groups).values({ clubId, name: cleanName, birthYear }).returning();
+    const base = slugBase(cleanName, "team");
+    const id = crypto.randomUUID();
+    const slug = reservedTeamSlugs.includes(base) ? `${base}-${id}` : base;
+    let [group] = await tx.insert(groups).values({ id, clubId, name: cleanName, birthYear, slug })
+      .onConflictDoNothing({ target: [groups.clubId, groups.slug] }).returning();
+    if (!group) [group] = await tx.insert(groups).values({ id, clubId, name: cleanName, birthYear, slug: `${base}-${id}` }).returning();
     await tx.insert(invitations).values({
       clubId, groupId: group.id, email, role: "head_coach",
       tokenHash: hashToken(token), expiresAt: expiresIn(7),
     });
     return { group, token, email };
   });
+}
+
+export async function clubBySlug(db: Database, userId: string, slug: string) {
+  slugSchema.parse(slug);
+  const visible = await listClubs(db, userId);
+  const club = visible.find((entry) => entry.slug === slug);
+  if (!club) throw new DomainError("Klubben finnes ikke, eller du mangler tilgang.");
+  return club;
+}
+
+export async function teamBySlug(db: Database, userId: string, clubSlug: string, teamSlug: string) {
+  const club = await clubBySlug(db, userId, clubSlug);
+  slugSchema.parse(teamSlug);
+  const [group] = await db.select().from(groups).where(and(eq(groups.clubId, club.id), eq(groups.slug, teamSlug)));
+  if (!group) throw new DomainError("Laget finnes ikke, eller du mangler tilgang.");
+  const access = await getGroupAccess(db, userId, group.id);
+  return { ...access, club };
+}
+
+export async function teamAddress(db: Database, userId: string, groupId: string) {
+  const { group } = await getGroupAccess(db, userId, groupId);
+  const [club] = await db.select().from(clubs).where(eq(clubs.id, group.clubId));
+  return teamUrl(club, group);
 }
 
 export async function inviteCoach(db: Database, userId: string, groupId: string, email: string) {

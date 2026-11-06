@@ -25,6 +25,8 @@ En bruker kan være medlem av flere klubber og lag, med forskjellig rolle i hver
 - En klubb kan ha flere administratorer.
 - Klubbadministrator kan invitere andre administratorer og fjerne administratorroller, inkludert sin egen. Den siste administratoren kan ikke fjernes før en annen har akseptert. Administratorrollen gir tilgang til alle klubbens lag, men er separat fra lagmedlemskap.
 - En klubb kan ha flere lag, for eksempel G2017.
+- Klubb og lag har stabile slugs generert fra navn: `/{klubb}/{lag}/okter/{økt-id}` og `/{klubb}/{lag}/aarsplan`. Klubbslug er unik globalt, lagslug innen klubben. Norske bokstaver normaliseres og reserverte navn/navnekollisjoner får unike suffikser. Slugs endres ikke automatisk med navn. Alle oppslag kontrollerer klubbtilhørighet og medlemskap; en slug er ikke en delingslenke eller tilgangsnøkkel.
+- Eksisterende ID-baserte adresser videresendes med søkeparametere bevart etter tilgangskontroll. Navigasjon, skjemaresultater, kalender og animasjonseditor skal bruke slugadressene. Migreringen bevarer ID-er, medlemskap og historikk.
 - Når et lag opprettes, inviterer klubbadministrator en hovedtrener som lagets første medlem. Hovedtreneren kan deretter administrere laget selvstendig, uten å være klubbadministrator.
 - Hovedtrener kan invitere og fjerne trenere på eget lag, og administrere lagets treningstider, planer, økter og delingsinnstillinger.
 - Klubbadministratorer kan uavhengig av hovedtrener legge til og fjerne medlemmer i alle klubbens lag. De kan også overføre hovedtrenerrollen eller invitere en ny hovedtrener.
@@ -57,9 +59,10 @@ En bruker kan være medlem av flere klubber og lag, med forskjellig rolle i hver
 - Brukeren skal tydelig se hvilken klubb og hvilket lag som er aktivt.
 - Detaljer som utløpstid for magic link og innlogget økt må fastsettes ved implementering i tråd med Neon Auth sine støttede innstillinger.
 
-### Kalender og periodeplan
+### Årsplan, månedsvisning og periodeplan
 
-- Trenere kan opprette en kalender for laget med treningsdatoer, tema og eventuelle læringsmål.
+- Årsplanen samler treningsdatoer, temaer og læringsmål i en månedsvisning. En separat kalenderside skal ikke vises; gamle kalenderadresser videresendes til årsplanen med år/måned bevart.
+- Lagets trenere og klubbadministratorer kan legge til, redigere og fjerne cup, ferie/fridag og andre heldagshendelser med tittel, fra-/til-dato og valgfri beskrivelse. Hendelser kan krysse måned-/årsskifter og krever ikke en lagret årsplan. De avlyser ikke treninger automatisk; avlysning er en eksplisitt handling på enkelttreningen.
 - Laget kan selv registrere én eller flere faste treningstider, med ukedag, fra-tid og til-tid. Trenere kan legge inn unntak eller enkeltøkter uten å endre den faste rytmen.
 - Kalenderen viser planlagt tema, øktstatus og om et AI-utkast er klart; evaluering og interne notater er ikke synlige offentlig som standard.
 - Planleggeren tar hensyn til tema og progresjon i års-/periodeplanen når den foreslår en økt.
@@ -136,11 +139,11 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 
 - Responsivt grensesnitt med fast sidemeny til venstre på desktop og én samlet slide-in-meny fra venstre på mobil/smale skjermer, åpnet med hamburgerknapp. Hovedvalg og autoriserte klubb-/lagvalg samles i denne menyen uten ekstra mobilfaner eller duplisert navigasjon i sideinnholdet. Menyen har tastaturbetjening, fokusfelle og fokusretur, bakgrunnsoverlegg, rullelås og markering av aktiv side; den kan lukkes med Escape, lukkeknapp eller bakgrunnstrykk. Redusert bevegelse respekteres. Konto vises som avatar øverst til høyre med egen meny for innloggingsinformasjon og utlogging.
 - Klubbens lag, brukere/administratorer og innstillinger skal ha egne sider. Lagmenyen har fem valg: **Økter**, **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**, likt på desktop og mobil.
-- **Økter** er lagets startside med kommende trening og siste lagrede økter. Hvis neste trening mangler kladd, vises en plassholder med genereringsdato ut fra lagets antall dager før trening og en knapp for manuell oppretting med arvet treningstid. Før automatisering er implementert og aktivert, må datoen merkes som ønsket tidspunkt, ikke en planlagt jobb. Ingen tidligere trening skal fremstilles som gjennomført uten faktisk gjennomføringsinformasjon. Kalenderen nås fra denne siden.
-- **Årsplan** viser et klikkbart årshjul og en vertikalt rullbar månedsoversikt med temaer, øvingsmål og progresjon, med fortsatt tilgang til redigering av årsretning og temaperioder.
+- **Økter** er lagets startside med kommende trening og siste lagrede økter. Hvis neste trening mangler kladd, vises en plassholder med genereringsdato ut fra lagets antall dager før trening og en knapp for manuell oppretting med arvet treningstid. Før automatisering er implementert og aktivert, må datoen merkes som ønsket tidspunkt, ikke en planlagt jobb. Ingen tidligere trening skal fremstilles som gjennomført uten faktisk gjennomføringsinformasjon. Årsplanen nås fra denne siden.
+- **Årsplan** viser et klikkbart årshjul og en vertikalt rullbar månedsoversikt med temaer, øvingsmål og progresjon. Valgt måneds treninger og øvrige hendelser vises samlet, med fortsatt tilgang til redigering av årsretning og temaperioder. Månedsvalg beholdes i URL-en.
 - **Egne øvelser** gir tilgang til den integrerte animasjonseditoren. Første integrasjon bruker eksisterende JSON-import/-eksport og gjør det tydelig at filer må lastes ned; delt, versjonert lagring per lag og kobling til øktkort kommer som eget steg.
 - Oversiktssider skal prioritere innhold og snarveier, ikke samle alle administrasjonsskjemaer. Oppretting av klubb, lag og enkeltøkt har dedikerte sider.
-- Kalenderen prioriterer valgt måned og samler årsoversikten i en sammenleggbar månedsvelger. Mobilkalenderen viser antall økter per dag og fullstendige detaljer/handlinger i en liste under.
+- Årsplanens måned velges i årshjulet, månedsmenyen eller den rullbare årsoversikten. På mobil viser dagrutene antall treninger og hendelser, med fullstendige detaljer/handlinger under.
 - Menyvalg og sider skal følge eksisterende rollegrenser. Direkte URL-tilgang skal kontrolleres på serveren. Lagring og feil skal returnere til riktig underside.
 
 1. **Opprette klubb:** bruker logger inn, oppretter klubb, legger til administratorer, oppretter lag og registrerer felles sportsplan, veiledning og utstyr.
@@ -165,6 +168,7 @@ Tabellene implementeres med Drizzle og Neon Postgres. Dette er logiske objekter;
 | `club_documents` | Sportsplan, veiledning og annet klubbfelles innhold med versjoner |
 | `equipment` | Klubbens utstyr og eventuelle gruppejusteringer |
 | `group_plans` | Års-/periodeplan og tema/progresjon |
+| `annual_events` | Klubb/lag, heldagshendelse, type, tittel, datointervall, beskrivelse, revisjon og oppretter/siste endrer |
 | `training_series` | Faste treningstider med fra-/til-tid, dager før automatisk oppretting, blokkvarighet og automatiseringsinnstillinger |
 | `sessions` | Dato, fra-/til-tid, beregnet varighet, tema, status, spiller-/trenerantall og rammer |
 | `session_versions` | Uforanderlige planversjoner, AI-/manuell opprinnelse og godkjenning |
@@ -178,7 +182,7 @@ Tabellene implementeres med Drizzle og Neon Postgres. Dette er logiske objekter;
 
 Hver tenant-eid rad må ha klubbtilknytning. Laginnhold må i tillegg være bundet til riktig lag. Bruk sammensatte fremmednøkler eller tilsvarende databasebegrensninger for å hindre at en referanse peker på et lag fra en annen klubb. Interne `groups`-navn og eksisterende `/grupper/…`-lenker kan beholdes for bakoverkompatibilitet; grensesnittet bruker «Lag».
 
-Den lokale planleggingsleveransen bruker `annual_plans`, `plan_periods`, `training_events` og `session_versions`. Øvelseskort, ressursforutsetninger og kildefelt ligger foreløpig i validert, versjonert JSON per planversjon. Årsplankontekst lagres som snapshot sammen med versjonen, inkludert NFF-kildelenke og markering av at AI-forslag ennå ikke er aktive. Senere AI-integrasjon må bruke samme validering og versjonering, og hente faktisk historikk, evalueringer og klubbfelles innhold når disse er implementert.
+Den lokale planleggingsleveransen bruker `annual_plans`, `plan_periods`, `annual_events`, `training_events` og `session_versions`. Øvelseskort, ressursforutsetninger og kildefelt ligger foreløpig i validert, versjonert JSON per planversjon. Årsplankontekst lagres som snapshot sammen med versjonen, inkludert NFF-kildelenke, hendelser som overlapper treningsdatoen og markering av at AI-forslag ennå ikke er aktive. Endring/fjerning av hendelser omskriver ikke historiske versjoner. Hendelser har revisjonsvern og oppretter/siste endrer; full uforanderlig endringshistorikk er fortsatt et senere steg. Senere AI-integrasjon må bruke samme validering og versjonering, og hente faktisk historikk, evalueringer og klubbfelles innhold når disse er implementert.
 
 ## Teknisk løsningsretning
 

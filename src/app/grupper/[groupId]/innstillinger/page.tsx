@@ -1,6 +1,6 @@
-import { GroupScreen } from "@/app/group-screen";
+import { legacyRedirect } from "@/app/legacy-redirect";
 import type { SearchParams } from "@/app/components";
 
-export default function GroupSettings(props: { params: Promise<{ groupId: string }>; searchParams: SearchParams }) {
-  return <GroupScreen {...props} section="innstillinger" />;
+export default async function GroupSettings(props: { params: Promise<{ groupId: string }>; searchParams: SearchParams }) {
+  return legacyRedirect(`/grupper/${(await props.params).groupId}/innstillinger`, props.searchParams);
 }

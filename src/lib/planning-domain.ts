@@ -1,13 +1,13 @@
 import { and, asc, desc, eq, gt, gte, lt, lte, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db/index.ts";
-import { annualPlans, clubs, groups, planPeriods, sessionVersions, trainingEvents, trainingTimes } from "../db/schema.ts";
+import { annualEvents, annualPlans, clubs, groups, planPeriods, sessionVersions, trainingEvents, trainingTimes } from "../db/schema.ts";
 import { DomainError, getGroupAccess } from "./domain.ts";
 import { idSchema, minutesBetween } from "./validation.ts";
 import {
   annualPlanSchema, checkSessionPlan, datesInYear, emptySessionPlan, eventSchema, NFF_SOURCE, nffAgeSource,
   periodSchema, periodsOnDate, sessionPlanSchema, slotKey, weekdayFor, yearSchema,
-  osloToday, type PlanningSnapshot,
+  annualEventSchema, eventsDuring, osloToday, type PlanningSnapshot,
 } from "./planning.ts";
 
 const revisionSchema = z.coerce.number().int().min(0);
@@ -29,7 +29,39 @@ export async function annualPlanning(db: Database, userId: string, groupId: stri
   ]);
   const periods = plan ? await db.select().from(planPeriods).where(eq(planPeriods.annualPlanId, plan.id))
     .orderBy(asc(planPeriods.startDate)) : [];
-  return { ...access, club, plan: plan ?? null, periods };
+  const events = await db.select().from(annualEvents).where(and(eq(annualEvents.groupId, groupId),
+    lte(annualEvents.startDate, `${year}-12-31`), gte(annualEvents.endDate, `${year}-01-01`)))
+    .orderBy(asc(annualEvents.startDate), asc(annualEvents.title));
+  return { ...access, club, plan: plan ?? null, periods, events };
+}
+
+export async function saveAnnualEvent(db: Database, userId: string, groupId: string, input: unknown, eventId?: string, revision: unknown = 0) {
+  const data = annualEventSchema.parse(input);
+  if (eventId) idSchema.parse(eventId);
+  return db.transaction(async (tx) => {
+    const { group } = await lockGroup(tx, userId, groupId);
+    if (!eventId) {
+      const [event] = await tx.insert(annualEvents).values({ ...data, clubId: group.clubId, groupId, createdBy: userId, updatedBy: userId }).returning();
+      return event.id;
+    }
+    const [existing] = await tx.select().from(annualEvents).where(and(eq(annualEvents.id, eventId), eq(annualEvents.groupId, groupId)));
+    if (!existing) throw new DomainError("Hendelsen finnes ikke for dette laget.");
+    assertRevision(existing.revision, revision);
+    await tx.update(annualEvents).set({ ...data, revision: existing.revision + 1, updatedBy: userId, updatedAt: new Date() })
+      .where(eq(annualEvents.id, eventId));
+    return eventId;
+  });
+}
+
+export async function removeAnnualEvent(db: Database, userId: string, groupId: string, eventId: string, revision: unknown) {
+  idSchema.parse(eventId);
+  await db.transaction(async (tx) => {
+    await lockGroup(tx, userId, groupId);
+    const [existing] = await tx.select().from(annualEvents).where(and(eq(annualEvents.id, eventId), eq(annualEvents.groupId, groupId)));
+    if (!existing) throw new DomainError("Hendelsen finnes ikke for dette laget.");
+    assertRevision(existing.revision, revision);
+    await tx.delete(annualEvents).where(eq(annualEvents.id, eventId));
+  });
 }
 
 export async function saveAnnualPlan(db: Database, userId: string, groupId: string, input: unknown, revision: unknown) {
@@ -85,11 +117,12 @@ export async function removePlanPeriod(db: Database, userId: string, groupId: st
 
 async function planningSnapshot(db: Database, userId: string, groupId: string, date: string): Promise<PlanningSnapshot> {
   const year = Number(date.slice(0, 4));
-  const { group, plan, periods } = await annualPlanning(db, userId, groupId, year);
+  const { group, plan, periods, events } = await annualPlanning(db, userId, groupId, year);
   return {
     year, birthYear: group.birthYear, annualObjectives: plan?.objectives ?? "",
     curriculum: { provider: "nff", url: nffAgeSource(year, group.birthYear).url || NFF_SOURCE, suggestions: "pending_ai" },
     periods: periodsOnDate(periods, date),
+    events: eventsDuring(events, date).map(({ title, kind, startDate, endDate, description }) => ({ title, kind, startDate, endDate, description })),
   };
 }
 
@@ -167,7 +200,7 @@ export async function createTrainingEvent(
     const [conflict] = await tx.select().from(trainingEvents).where(and(
       eq(trainingEvents.groupId, groupId), eq(trainingEvents.date, data.date), eq(trainingEvents.startTime, data.startTime),
     ));
-    if (conflict) throw new DomainError("Det finnes allerede en økt på dette tidspunktet. Åpne den fra kalenderen.");
+    if (conflict) throw new DomainError("Det finnes allerede en økt på dette tidspunktet. Åpne den fra årsplanen.");
     const [event] = await tx.insert(trainingEvents).values({
       ...data, clubId: group.clubId, groupId, recurrenceKey: effectiveKey, status: cancelled ? "cancelled" : "draft",
     }).returning();

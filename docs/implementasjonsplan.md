@@ -26,10 +26,12 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [x] Bruke klubbprofil på klubbkort, klubb- og lagsider; kontrollere kontrast, logoens tekstalternativ og isolasjon mellom klubber.
 - [ ] Bruke den delte klubbprofilkomponenten på offentlige økt-/kalendersider når disse implementeres i steg 5.
 - [x] Autorisasjonstester for første leveranses klubb-, lag- og rollegrenser.
+- [x] Stabile klubb-/lagslugs, pene adresser for planer og økter, slugbasert navigasjon og skjemaretur, tilgangskontrollerte videresendinger fra tidligere ID-adresser og lokal migrering uten endring av medlemskap/historikk.
 
-## 3. Kalender og manuell øktplanlegging
+## 3. Årsplan og manuell øktplanlegging
 
-- [x] Kalender med gjentakende treninger, unntak og enkeltøkter.
+- [x] Månedsvisning i årsplanen med gjentakende treninger, unntak og enkeltøkter. Ingen separat kalenderside; gamle lenker videresendes med valgt år/måned.
+- [x] Cup, ferie/fridag og øvrige heldagshendelser med datointervall, redigering/fjerning, tenant-grenser og revisjonsvern. Hendelser avlyser ikke treninger automatisk og inngår i nye kontekstsnapshots uten å endre historiske øktversjoner.
 - [x] Lagmeny med Økter, Årsplan, Brukere, Innstillinger og Egne øvelser. Økter som startside med neste trening, genereringsplassholder, manuell oppretting og fem siste lagrede økter.
 - [x] Klikkbart årshjul og vertikalt rullbar årsoversikt med månedens temaer, øvingsmål og progresjon.
 - [x] Fra-/til-tid på hver økt, automatisk beregnet varighet og serverstyrt arv av tidsrom fra valgt trening. Migrere eksisterende tider/økter og historiske snapshots uten å endre tidligere varighet.
@@ -73,6 +75,10 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [ ] Dokumentert oppstart, backup/gjenoppretting og deploy.
 
 ## Leveransestatus
+
+Årsplanen samler nå månedsvisning av treninger, cup, ferie/fridager og øvrige heldagshendelser. Den separate kalendersiden er fjernet; tidligere lenker videresendes med år og måned bevart. Hendelser krever ikke en lagret årsplan, kan krysse årsskiftet og avlyser ikke treninger automatisk. Månedsvalg følger URL og skjemaer. Nye øktversjoner tar med relevante hendelser, mens gamle snapshots bevares. Oppretter/siste endrer og revisjonsvern er på plass; full audit er fortsatt uavkrysset.
+
+Verifisert med 37 enhetstester og 32 databasekontroller. Autentisert nettleserkontroll med fiktive data dekker oppretting, redigering og fjerning uten manuell gjenlasting, avvisning av utdaterte revisjoner, juleferie fordelt mellom desember og januar, bevart månedsvalg ved årsskifte og planlegging med arvet fra-/til-tid. Mobilkontroll ved 320/375 piksler og desktop ved 1280 piksler har ingen horisontal overløp, og mobilmenyen markerer Årsplan. Lokal migrering er kjørt manuelt; ingen testhendelser er lagt i klubbens database.
 
 Grensesnittet bruker nå «Lag», og årgang administreres på laget, ikke i årsplanen. Migrering av entydige årganger, avklaring av konflikter, rollegrenser og uendrede historiske øktversjoner er verifisert med 33 enhetstester og 29 databasekontroller. Typekontroll, lint og produksjonsbygg er bestått. Autentisert HTTP-kontroll dekker lagmeny, oppretting, innstillinger og aldersriktig NFF-kilde på tvers av planår. Lokal database er migrert.
 

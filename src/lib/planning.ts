@@ -19,6 +19,19 @@ export const annualPlanSchema = z.object({
   year: yearSchema,
   objectives: text,
 });
+export const annualEventLabels = { cup: "Cup", holiday: "Ferie / fridag", other: "Annen hendelse" };
+export const annualEventSchema = z.object({
+  title: z.string().trim().min(2, "Tittelen må ha minst to tegn.").max(150),
+  kind: z.enum(["cup", "holiday", "other"]),
+  startDate: dateSchema,
+  endDate: dateSchema,
+  description: text,
+}).refine((value) => value.endDate >= value.startDate, "Sluttdato må være etter eller lik startdato.");
+export type AnnualEventInput = z.infer<typeof annualEventSchema>;
+export type AnnualEvent = AnnualEventInput & { id: string; revision: number };
+export function eventsDuring<T extends { startDate: string; endDate: string }>(events: T[], start: string, end = start) {
+  return events.filter((event) => event.startDate <= end && event.endDate >= start);
+}
 export const periodSchema = z.object({
   startDate: dateSchema, endDate: dateSchema,
   theme: z.string().trim().min(2).max(150),
@@ -88,6 +101,7 @@ export type Period = z.infer<typeof periodSchema> & { id: string };
 export type PlanningSnapshot = {
   year: number; birthYear: number | null; annualObjectives: string;
   curriculum: { provider: "nff"; url: string; suggestions: "pending_ai" };
+  events?: AnnualEventInput[];
   periods: Period[];
 };
 
