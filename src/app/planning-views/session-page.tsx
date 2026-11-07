@@ -6,7 +6,7 @@ import { DomainError } from "@/lib/domain";
 import { trainingEventDetails } from "@/lib/planning-domain";
 import { setTrainingStatus } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
-import { ClubIdentity, ClubTheme } from "@/app/club-theme";
+import { ClubTheme } from "@/app/club-theme";
 import { AppLink, Card, Chip, SubmitButton } from "@/app/ui";
 import { eventStatusLabels, formatDate, PlanningNavigation } from "@/app/planning-components";
 import { SessionPlanEditor } from "@/app/session-plan-editor";
@@ -30,8 +30,8 @@ export default async function TrainingSession({ params, searchParams }: {
   const { event, versions, context } = details;
   const basePath = teamUrl(details.club, details.group);
   const latest = versions[0];
-  return <ClubTheme club={details.club}>
-    <Account email={user.email} /><ClubIdentity club={details.club} />
+  return <ClubTheme club={details.club} header>
+    <Account email={user.email} />
     <PlanningNavigation basePath={basePath} year={Number(event.date.slice(0, 4))} />
     <div className="session-page">
     <SessionToolbar canEdit={event.status !== "cancelled"} />

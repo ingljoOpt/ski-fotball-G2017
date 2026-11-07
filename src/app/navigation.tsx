@@ -1,20 +1,35 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import Image from "next/image";
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
+import { foregroundFor, type ClubBranding } from "@/lib/branding";
 import { AppLink } from "./ui";
 
 type Item = { href: string; label: string };
 
 const MobileNavigationTarget = createContext<HTMLDivElement | null>(null);
+const ClubHeaderState = createContext<(club: ClubBranding | null) => void>(() => {});
 
 export function NavigationShell({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<HTMLDivElement | null>(null);
+  const [clubHeader, setClubHeader] = useState<ClubBranding | null>(null);
   return <MobileNavigationTarget.Provider value={target}>
-    <SiteHeader setMobileTarget={setTarget} />
-    {children}
+    <ClubHeaderState.Provider value={setClubHeader}>
+      <SiteHeader setMobileTarget={setTarget} club={clubHeader} />
+      {children}
+    </ClubHeaderState.Provider>
   </MobileNavigationTarget.Provider>;
+}
+
+export function ClubHeader({ club }: { club: ClubBranding }) {
+  const setClubHeader = useContext(ClubHeaderState);
+  useEffect(() => {
+    setClubHeader(club);
+    return () => setClubHeader(null);
+  }, [club, setClubHeader]);
+  return null;
 }
 
 export function NavigationLinks({ items, label, className = "" }: { items: Item[]; label: string; className?: string }) {
@@ -34,10 +49,18 @@ export function NavigationLinks({ items, label, className = "" }: { items: Item[
   </nav>;
 }
 
-function SiteHeader({ setMobileTarget }: { setMobileTarget: (target: HTMLDivElement | null) => void }) {
+function SiteHeader({ setMobileTarget, club }: {
+  setMobileTarget: (target: HTMLDivElement | null) => void;
+  club: ClubBranding | null;
+}) {
   const menu = useRef<HTMLDialogElement>(null);
   const pathname = usePathname();
   const items: Item[] = [{ href: "/oversikt", label: "Mine klubber" }];
+  const clubNavigationStyle = club ? {
+    "--green": club.primaryColor,
+    "--club-accent": club.accentColor,
+    "--club-accent-foreground": foregroundFor(club.accentColor),
+  } as CSSProperties : undefined;
   useEffect(() => { menu.current?.close(); }, [pathname]);
   useEffect(() => {
     const dialog = menu.current;
@@ -56,8 +79,12 @@ function SiteHeader({ setMobileTarget }: { setMobileTarget: (target: HTMLDivElem
       desktop.removeEventListener("change", closeOnDesktop);
     };
   }, []);
-  return <><header className="site-header">
-    <AppLink className="brand" href="/oversikt"><span className="brand-icon" aria-hidden="true">K</span> Klubbøkter</AppLink>
+  return <><header className={club ? "site-header site-header--club" : "site-header"}
+    style={club ? { backgroundColor: club.accentColor, color: foregroundFor(club.accentColor) } : undefined}>
+    {club ? <AppLink className="brand club-header-brand" href="/oversikt">
+      {club.logoData && <Image className="club-header-logo" src={club.logoData} width={48} height={48} unoptimized alt="" />}
+      {club.name}
+    </AppLink> : <AppLink className="brand" href="/oversikt"><span className="brand-icon" aria-hidden="true">K</span> Klubbøkter</AppLink>}
     <div className="header-controls">
       <button className="main-menu" type="button" aria-label="Hovedmeny" aria-haspopup="dialog"
         aria-controls="mobile-navigation" onClick={() => menu.current?.showModal()}>
@@ -65,7 +92,8 @@ function SiteHeader({ setMobileTarget }: { setMobileTarget: (target: HTMLDivElem
       </button>
     </div>
   </header>
-    <dialog id="mobile-navigation" className="mobile-drawer" ref={menu} aria-labelledby="mobile-navigation-title"
+    <dialog id="mobile-navigation" className={club ? "mobile-drawer mobile-drawer--club" : "mobile-drawer"}
+      style={clubNavigationStyle} ref={menu} aria-labelledby="mobile-navigation-title"
       onClick={(event) => {
         const bounds = event.currentTarget.getBoundingClientRect();
         if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom
@@ -79,7 +107,7 @@ function SiteHeader({ setMobileTarget }: { setMobileTarget: (target: HTMLDivElem
       <div className="drawer-context" ref={setMobileTarget} />
       <small>Lokal utvikling</small>
     </dialog>
-    <aside className="desktop-sidebar">
+    <aside className={club ? "desktop-sidebar desktop-sidebar--club" : "desktop-sidebar"} style={clubNavigationStyle}>
       <span className="eyebrow">Trenerrom</span>
       <NavigationLinks items={items.filter((item) => item.href === "/oversikt")} label="Sidemeny" />
       <small>Lokal utvikling</small>

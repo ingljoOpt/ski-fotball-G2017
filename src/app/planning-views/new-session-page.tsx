@@ -6,7 +6,7 @@ import { DomainError } from "@/lib/domain";
 import { annualPlanning } from "@/lib/planning-domain";
 import { newTrainingEvent } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
-import { ClubIdentity, ClubTheme } from "@/app/club-theme";
+import { ClubTheme } from "@/app/club-theme";
 import { AppLink, Card, NativeInput, SubmitButton, TextAreaInput, TextInput } from "@/app/ui";
 import { PlanningNavigation, planningSelection } from "@/app/planning-components";
 import { teamUrl } from "@/lib/slugs";
@@ -24,8 +24,8 @@ export default async function NewSession({ params, searchParams }: {
     throw error;
   }
   const basePath = teamUrl(details.club, details.group);
-  return <ClubTheme club={details.club}>
-    <Account email={user.email} /><ClubIdentity club={details.club} />
+  return <ClubTheme club={details.club} header>
+    <Account email={user.email} />
     <PlanningNavigation basePath={basePath} year={year} />
     <AppLink href={`${basePath}/aarsplan?year=${year}&month=${month}`}>← Årsplan</AppLink>
     <h1>Ny enkeltøkt</h1>

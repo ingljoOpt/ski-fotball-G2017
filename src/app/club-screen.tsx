@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { clubAdministration, DomainError, listClubGroups } from "@/lib/domain";
 import { deleteClubAdmin, newAdminInvitation, newGroup, revokeAdminInvitation } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
-import { ClubIdentity, ClubTheme } from "@/app/club-theme";
+import { ClubTheme } from "@/app/club-theme";
 import { ClubProfileEditor } from "@/app/club-profile-editor";
 import { NavigationLinks } from "@/app/navigation";
 import { clubUrl, teamUrl } from "@/lib/slugs";
@@ -30,10 +30,9 @@ export async function ClubScreen({ params, searchParams, section = "grupper" }: 
     ? await clubAdministration(await getDatabase(), user.id, clubId) : null;
   const profileKey = `${details.club.primaryColor}-${details.club.accentColor}-${createHash("sha256").update(details.club.logoData ?? "").digest("hex")}`;
   return (
-    <ClubTheme club={details.club}>
+    <ClubTheme club={details.club} header>
       <Account email={user.email} />
       <AppLink className="back" href="/oversikt">← Mine klubber</AppLink>
-      <ClubIdentity club={details.club} />
       <NavigationLinks className="context-navigation" label="Klubbmeny" items={[
         { href: basePath, label: "Lag" },
         ...(details.club.isAdmin ? [

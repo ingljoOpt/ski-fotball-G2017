@@ -7,7 +7,7 @@ import { groupCalendar } from "@/lib/planning-domain";
 import { nffAgeSource, type Period } from "@/lib/planning";
 import { saveYearPlan, saveThemePeriod, deleteThemePeriod } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
-import { ClubIdentity, ClubTheme } from "@/app/club-theme";
+import { ClubTheme } from "@/app/club-theme";
 import { AppLink, Card, NativeInput, SubmitButton, TextAreaInput, TextInput } from "@/app/ui";
 import { formatDate, months, PlanningNavigation, planningSelection, YearPicker } from "@/app/planning-components";
 import { AnnualWheel, SelectedMonthInput } from "@/app/annual-wheel";
@@ -46,8 +46,8 @@ export default async function AnnualPlan({ params, searchParams }: {
     <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={year} /><SelectedMonthInput month={month} />
     <input type="hidden" name="revision" value={plan?.revision ?? 0} />
   </>;
-  return <ClubTheme club={details.club}>
-    <Account email={user.email} /><ClubIdentity club={details.club} />
+  return <ClubTheme club={details.club} header>
+    <Account email={user.email} />
     <PlanningNavigation basePath={basePath} year={year} />
     <h1>Årsplan {year} · {details.group.name}</h1>
     <YearPicker year={year} month={month} />

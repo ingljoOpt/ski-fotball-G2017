@@ -1,8 +1,9 @@
 import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
 import { DEFAULT_PRIMARY, foregroundFor, type ClubBranding } from "@/lib/branding";
+import { ClubHeader } from "./navigation";
 
-export function ClubTheme({ club, children }: { club: ClubBranding; children: ReactNode }) {
+export function ClubTheme({ club, children, header = false }: { club: ClubBranding; children: ReactNode; header?: boolean }) {
   const style: CSSProperties & Record<`--${string}`, string> = {
     "--green": club.primaryColor,
     "--accent": club.primaryColor,
@@ -18,7 +19,10 @@ export function ClubTheme({ club, children }: { club: ClubBranding; children: Re
     "--club-accent": club.accentColor,
     "--club-accent-foreground": foregroundFor(club.accentColor),
   };
-  return <section className="club-theme" style={style}>{children}</section>;
+  return <>
+    {header && <ClubHeader club={club} />}
+    <section className="club-theme" style={style}>{children}</section>
+  </>;
 }
 
 export function ClubIdentity({ club }: { club: ClubBranding }) {

@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { DomainError, groupDetails } from "@/lib/domain";
 import { changeHeadCoach, deleteMember, deleteTrainingTime, newCoachInvitation, newTrainingEvent, newTrainingTime, saveGroupSettings } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
-import { ClubIdentity, ClubTheme } from "@/app/club-theme";
+import { ClubTheme } from "@/app/club-theme";
 import { generationDate, osloToday } from "@/lib/planning";
 import { groupSessions } from "@/lib/planning-domain";
 import { eventStatusLabels, formatDate, PlanningNavigation } from "@/app/planning-components";
@@ -33,10 +33,9 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
   const sessions = section === "oversikt" ? await groupSessions(await getDatabase(), user.id, groupId) : null;
   const upcoming = sessions?.upcoming;
   return (
-    <ClubTheme club={details.club}>
+    <ClubTheme club={details.club} header>
       <Account email={user.email} />
       <AppLink className="back" href={clubUrl(details.club)}>← Til klubben</AppLink>
-      <ClubIdentity club={details.club} />
       <span className="eyebrow">{section === "oversikt" ? "Lagets trenerrom" : group.name}</span>
       <h1>{section === "oversikt" ? `Økter · ${group.name}` : section === "brukere" ? "Trenere og brukere" : "Laginnstillinger"}</h1>
       <PlanningNavigation basePath={basePath} year={Number(osloToday().slice(0, 4))} />

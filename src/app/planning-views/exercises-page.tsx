@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { DomainError, groupDetails } from "@/lib/domain";
 import { osloToday } from "@/lib/planning";
 import { Account } from "@/app/components";
-import { ClubIdentity, ClubTheme } from "@/app/club-theme";
+import { ClubTheme } from "@/app/club-theme";
 import { PlanningNavigation } from "@/app/planning-components";
 import { teamUrl } from "@/lib/slugs";
 
@@ -19,8 +19,8 @@ export default async function OwnExercises({ params }: { params: Promise<{ group
     throw error;
   }
   const basePath = teamUrl(details.club, details.group);
-  return <ClubTheme club={details.club}>
-    <Account email={user.email} /><ClubIdentity club={details.club} />
+  return <ClubTheme club={details.club} header>
+    <Account email={user.email} />
     <PlanningNavigation basePath={basePath} year={Number(osloToday().slice(0, 4))} />
     <h1>Egne øvelser · {details.group.name}</h1>
     <p>Lag og rediger egne animasjoner med spillere, baller, kjegler og mål.</p>
