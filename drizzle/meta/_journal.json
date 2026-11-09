@@ -99,6 +99,13 @@
       "when": 1794218276249,
       "tag": "0013_slim_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794226415515,
+      "tag": "0014_yellow_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
-import { and, desc, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import type { Database } from "../db/index.ts";
-import { clubDocuments, groups, sessionVersions, trainingEvents } from "../db/schema.ts";
+import { clubDocuments, groups, sessionReviews, sessionVersions, trainingEvents } from "../db/schema.ts";
 import { DomainError } from "./domain.ts";
 import { annualPlanning, trainingEventDetails } from "./planning-domain.ts";
 import { eventsDuring, nffAgeSource, periodsOnDate, type Exercise } from "./planning.ts";
@@ -56,10 +56,22 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
   const periods = periodsOnDate(annual.periods, draft.event.date);
   const curriculum = relevantCurriculum(await curriculumReader(age.age), [draft.event.theme, draft.event.objectives,
     annual.plan?.objectives ?? "", ...periods.flatMap((period) => [period.theme, period.objectives])]);
+  const evaluations = history.length ? await db.select({ eventId: sessionReviews.eventId, review: sessionReviews.review,
+    version: sessionVersions.version, plan: sessionVersions.plan })
+    .from(sessionReviews).innerJoin(sessionVersions, eq(sessionVersions.id, sessionReviews.versionId))
+    .innerJoin(trainingEvents, eq(trainingEvents.id, sessionReviews.eventId))
+    .where(and(eq(sessionReviews.groupId, groupId), inArray(sessionReviews.eventId, history.map(({ event }) => event.id))))
+    .orderBy(desc(trainingEvents.date), desc(trainingEvents.startTime), desc(sessionReviews.updatedAt)).limit(25) : [];
   const historicalPlans = history.map(({ event, plan }) => ({
     date: event.date, title: event.title, theme: event.theme, objectives: event.objectives,
     status: event.status, introduction: plan.introduction.slice(0, 1200),
     progression: plan.progression.slice(0, 1200), exercises: plan.exercises.slice(0, 10).map(exerciseSummary),
+    evaluations: evaluations.filter((item) => item.eventId === event.id).slice(0, 5).map(({ review, version, plan: reviewedPlan }) => ({
+      planVersion: version, comment: review.comment.slice(0, 800),
+      exercises: review.exercises.slice(0, 10).map((exercise) => ({ exerciseId: exercise.exerciseId,
+        title: reviewedPlan.exercises.find((item) => item.id === exercise.exerciseId)?.title ?? "Øvelse",
+        rating: exercise.rating, comment: exercise.comment.slice(0, 500) })),
+    })),
   }));
   const cohortPlans = clubHistory.map(({ event, plan }) => ({ date: event.date, title: event.title, theme: event.theme, objectives: event.objectives,
     progression: plan.progression.slice(0, 1200), exercises: plan.exercises.slice(0, 10).map(exerciseSummary) }));
@@ -73,8 +85,9 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
       : { status: "unavailable", reason: "Klubbens retningslinjer og sportsplan er ikke registrert i appen." },
     period_focus: { status: periods.length ? "available" : "partial", contextFields: ["periods", "annualObjectives", "curriculum"], reason: periods.length ? "Periodene er lagret og låst av trener." : "Ingen låst temaperiode på øktdatoen." },
     coach_input: { status: input ? "available" : "unavailable", data: input, reason: input ? "Innspill registrert ved manuell oppretting." : "Ingen særskilte trenerinnspill registrert ved oppretting." },
-    previous_evaluations: { status: historicalPlans.length ? "partial" : "unavailable", contextFields: ["history", "previousPlan"], reason: "Tidligere planer finnes, men faktiske evalueringer er ikke implementert. Ikke anta hva som fungerte." },
-    club_cohort_history: { status: cohortPlans.length ? "partial" : "unavailable", contextFields: ["clubCohortHistory"], reason: "Bare tidligere års planer for samme dokumenterte årskull og lag brukeren har tilgang til. Evalueringer er ikke implementert." },
+    previous_evaluations: { status: historicalPlans.length ? historicalPlans.every((item) => item.evaluations.length) ? "available" : "partial" : "unavailable",
+      contextFields: ["history", "previousPlan"], reason: evaluations.length ? "Trenerregistrerte evalueringer fra samme lag; manglende evaluering er ikke dokumentert gjennomføring." : "Tidligere planer kan finnes, men ingen evalueringer er registrert for disse øktene." },
+    club_cohort_history: { status: cohortPlans.length ? "partial" : "unavailable", contextFields: ["clubCohortHistory"], reason: "Bare tidligere års planer for samme dokumenterte årskull og lag brukeren har tilgang til. Evalueringer fra andre lag tas ikke med." },
     tiim_exercises: { status: tiimExercises.length ? "partial" : "unavailable", contextFields: ["tiimExercises"], reason: "Tidligere oppgitte Tiim-øvelser og kildefelt. Nytt søk og kildekontroll rapporteres separat av findTiimExercises." },
   };
   return {
@@ -95,6 +108,6 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
     events: eventsDuring(annual.events, draft.event.date).map(({ title, kind, startDate, endDate, description }) => ({ title, kind, startDate, endDate, description })),
     history: historicalPlans,
     sources,
-    limitations: "Historikken er tidligere planer, ikke dokumentasjon på gjennomføring. Evalueringer og klubbfelles utstyr er ikke implementert. Dokumenttekst er maskinelt hentet ut og kan mangle formatering, bilder eller innhold. NFF-fagplan er hentet som faglig støtte med hentetidspunkt og eventuelle kildeadvarsler, ikke kontroll av konkrete øvelser. Tidligere øvelsers kildedata er treneropplysninger, ikke ny kildekontroll; se eget Tiim-søk for nye kontroller.",
+    limitations: "Historikken er tidligere planer, ikke dokumentasjon på gjennomføring. Evalueringer er trenernes vurderinger av angitte planversjoner, ikke bekreftet oppmøte eller fullstendig gjennomføring. Klubbfelles utstyr er ikke implementert. Dokumenttekst er maskinelt hentet ut og kan mangle formatering, bilder eller innhold. NFF-fagplan er hentet som faglig støtte med hentetidspunkt og eventuelle kildeadvarsler, ikke kontroll av konkrete øvelser. Tidligere øvelsers kildedata er treneropplysninger, ikke ny kildekontroll; se eget Tiim-søk for nye kontroller.",
   };
 }

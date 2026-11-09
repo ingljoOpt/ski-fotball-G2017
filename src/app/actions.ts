@@ -24,6 +24,7 @@ import { yearSchema } from "@/lib/planning";
 import { canonicalDestination } from "@/lib/tenant-routing";
 import { refreshNffCurriculum } from "@/lib/nff-curriculum";
 import { archiveClubDocument, saveClubMarkdown, uploadClubDocuments } from "@/lib/club-documents";
+import { saveSessionReview } from "@/lib/session-review-domain";
 
 const field = (form: FormData, key: string) => {
   const value = form.get(key);
@@ -66,6 +67,30 @@ export async function saveMarkdown(_state: { message: string; saved: boolean }, 
     if (error instanceof ZodError) return { message: "Ugyldig dokument eller klubb.", saved: false };
     console.error("Markdown-dokumentet kunne ikke lagres:", error);
     return { message: "Lagringen feilet. Teksten er beholdt i skjemaet; prøv igjen.", saved: false };
+  }
+}
+
+export async function saveReview(_state: { message: string; saved: boolean }, form: FormData) {
+  const user = await requireUser();
+  try {
+    const ids = form.getAll("exerciseId");
+    if (ids.length > 30 || ids.some((id) => typeof id !== "string")) throw new DomainError("Ugyldige øvelser i evalueringen.");
+    const exercises = ids.map((id) => {
+      const exerciseId = String(id);
+      const rating = field(form, `rating.${exerciseId}`);
+      return { exerciseId, rating: rating === "" ? null : /^[0-5]$/.test(rating) ? Number(rating) : NaN,
+        comment: field(form, `comment.${exerciseId}`) };
+    });
+    const db = await getDatabase();
+    await saveSessionReview(db, user.id, field(form, "groupId"), field(form, "eventId"), field(form, "versionId"),
+      field(form, "eventRevision"), field(form, "reviewRevision"), { comment: field(form, "comment"), exercises });
+    revalidatePath(await canonicalDestination(db, user.id, `${groupPath(form)}/okter/${field(form, "eventId")}`));
+    return { message: "Evalueringen er lagret.", saved: true };
+  } catch (error) {
+    if (error instanceof DomainError) return { message: error.message, saved: false };
+    if (error instanceof ZodError) return { message: error.issues.map((issue) => issue.message).join(" "), saved: false };
+    console.error("Evalueringen kunne ikke lagres:", error instanceof Error ? error.name : "Ukjent feil");
+    return { message: "Lagringen feilet. Innholdet er beholdt; prøv igjen.", saved: false };
   }
 }
 

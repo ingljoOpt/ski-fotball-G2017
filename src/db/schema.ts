@@ -4,6 +4,7 @@ import {
   primaryKey, unique, foreignKey, check, index,
 } from "drizzle-orm/pg-core";
 import type { PlanningSnapshot, SessionPlan } from "../lib/planning.ts";
+import type { SessionReview } from "../lib/session-review.ts";
 import { DEFAULT_ACCENT, DEFAULT_PRIMARY } from "../lib/branding.ts";
 import { defaultPlanningPriorities, type PlanningPriority } from "../lib/planning-priorities.ts";
 
@@ -94,7 +95,27 @@ export const sessionVersions = pgTable("session_versions", {
   foreignKey({ columns: [table.clubId, table.groupId, table.eventId],
     foreignColumns: [trainingEvents.clubId, trainingEvents.groupId, trainingEvents.id] }).onDelete("cascade"),
   unique("session_version_number").on(table.eventId, table.version),
+  unique("session_version_event_id_unique").on(table.eventId, table.id),
   check("session_origin", sql`${table.origin} in ('manual', 'ai')`),
+]);
+
+export const sessionReviews = pgTable("session_reviews", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  eventId: uuid("event_id").notNull(),
+  versionId: uuid("version_id").notNull(),
+  authorId: uuid("author_id").notNull().references(() => users.id),
+  review: jsonb("review").$type<SessionReview>().notNull(),
+  revision: integer("revision").notNull().default(1),
+  createdAt: createdAt(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  foreignKey({ columns: [table.clubId, table.groupId, table.eventId],
+    foreignColumns: [trainingEvents.clubId, trainingEvents.groupId, trainingEvents.id] }).onDelete("cascade"),
+  foreignKey({ columns: [table.eventId, table.versionId], foreignColumns: [sessionVersions.eventId, sessionVersions.id] }).onDelete("cascade"),
+  unique("session_review_author").on(table.eventId, table.authorId),
+  check("session_review_revision", sql`${table.revision} > 0`),
 ]);
 
 export const loginLinks = pgTable("login_links", {

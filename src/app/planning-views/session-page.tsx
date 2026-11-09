@@ -16,6 +16,9 @@ import { PlanningHistory } from "@/app/planning-history";
 import { emptySessionPlan, nffAgeSource } from "@/lib/planning";
 import { formatTimeRange } from "@/lib/validation";
 import { teamUrl } from "@/lib/slugs";
+import { listSessionReviews } from "@/lib/session-review-domain";
+import { sessionHasEnded } from "@/lib/session-review";
+import { SessionReviewForm } from "@/app/session-review-form";
 
 export default async function TrainingSession({ params, searchParams }: {
   params: Promise<{ groupId: string; eventId: string }>; searchParams: SearchParams;
@@ -24,10 +27,12 @@ export default async function TrainingSession({ params, searchParams }: {
   const [{ groupId, eventId }, query] = await Promise.all([params, searchParams]);
   let details;
   let history;
+  let reviews;
   const db = await getDatabase();
   try {
     details = await trainingEventDetails(db, user.id, groupId, eventId);
     history = await sessionHistory(db, user.id, groupId, eventId);
+    reviews = await listSessionReviews(db, user.id, groupId, eventId);
   }
   catch (error) {
     if (error instanceof DomainError || error instanceof ZodError) notFound();
@@ -37,6 +42,9 @@ export default async function TrainingSession({ params, searchParams }: {
   const basePath = teamUrl(details.club, details.group);
   const latestVersion = versions[0];
   const latest = event.planDeletedAt ? null : latestVersion;
+  const ownReview = reviews.find((review) => review.authorId === user.id);
+  const reviewVersion = ownReview ? versions.find((version) => version.id === ownReview.versionId) : latest;
+  const canReview = event.status !== "cancelled" && latest && sessionHasEnded(event);
   return <ClubTheme club={details.club} header>
     <Account email={user.email} />
     <PlanningNavigation basePath={basePath} year={Number(event.date.slice(0, 4))} />
@@ -54,6 +62,29 @@ export default async function TrainingSession({ params, searchParams }: {
     {latest ? <SessionPlanView plan={latest.plan} durationMinutes={event.durationMinutes} theme={event.theme} objectives={event.objectives}
       ageLabel={context.birthYear === null ? "Årskull ikke oppgitt" : nffAgeSource(context.year, context.birthYear).label} />
       : <p className="notice">Ingen aktiv øktplan. Tidligere versjoner er bevart i revisjonshistorikken.</p>}
+    <section className="session-administration" aria-label="Evaluering av økten">
+      <Card className="app-card"><h2>Evaluering av gjennomført økt</h2>
+        {reviews.map((item) => {
+          const version = versions.find((entry) => entry.id === item.versionId);
+          return <details className="exercise-detail" key={item.id}>
+            <summary>{item.authorEmail} · Planversjon {version?.version ?? "ukjent"}</summary>
+            {item.review.exercises.map((exercise) => <div key={exercise.exerciseId}>
+              <strong>{version?.plan.exercises.find((entry) => entry.id === exercise.exerciseId)?.title ?? "Øvelse"}</strong>
+              {exercise.rating !== null && <span> · {exercise.rating} av 5</span>}
+              {exercise.comment && <p className="preserve-lines">{exercise.comment}</p>}
+            </div>)}
+            {item.review.comment && <p className="preserve-lines">{item.review.comment}</p>}
+          </details>;
+        })}
+        {canReview && reviewVersion ? <details className="plan-editor-details">
+          <summary>{ownReview ? "Rediger min evaluering" : "Evaluer økten"}</summary>
+          <p>Planversjon {reviewVersion.version}</p>
+          <SessionReviewForm key={`${event.revision}-${ownReview?.revision ?? 0}-${reviewVersion.id}`} groupId={groupId} eventId={eventId}
+            eventRevision={event.revision} versionId={reviewVersion.id} exercises={reviewVersion.plan.exercises}
+            review={ownReview?.review} reviewRevision={ownReview?.revision ?? 0} />
+        </details> : <p className="muted">Evaluering er tilgjengelig etter at en aktiv økt er avsluttet.</p>}
+      </Card>
+    </section>
     <div className="session-administration">
         {event.status !== "cancelled" ? <Card className="app-card">
           <details id="rediger-okt" open={!latest || latest.plan.exercises.length === 0} className="plan-editor-details">
@@ -92,7 +123,7 @@ export default async function TrainingSession({ params, searchParams }: {
           <p className="preserve-lines">{context.annualObjectives || "Ingen årsmål registrert."}</p>
           {context.periods.map((period) => <div key={period.id}><h3>{period.theme}</h3><p className="preserve-lines">{period.objectives}</p><p className="preserve-lines">{period.progression}</p></div>)}
           <AppLink href={`${basePath}/aarsplan?year=${context.year}`}>Åpne årsplan →</AppLink>
-          <p className="notice">Øktassistenten bruker trenerføringer, årsplan, NFF-fagplan, hendelser og tidligere planer. AI-forslag må kontrolleres og lagres av treneren. Konkrete øvelseskilder kontrolleres ikke automatisk.</p>
+          <p className="notice">Øktassistenten bruker trenerføringer, årsplan, NFF-fagplan, hendelser og tidligere planer med evalueringer. AI-forslag må kontrolleres og lagres av treneren.</p>
         </Card>
         <Card className="app-card"><h2>Øktstatus</h2>
           <form action={setTrainingStatus}>
@@ -102,7 +133,7 @@ export default async function TrainingSession({ params, searchParams }: {
               {event.status === "cancelled" ? "Angre avlysning" : "Avlys økten"}
             </SubmitButton>
           </form>
-          <small>Avlysning gjelder bare denne treningen. Faktisk gjennomføring og evaluering kommer i et eget steg, og er aldri utledet fra en plan.</small>
+          <small>Avlysning gjelder bare denne treningen. En plan er ikke dokumentasjon på gjennomføring.</small>
         </Card>
       </section>
     </div>

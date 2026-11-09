@@ -66,6 +66,11 @@ small { color: var(--muted); }
 .profile-colors { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
 .profile-colors input { min-height: 48px; }
 .profile-preview { padding: 1rem; border: 2px solid var(--club-primary); border-radius: .6rem; display: grid; gap: 1rem; background: white; }
+.review-exercise { border: 0; border-top: 1px solid var(--line); padding: .75rem 0 0; min-width: 0; }
+.review-exercise > legend { font-weight: 600; }
+.review-rating { border: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
+.review-rating legend { margin-bottom: .35rem; }
+.review-rating label { display: inline-flex; align-items: center; gap: .25rem; }
 .profile-preview > .club-logo { margin-bottom: .5rem; }
 .markdown-toolbar { display: flex; gap: .5rem; flex-wrap: wrap; }
 .markdown-content { overflow-wrap: anywhere; min-width: 0; }

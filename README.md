@@ -6,7 +6,7 @@ Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkte
 
 Den nye Next.js-appen bygges ved siden av dagens øktarkiv og Pages-nettsted. Se [spesifikasjonen](docs/nettsted-spesifikasjon.md) og [implementasjonsplanen](docs/implementasjonsplan.md).
 
-Den lokale appen har magic-link-innlogging, klubber og lag, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan med NFF-fagplan og månedens treninger/hendelser, manuell øktplanlegging med versjonshistorikk og en AI-øktassistent. Automatiske utkast, faktisk gjennomføring/evaluering, kontroll av konkrete Tiim-øvelsessider, offentlig deling og Neon Auth er **ikke implementert ennå**. Appen er ikke klar for produksjonsdeploy.
+Den lokale appen har magic-link-innlogging, klubber og lag, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan, øktplanlegging, private evalueringer og AI-øktassistent med Tiim-kontroll. Faktisk oppmøte, offentlig deling og Neon Auth er ikke implementert. Automatiske utkast krever et produksjonsoppsett som ennå ikke er verifisert. Appen er ikke klar for produksjonsdeploy.
 
 ### Start lokalt
 
@@ -132,7 +132,7 @@ Agenten må først kalle `readPlanningPriorities`, deretter `readPlanningContext
 
 Ved **Ny enkeltøkt** finnes tekstfeltet **Innspill til AI-planlegging**. Innspillet lagres på økten ved manuell oppretting og sendes til agenten som trenergrunnlag. Agenten leser også gjeldende **usparte** øktinnhold, lagets årgang, årsmål, temaperioder/hendelser på datoen, lagret aldersriktig NFF-fagplan og inntil fem tidligere planer fra samme lag, med forrige plan tydelig tilgjengelig. Den kan lese opptil tre tidligere års planer fra andre lag i samme klubb for samme dokumenterte fødselsår, men bare når brukeren er klubbadministrator eller har medlemskap i det aktuelle laget. Uautoriserte lag og andre klubber ekskluderes.
 
-Aktive klubbdokumenter og Tiim-øvelser brukes som egne kilder. Faktiske evalueringer er ikke implementert, og historiske planer skal aldri fremstilles som evalueringer eller dokumentasjon på gjennomføring. Agenten opplyser om manglende grunnlag og kildeadvarsler.
+Aktive klubbdokumenter og Tiim-øvelser brukes som egne kilder. Trenernes evalueringer fra inntil fem tidligere økter i samme lag inngår i AI-konteksten, med henvisning til vurdert planversjon, men uten treneridentitet. Historiske planer skal aldri fremstilles som evalueringer eller dokumentasjon på gjennomføring. Agenten opplyser om manglende grunnlag og kildeadvarsler.
 
 Fagplankonteksten begrenses til 12 temaer med inntil åtte momenter per tema, prioritert mot trenerens tema/mål og årsplanen. Medlemslister, e-post, logoer og interne tenant-/bruker-ID-er sendes ikke til modellen. Chatmeldinger og dette grunnlaget sendes til Vercel AI Gateway/modellleverandøren; bruk bare treningsinnhold, aldri navn eller private opplysninger om barn. Chatten er midlertidig og forsvinner ved gjenlasting.
 
@@ -142,7 +142,11 @@ Et komplett forslag viser øvelser og kontrollpunkter. **Bruk forslaget i skjema
 
 Forslag valideres mot samme plankontrakt og faktisk øktvarighet. Agenten kan ikke finne på nytt bekreftet oppmøte/utstyr, bruke mer enn oppgitte ressurser eller oppgi nye verifiserte kilder. Eksisterende kildelenker kan gjenbrukes med tidligere treneropplysninger; de er **ikke kontrollert på nytt**. Nye lokale øvelser får ingen oppdiktet Tiim-lenke, aldersmerking eller kontrolldato. Kontroller organisering, kildegrunnlag og praktisk gjennomførbarhet selv.
 
-Øktassistenten kontrollerer konkrete Tiim-øvelsessider, men ikke bilder og video. Evalueringer, klubbfelles utstyrsdata og varig chathistorikk er ikke implementert. Den har maks seks modellsteg per melding, 110 sekunders tidsgrense og seks forespørsler per bruker per minutt i én serverprosess. Før flerinstans-produksjon må kostnadsgrenser/ratebegrensning flyttes til et delt lager.
+Øktassistenten kontrollerer konkrete Tiim-øvelsessider, men ikke bilder og video. Klubbfelles utstyrsdata og varig chathistorikk er ikke implementert. Den har maks seks modellsteg per melding, 110 sekunders tidsgrense og seks forespørsler per bruker per minutt i én serverprosess. Før flerinstans-produksjon må kostnadsgrenser/ratebegrensning flyttes til et delt lager.
+
+### Evaluering
+
+Etter planlagt sluttid kan autoriserte trenere og klubbadministratorer evaluere en aktiv økt. Hver trener kan gi 0–5 poeng og/eller en kommentar per øvelse, samt en generell kommentar; minst ett felt må fylles ut. Evalueringen er privat for laget og kan redigeres av forfatteren. Den knyttes til planversjonen som ble vurdert og endrer ikke øktplanen. Den registrerer ikke oppmøte eller hvilke øvelser som faktisk ble gjennomført. Evalueringstekst sendes til modellleverandøren ved senere AI-planlegging; ikke skriv navn eller private opplysninger om barn. Migrering `0014_yellow_tyger_tiger.sql` må kjøres før funksjonen brukes.
 
 ### Automatiske øktutkast
 

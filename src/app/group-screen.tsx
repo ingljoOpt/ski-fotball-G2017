@@ -129,7 +129,7 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
               <small>For eksempel 2017. Brukes i alle årsplaner og nye øktforslag. Tidligere øktversjoner endres ikke.</small>
               <NativeInput label="Dager før trening for nytt utkast" name="generationDaysBefore" type="number" min={0} max={30} required defaultValue={group.generationDaysBefore} />
               <label><input type="checkbox" name="autoDraftEnabled" defaultChecked={group.autoDraftEnabled} /> Automatisk AI-utkast på Vercel</label>
-              <small>Aktive klubbdokumenter, årsplan og tidligere planer sendes til modellleverandøren ved generering. Ikke legg inn private opplysninger om barn.</small>
+              <small>Aktive klubbdokumenter, årsplan og tidligere planer med evalueringer sendes til modellleverandøren ved generering. Ikke legg inn private opplysninger om barn.</small>
               <h3>Prioriteringer for AI-genererte økter</h3>
               <PlanningPrioritiesEditor key={JSON.stringify(group.aiPriorities)} priorities={group.aiPriorities} />
               <SubmitButton>Lagre rammer</SubmitButton>

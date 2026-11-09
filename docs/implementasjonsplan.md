@@ -46,14 +46,16 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [x] Full endringshistorikk for økter, årsplaner og periodeplaner: vis hvem, når og hva som ble endret, også ved statusendringer og sletting av perioder. Lagre historikk atomisk med endringen, skill bruker-/AI-/systemhandlinger og hold aktøridentitet utenfor offentlig deling. Eksisterende øktversjoner er migrert; uloggede statusendringer og årsplaner/perioder fra før funksjonen mangler snapshots og kan ikke rekonstrueres.
 - [x] Oppmøteforutsetninger og kontroller av tid, trenerbehov og samtidig utstyr, med sperre mot ufullstendig godkjenning.
 - [x] Felles strukturert plan-/kildekontrakt og kontekstsnapshots som grunnlag for AI i steg 4.
-- [ ] Faktisk gjennomføring og privat evaluering uten spillerprofiler.
+- [x] Privat evaluering etter planlagt sluttid: valgfri vurdering 0–5 og kommentar per øvelse samt generell kommentar, med minst ett utfylt felt og binding til planversjon.
+- [ ] Faktisk oppmøte og registrering av gjennomførte øvelser uten spillerprofiler.
 
 ## 4. AI og automatisering
 
 - [x] Første øktagent med Vercel AI SDK ToolLoopAgent, Vercel AI Gateway og `@ai-sdk/react` (AI SDK UI): streaming-chat i sidestolpe ved redigering, forhåndsvisning og eksplisitt bruk av et validert forslag.
 - [x] Tenant-avgrenset kontekst fra gjeldende usparte økt, årgang, årsplan, hendelser og fem tidligere planer; gjenbruk av eksisterende kildeopplysninger uten ny kildekontroll.
 - [x] Bruke aktive klubbdokumenter som tenant-avgrenset kilde i øktagenten via et eget dokumentverktøy, med tydelig informasjon om at uttrukket tekst sendes til modellleverandøren. Dokumenter lastes opp av klubben; automatisk innhenting fra klubbens nettsted er ikke implementert.
-- [ ] Utvide agentkontekst med faktiske evalueringer og klubbfelles utstyr når disse finnes.
+- [x] Inkludere trenerregistrerte evalueringer fra tidligere økter i samme lag i agentkonteksten, uten treneridentitet.
+- [ ] Utvide agentkontekst med klubbfelles utstyr når dette finnes.
 - [x] Foreslå årsplantemaer og øvingsmål fra lagret aldersriktig NFF-fagplan, med kildeopplysninger og eksplisitt trenerbekreftelse. Ved oppdatering kontrolleres kildebelegg og aldersmerking; 8–9 år følger med som startdata.
 - [ ] Verifisere faktisk NFF-innhenting via Gateway og aktuelle kilder for andre aldersklasser enn de medfølgende startdataene. Oppdatering og kildekontroll er hittil testet med simulert modell og fiktive kilder.
 - [x] Bruke planleggingskontrakten og versjonsflyten for AI-assisterte revisjoner; ta hensyn til manuelt oppdaterte spiller-/trenerantall, bevare bekreftede rammer, eksakt tidslengde og gamle øktversjoner.
@@ -118,4 +120,4 @@ Fra-/til-tider er kontrollert med 30 enhets-/animasjonstester og 26 databasekont
 
 Nettleserkontrollen med en vanlig trener og isolerte, fiktive data dekker årsplan og temaperiode, aldersriktig NFF-lenke, kalender med arvede temaer, utkast og godkjenning, øvelsesrekkefølge/fjerning, versjonshistorikk, flytting og avlysning/gjenåpning. Avvist godkjenning bevarer tekstfelt, tekstområder, tall og øktdel. Årsplan, kalender og åpen øktbygger er kontrollert ved 375 pikslers bredde uten horisontal overløp. Ingen faktiske lagøkter er opprettet i Markdown-historikken.
 
-Klubbfelles utstyr, arkivvisning for dokumenter og faktisk gjennomføring/evaluering gjenstår i steg 3. Den første AI-assistenten og lokale NFF-temaforslag er implementert, men live NFF-innhenting via Gateway, planlagte automatiske utkast, Neon Auth og offentlig deling er fortsatt uverifisert eller uferdig. Dagens tallkontroll gjør ikke om organiseringen på egen hånd. Avkrysning gjøres først når funksjonen er implementert og verifisert. Se også kjente utviklingsavhengighetsvarsler i [README](../README.md#verifisering-og-migreringer).
+Klubbfelles utstyr, arkivvisning for dokumenter og registrering av faktisk oppmøte og gjennomførte øvelser gjenstår i steg 3. Private evalueringer er implementert separat fra øktplanen. Den første AI-assistenten og lokale NFF-temaforslag er implementert, men live NFF-innhenting via Gateway, planlagte automatiske utkast, Neon Auth og offentlig deling er fortsatt uverifisert eller uferdig. Dagens tallkontroll gjør ikke om organiseringen på egen hånd. Avkrysning gjøres først når funksjonen er implementert og verifisert. Se også kjente utviklingsavhengighetsvarsler i [README](../README.md#verifisering-og-migreringer).
