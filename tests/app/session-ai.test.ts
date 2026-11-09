@@ -10,7 +10,7 @@ import { defaultPlanningPriorities } from "../../src/lib/planning-priorities.ts"
 
 test("AI setup requires server credentials and a Gateway model address", () => {
   assert.throws(() => aiConfiguration({}), /AI_GATEWAY_API_KEY/);
-  assert.equal(aiConfiguration({ AI_GATEWAY_API_KEY: "synthetic" }).model, "anthropic/claude-sonnet-4.6");
+  assert.equal(aiConfiguration({ AI_GATEWAY_API_KEY: "synthetic" }).model, "openai/gpt-6.1-sol");
   assert.equal(aiConfiguration({ VERCEL_OIDC_TOKEN: "synthetic", AI_MODEL: "openai/gpt-4.1" }).model, "openai/gpt-4.1");
   assert.throws(() => aiConfiguration({ AI_GATEWAY_API_KEY: "synthetic", AI_MODEL: "https://external.invalid/" }), /AI_MODEL/);
 });

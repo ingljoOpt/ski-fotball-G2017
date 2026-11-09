@@ -88,7 +88,7 @@ export function aiConfiguration(env: Record<string, string | undefined> = proces
   if (!env.AI_GATEWAY_API_KEY?.trim() && !env.VERCEL_OIDC_TOKEN?.trim()) {
     throw new Error("AI er ikke konfigurert. Sett AI_GATEWAY_API_KEY på serveren.");
   }
-  const model = env.AI_MODEL?.trim() || "anthropic/claude-sonnet-4.6";
+  const model = env.AI_MODEL?.trim() || "openai/gpt-6.1-sol";
   if (!/^[a-z0-9-]+\/[a-zA-Z0-9._:-]+$/.test(model)) throw new Error("AI_MODEL må være en gyldig provider/modell-adresse i Vercel AI Gateway.");
   return { model };
 }
