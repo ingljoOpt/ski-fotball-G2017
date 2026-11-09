@@ -116,7 +116,7 @@ Leseverktøyet tillater bare oppdagede HTTPS-lenker på `tiim.no`, `www.fotball.
 
 Lagmenyen har **Økter**, **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**:
 
-- Økter er lagets startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. AI-jobber er ikke aktivert; datoen er ingen bekreftet bestilling. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Årsplanen nås fra Økter.
+- Økter er lagets startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. Automatisk generering krever at laget har aktivert den og at produksjonsjobben er konfigurert. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Årsplanen nås fra Økter.
 - Årsplan vises som et klikkbart årshjul og en vertikalt rullbar månedsoversikt med forslag og låste perioder. NFF-fagplanen åpnes fra høyre. Perioder bekreftes og redigeres direkte i planleggingsflyten; treninger og hendelser vises for valgt måned, som beholdes i URL-en.
 - Egne øvelser integrerer den eksisterende animasjonseditoren direkte i appen, uten avhengighet til GitHub Pages. Lagmedlemskap kontrolleres også for editorens HTML og ressurser. JSON kan åpnes, redigeres og lastes ned; felles databaselagring av egne øvelser og tilknytning til øktkort gjenstår. Last ned filen før du forlater en endret tavle.
 
@@ -132,7 +132,7 @@ Agenten må først kalle `readPlanningPriorities`, deretter `readPlanningContext
 
 Ved **Ny enkeltøkt** finnes tekstfeltet **Innspill til AI-planlegging**. Innspillet lagres på økten ved manuell oppretting og sendes til agenten som trenergrunnlag. Agenten leser også gjeldende **usparte** øktinnhold, lagets årgang, årsmål, temaperioder/hendelser på datoen, lagret aldersriktig NFF-fagplan og inntil fem tidligere planer fra samme lag, med forrige plan tydelig tilgjengelig. Den kan lese opptil tre tidligere års planer fra andre lag i samme klubb for samme dokumenterte fødselsår, men bare når brukeren er klubbadministrator eller har medlemskap i det aktuelle laget. Uautoriserte lag og andre klubber ekskluderes.
 
-Klubbens retningslinjer/sportsplan og faktiske evalueringer er ikke registrert som egne kilder ennå. Historiske planer skal aldri fremstilles som evalueringer eller dokumentasjon på gjennomføring. Tiim-grunnlaget er foreløpig kildeopplysninger og øvelsesbeskrivelser fra gjeldende/tidligere planer; nye konkrete øvelsessider hentes ikke automatisk. Agenten skal opplyse om slike mangler og ikke finne på faggrunnlaget. Tidsstyrt generering er fortsatt ikke aktivert; innstillingene brukes av den tilgjengelige AI-øktassistenten og er klare for senere automatisering.
+Aktive klubbdokumenter og Tiim-øvelser brukes som egne kilder. Faktiske evalueringer er ikke implementert, og historiske planer skal aldri fremstilles som evalueringer eller dokumentasjon på gjennomføring. Agenten opplyser om manglende grunnlag og kildeadvarsler.
 
 Fagplankonteksten begrenses til 12 temaer med inntil åtte momenter per tema, prioritert mot trenerens tema/mål og årsplanen. Medlemslister, e-post, logoer og interne tenant-/bruker-ID-er sendes ikke til modellen. Chatmeldinger og dette grunnlaget sendes til Vercel AI Gateway/modellleverandøren; bruk bare treningsinnhold, aldri navn eller private opplysninger om barn. Chatten er midlertidig og forsvinner ved gjenlasting.
 
@@ -142,7 +142,15 @@ Et komplett forslag viser øvelser og kontrollpunkter. **Bruk forslaget i skjema
 
 Forslag valideres mot samme plankontrakt og faktisk øktvarighet. Agenten kan ikke finne på nytt bekreftet oppmøte/utstyr, bruke mer enn oppgitte ressurser eller oppgi nye verifiserte kilder. Eksisterende kildelenker kan gjenbrukes med tidligere treneropplysninger; de er **ikke kontrollert på nytt**. Nye lokale øvelser får ingen oppdiktet Tiim-lenke, aldersmerking eller kontrolldato. Kontroller organisering, kildegrunnlag og praktisk gjennomførbarhet selv.
 
-Øktassistenten har ingen generell Tiim-nettleser eller kontroll av konkrete øvelsessider, evalueringer, klubbfelles veilednings-/utstyrsdokumenter, tidsstyrt generering eller varig chathistorikk. Den har maks fire modellsteg per melding, 110 sekunders tidsgrense og seks forespørsler per bruker per minutt i én serverprosess. Chat-ruten har en samlet kjøretidsramme på 320 sekunder for å romme eventuell første fagplaninnhenting før øktforslaget. Før flerinstans-produksjon må kostnadsgrenser/ratebegrensning flyttes til et delt lager.
+Øktassistenten kontrollerer konkrete Tiim-øvelsessider, men ikke bilder og video. Evalueringer, klubbfelles utstyrsdata og varig chathistorikk er ikke implementert. Den har maks seks modellsteg per melding, 110 sekunders tidsgrense og seks forespørsler per bruker per minutt i én serverprosess. Før flerinstans-produksjon må kostnadsgrenser/ratebegrensning flyttes til et delt lager.
+
+### Automatiske øktutkast
+
+Automatisk generering er avslått som standard og kan aktiveres under laginnstillingene. En aktiv hovedtrener og faste treningstider kreves. Lokalt starter ingen jobb automatisk; opprett og planlegg økter manuelt. Jobben genererer bare AI-utkast, aldri godkjenning eller publisering. Klubbens dokumenter og planleggingsgrunnlag sendes til modellleverandøren.
+
+For Vercel-produksjon: kjør databasemigreringene, inkludert `0013_slim_scrambler.sql`, mot den tiltenkte PostgreSQL-databasen før deploy. Sett `DATABASE_URL`, AI Gateway-tilgang og en tilfeldig `CRON_SECRET` på minst 16 tegn som produksjonsvariabler. Vercel sender hemmeligheten som Bearer-token. Aldri legg verdiene i Git. Produksjonsauth for resten av appen er ikke implementert, så cron-koden alene gjør ikke appen produksjonsklar.
+
+`vercel.json` definerer én Vercel Schedule kl. 06 i `Europe/Oslo`; tidssonen følger sommer- og vintertid. Vercel Schedules er i beta og starter innenfor et tidsvindu: normalt ett minutt på Pro og 15 minutter på Hobby. Funksjonens varighet på opptil 800 sekunder krever Vercel Pro med Fluid Compute. Dobbelkjøringer og manuelle økter hindres med databaseleie og atomisk lagring. Feilede jobber vises ved neste aktuelle trening og forsøkes igjen neste morgen dersom treningen ennå ikke har startet; tapte kjøringer tas tilsvarende igjen. Jobben behandler inntil tre utkast samtidig og rapporterer feil og gjenstående arbeid i Vercels logg. Vercel forsøker ikke feilede kall til denne ruten automatisk på nytt. Ingen faktisk Vercel-deploy eller produksjonsdatabase er verifisert.
 
 ### Verifisering og migreringer
 

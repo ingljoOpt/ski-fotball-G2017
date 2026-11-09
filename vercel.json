@@ -1,0 +1,10 @@
+{
+  "schedules": {
+    "make-plan": {
+      "schedule": "0 6 * * *",
+      "timezone": "Europe/Oslo",
+      "path": "/api/cron/make-plan",
+      "requestMethod": "GET"
+    }
+  }
+}

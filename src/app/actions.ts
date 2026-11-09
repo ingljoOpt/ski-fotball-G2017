@@ -175,9 +175,10 @@ export async function saveGroupSettings(form: FormData) {
     await updateGroupSettings(await getDatabase(), user.id, field(form, "groupId"), {
       generationDaysBefore: field(form, "generationDaysBefore"),
       birthYear: field(form, "birthYear"),
+      autoDraftEnabled: form.has("autoDraftEnabled"),
       ...(form.has("aiPriorities") ? { aiPriorities: JSON.parse(field(form, "aiPriorities")) } : {}),
     });
-    return `${groupPath(form)}/innstillinger?melding=${encodeURIComponent("Innstillingene er lagret. Automatisk generering er ikke implementert ennå.")}`;
+    return `${groupPath(form)}/innstillinger?melding=${encodeURIComponent("Innstillingene er lagret.")}`;
   });
 }
 

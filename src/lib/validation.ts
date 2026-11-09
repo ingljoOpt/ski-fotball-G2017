@@ -9,6 +9,7 @@ export const birthYearSchema = z.preprocess((value) => value === "" ? null : val
   z.coerce.number().int().min(1900, "Årgang må være mellom 1900 og 2100.").max(2100, "Årgang må være mellom 1900 og 2100.").nullable());
 export const settingsSchema = z.object({
   generationDaysBefore: z.coerce.number().int().min(0).max(30),
+  autoDraftEnabled: z.boolean().optional(),
   birthYear: birthYearSchema.optional(),
   aiPriorities: planningPrioritiesSchema.optional(),
 });

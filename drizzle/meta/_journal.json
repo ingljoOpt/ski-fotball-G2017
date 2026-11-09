@@ -92,6 +92,13 @@
       "when": 1794211003039,
       "tag": "0012_redundant_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794218276249,
+      "tag": "0013_slim_scrambler",
+      "breakpoints": true
     }
   ]
 }

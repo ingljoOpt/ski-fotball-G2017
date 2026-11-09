@@ -64,7 +64,7 @@ export function prepareAIProposal(input: unknown, base: AIDraft, sources: {
       exercise.sourceCheckedOn = "";
     } else {
       const source = sources.find((item) => item.sourceUrl === exercise.sourceUrl);
-      if (!source) throw new Error("Ingen nettleserkontroll er tilgjengelig. Bruk bare eksisterende kildelenker, eller la kildefeltene stå tomme.");
+      if (!source) throw new Error("Bruk bare kontrollerte Tiim-kilder eller eksisterende kildelenker, eller la kildefeltene stå tomme.");
       exercise.sourceAge = source.sourceAge;
       exercise.sourceCheckedOn = source.sourceCheckedOn;
     }

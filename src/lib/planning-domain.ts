@@ -1,14 +1,15 @@
-import { and, asc, desc, eq, gt, gte, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db/index.ts";
-import { annualEvents, annualPlans, clubs, groups, planPeriods, planningHistory, sessionVersions, trainingEvents, trainingTimes, users } from "../db/schema.ts";
+import { annualEvents, annualPlans, clubs, generationJobs, groupMembers, groups, planPeriods, planningHistory, sessionVersions, trainingEvents, trainingTimes, users } from "../db/schema.ts";
 import { DomainError, getGroupAccess } from "./domain.ts";
 import { idSchema, minutesBetween } from "./validation.ts";
 import {
   annualPlanSchema, checkSessionPlan, datesInYear, emptySessionPlan, eventSchema, NFF_SOURCE, nffAgeSource,
   periodSchema, periodsOnDate, sessionPlanSchema, slotKey, weekdayFor, yearSchema,
-  annualEventSchema, eventsDuring, osloToday, type PlanningSnapshot,
+  annualEventSchema, eventsDuring, generationDate, osloToday, type PlanningSnapshot,
 } from "./planning.ts";
+import { sameAIDraft, type AIDraft, type AIProposal } from "./session-ai.ts";
 
 const revisionSchema = z.coerce.number().int().min(0);
 async function lockGroup(db: Database, userId: string, groupId: string) {
@@ -318,6 +319,50 @@ export async function createTrainingEvent(
       afterSnapshot: sessionSnapshot(event, plan),
     });
     return event.id;
+  });
+}
+
+export async function saveScheduledSessionPlan(db: Database, userId: string, groupId: string, timeId: string,
+  jobId: string, leaseToken: string, initial: AIDraft, proposal: AIProposal, now: Date) {
+  const data = eventSchema.parse(proposal.draft.event);
+  const plan = sessionPlanSchema.parse(proposal.draft.plan);
+  const today = osloToday(now);
+  const localTime = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Oslo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+  if (!sameAIDraft(initial, proposal.baseDraft) || data.date !== initial.event.date || data.startTime !== initial.event.startTime ||
+    data.endTime !== initial.event.endTime || checkSessionPlan(plan, data.durationMinutes).totalMinutes !== data.durationMinutes ||
+    (["expectedPlayers", "confirmedCoaches", "availableBalls", "availableSmallGoals", "availableLargeGoals", "equipmentConfirmed"] as const)
+      .some((key) => plan[key] !== initial.plan[key])) throw new DomainError("AI-utkastet samsvarer ikke med treningens rammer.");
+  return db.transaction(async (tx) => {
+    const [group] = await tx.select().from(groups).where(eq(groups.id, groupId)).for("update");
+    if (!group) return false;
+    const [job] = await tx.select().from(generationJobs).where(and(eq(generationJobs.id, jobId), eq(generationJobs.groupId, groupId),
+      eq(generationJobs.leaseToken, leaseToken), eq(generationJobs.status, "running"), gt(generationJobs.leaseUntil, new Date()))).for("update");
+    if (!job || job.date !== data.date || job.startTime !== data.startTime) return false;
+    const [head] = await tx.select({ userId: groupMembers.userId }).from(groupMembers).where(and(
+      eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId), eq(groupMembers.role, "head_coach")));
+    const [time] = await tx.select().from(trainingTimes).where(and(eq(trainingTimes.id, timeId), eq(trainingTimes.groupId, groupId))).for("update");
+    const eligible = group.autoDraftEnabled && head && time?.enabled && time.weekday === weekdayFor(data.date) &&
+      time.startTime === data.startTime && time.endTime === data.endTime && data.date >= today &&
+      (data.date !== today || data.startTime > localTime) && generationDate(data.date, group.generationDaysBefore) <= today;
+    if (!eligible) {
+      await tx.update(generationJobs).set({ status: "failed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
+      return false;
+    }
+    const key = slotKey(data.date, data.startTime);
+    const [existing] = await tx.select({ id: trainingEvents.id }).from(trainingEvents).where(and(eq(trainingEvents.groupId, groupId), or(
+      eq(trainingEvents.recurrenceKey, key), and(eq(trainingEvents.date, data.date), eq(trainingEvents.startTime, data.startTime)),
+    )));
+    if (existing) {
+      await tx.update(generationJobs).set({ status: "completed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
+      return false;
+    }
+    const [event] = await tx.insert(trainingEvents).values({ ...data, clubId: group.clubId, groupId, recurrenceKey: key, status: "draft" }).returning();
+    await tx.insert(sessionVersions).values({ clubId: group.clubId, groupId, eventId: event.id, version: 1, createdBy: null, origin: "ai",
+      eventSnapshot: { ...data, status: "draft" }, plan, planningContext: await planningSnapshot(tx, userId, groupId, data.date) });
+    await writeHistory(tx, { clubId: group.clubId, groupId, planYear: Number(data.date.slice(0, 4)), entityType: "session", entityId: event.id,
+      action: "created", actorType: "system", actorId: null, beforeSnapshot: null, afterSnapshot: sessionSnapshot(event, plan) });
+    await tx.update(generationJobs).set({ status: "completed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
+    return true;
   });
 }
 

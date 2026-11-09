@@ -2,6 +2,8 @@ import { AppLink, Card, MemberSelect, NativeInput, SubmitButton, TextInput, Week
 import { notFound } from "next/navigation";
 import { ZodError } from "zod";
 import { getDatabase } from "@/db";
+import { generationJobs } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
 import { DomainError, groupDetails } from "@/lib/domain";
 import { changeHeadCoach, deleteMember, deleteTrainingTime, newCoachInvitation, newTrainingEvent, newTrainingTime, saveGroupSettings } from "@/app/actions";
@@ -33,6 +35,10 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
   const basePath = teamUrl(details.club, group);
   const sessions = section === "oversikt" ? await groupSessions(await getDatabase(), user.id, groupId) : null;
   const upcoming = sessions?.upcoming;
+  const automatic = process.env.VERCEL_ENV === "production" && group.autoDraftEnabled;
+  const [failedJob] = automatic && upcoming?.virtual ? await (await getDatabase()).select({ id: generationJobs.id }).from(generationJobs)
+    .where(and(eq(generationJobs.groupId, groupId), eq(generationJobs.date, upcoming.date),
+      eq(generationJobs.startTime, upcoming.startTime), eq(generationJobs.status, "failed"))).limit(1) : [];
   return (
     <ClubTheme club={details.club} header>
       <Account email={user.email} />
@@ -45,12 +51,14 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
         <div className="row"><AppLink href={`${basePath}/okter/ny`}>+ Opprett økt manuelt</AppLink>
           <AppLink href={`${basePath}/aarsplan`}>Se treninger og hendelser i årsplanen →</AppLink></div>
         <Card className="app-card"><h2>Kommende økt</h2>
+          {automatic && !details.members.some((member) => member.role === "head_coach") && <p className="notice error">Automatisk planlegging krever en aktiv hovedtrener på laget.</p>}
           {upcoming ? <>
             <p><strong>{formatDate(upcoming.date)} kl. {formatTimeRange(upcoming.startTime, upcoming.endTime)}</strong></p>
             <h3>{upcoming.title}</h3><p>{upcoming.theme || "Tema ikke satt"} · {upcoming.durationMinutes} minutter</p>
             {upcoming.virtual ? <>
               <p>Ingen øktplan er opprettet ennå.</p>
-              <p className="notice">Denne øktplanen opprettes automatisk den {formatDate(generationDate(upcoming.date, group.generationDaysBefore))}.</p>
+              <p className="notice">{automatic ? "Automatisk utkast er planlagt fra" : "Ønsket dato for utkast:"} {formatDate(generationDate(upcoming.date, group.generationDaysBefore))}.</p>
+              {failedJob && <p className="notice error">Automatisk utkast kunne ikke opprettes. Opprett planen manuelt, eller vent på neste kjøring før treningen.</p>}
               <form action={newTrainingEvent}>
                 <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={upcoming.date.slice(0, 4)} />
                 {Object.entries({ date: upcoming.date, startTime: upcoming.startTime, endTime: upcoming.endTime, title: upcoming.title,
@@ -120,6 +128,8 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
               <NativeInput label="Årgang (valgfritt)" name="birthYear" type="number" min={1900} max={2100} step={1} defaultValue={group.birthYear ?? ""} />
               <small>For eksempel 2017. Brukes i alle årsplaner og nye øktforslag. Tidligere øktversjoner endres ikke.</small>
               <NativeInput label="Dager før trening for nytt utkast" name="generationDaysBefore" type="number" min={0} max={30} required defaultValue={group.generationDaysBefore} />
+              <label><input type="checkbox" name="autoDraftEnabled" defaultChecked={group.autoDraftEnabled} /> Automatisk AI-utkast på Vercel</label>
+              <small>Aktive klubbdokumenter, årsplan og tidligere planer sendes til modellleverandøren ved generering. Ikke legg inn private opplysninger om barn.</small>
               <h3>Prioriteringer for AI-genererte økter</h3>
               <PlanningPrioritiesEditor key={JSON.stringify(group.aiPriorities)} priorities={group.aiPriorities} />
               <SubmitButton>Lagre rammer</SubmitButton>
@@ -127,7 +137,7 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
               <h3>Prioriteringer for AI-genererte økter</h3><PlanningPrioritiesEditor priorities={group.aiPriorities} disabled />
             </>}
             <p className="muted">Årgang settes av hovedtrener eller klubbadministrator. Øktlengden beregnes fra fra- og til-tidspunktet for hver trening. Ingen felles standardvarighet.</p>
-            <p className="notice">Innstillingene lagres nå. Automatisk oppretting er ikke aktivert. AI-øktassistenten kan brukes manuelt i øktredigeringen.</p>
+            <p className="notice">{process.env.VERCEL_ENV === "production" ? "Automatisk oppretting krever aktiv cron-jobb og produksjonsoppsett." : "Lokalt startes øktplanlegging bare manuelt."}</p>
           </Card>}
         </div>
       </div>}

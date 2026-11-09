@@ -84,7 +84,7 @@ export const sessionVersions = pgTable("session_versions", {
   groupId: uuid("group_id").notNull(),
   eventId: uuid("event_id").notNull(),
   version: integer("version").notNull(),
-  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdBy: uuid("created_by").references(() => users.id),
   origin: text("origin", { enum: ["manual", "ai"] }).notNull(),
   eventSnapshot: jsonb("event_snapshot").$type<{ date: string; startTime: string; endTime: string; durationMinutes: number; title: string; theme: string; objectives: string; status: "draft" | "planned" }>().notNull(),
   plan: jsonb("plan").$type<SessionPlan>().notNull(),
@@ -203,6 +203,7 @@ export const groups = pgTable("groups", {
   // Retained only to migrate existing weekly times without discarding the old duration.
   legacyDurationMinutes: integer("duration_minutes").notNull().default(60),
   generationDaysBefore: integer("generation_days_before").notNull().default(3),
+  autoDraftEnabled: boolean("auto_draft_enabled").notNull().default(false),
   aiPriorities: jsonb("ai_priorities").$type<PlanningPriority[]>().notNull().default(defaultPlanningPriorities),
   createdAt: createdAt(),
 }, (table) => [
@@ -263,4 +264,20 @@ export const trainingTimes = pgTable("training_times", {
   check("time_format", sql`${table.startTime} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
   check("training_end_time", sql`${table.endTime} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`),
   check("training_time_duration", sql`mod((extract(epoch from ${table.endTime}::time)::integer - extract(epoch from ${table.startTime}::time)::integer + 86400), 86400) / 60 between 15 and 240`),
+]);
+
+export const generationJobs = pgTable("generation_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  date: date("date").notNull(),
+  startTime: text("start_time").notNull(),
+  status: text("status", { enum: ["running", "failed", "completed"] }).notNull(),
+  leaseToken: uuid("lease_token").notNull(),
+  leaseUntil: timestamp("lease_until", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  foreignKey({ columns: [table.clubId, table.groupId], foreignColumns: [groups.clubId, groups.id] }).onDelete("cascade"),
+  unique("generation_job_slot").on(table.groupId, table.date, table.startTime),
+  check("generation_job_status", sql`${table.status} in ('running', 'failed', 'completed')`),
 ]);

@@ -57,10 +57,10 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [x] Foreslå årsplantemaer og øvingsmål fra lagret aldersriktig NFF-fagplan, med kildeopplysninger og eksplisitt trenerbekreftelse. Ved oppdatering kontrolleres kildebelegg og aldersmerking; 8–9 år følger med som startdata.
 - [ ] Verifisere faktisk NFF-innhenting via Gateway og aktuelle kilder for andre aldersklasser enn de medfølgende startdataene. Oppdatering og kildekontroll er hittil testet med simulert modell og fiktive kilder.
 - [x] Bruke planleggingskontrakten og versjonsflyten for AI-assisterte revisjoner; ta hensyn til manuelt oppdaterte spiller-/trenerantall, bevare bekreftede rammer, eksakt tidslengde og gamle øktversjoner.
-- [ ] Nettleserverktøy for Tiim, kildekontroll og tydelig feilrapportering.
+- [x] Tiim-subagent for offentlig øvelseskatalog: filtrerer på alder, tema og øvingsmål, kontrollerer valgte øvelsessider og viser kildeadvarsler. Verifisert med fiktive planleggingsdata, ekte Tiim-kilder og Gateway-modell i både subagent og øktagent. Bilder og video kontrolleres ikke.
 - [x] Komplett AI-forslag med kontrollpunkter, eksplisitt erstatning i skjemaet, vern mot utdaterte forslag og AI-merket versjon ved trenerens lagring. Manuelt opprettede enkeltøkter starter med et automatisk AI-førsteutkast som kan redigeres eller justeres videre i chatten. Forslaget lagres ikke før treneren velger lagring/godkjenning.
 - [ ] Produksjonsklar felles ratebegrensning og kostnadsbudsjett på tvers av Vercel-instanser. Første lokale agent har grense per prosess.
-- [ ] Planlagte jobber som lager utkast før trening, uten duplikater.
+- [ ] Verifisere planlagte AI-utkast på Vercel etter at produksjonsdatabase og autentisering er klare. Cron, dobbeltkjøringsvern, norsk sommertid og opt-in er testet lokalt med isolert database; ingen produksjonsdeploy er utført.
 - [ ] Støtte for gjenbruk av økt i flere uker og individuell gjennomføring per dato.
 
 ## 5. Deling og medier

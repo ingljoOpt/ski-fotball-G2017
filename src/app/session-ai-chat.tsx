@@ -92,6 +92,19 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, initi
             if (part.type === "tool-readClubDocuments") return <p className="muted" key={index}>{part.state === "output-available"
               ? part.output.status === "available" ? "Klubbens dokumenter lest." : "Ingen aktive klubbdokumenter funnet."
               : part.state === "output-error" ? "Klubbens dokumenter kunne ikke leses." : "Leser klubbens dokumenter …"}</p>;
+            if (part.type === "tool-findTiimExercises") {
+              if (part.state === "output-error") return <p className="notice error" key={index}>Tiim-søket kunne ikke fullføres.</p>;
+              if (part.state !== "output-available") return <p role="status" key={index}>Søker etter aldersriktige øvelser i Tiim …</p>;
+              return <div className="muted" key={index}>
+                <p>{part.output.exercises.length ? `${part.output.exercises.length} Tiim-øvelser kontrollert.` : "Ingen nye Tiim-øvelser funnet."}</p>
+                {part.output.exercises.length > 0 && <details><summary>Vis øvelsene</summary><ul>
+                  {part.output.exercises.map((exercise) => <li key={exercise.sourceUrl}>
+                    <a href={exercise.sourceUrl}>{exercise.title}</a> ({exercise.sourceAge})<br />{exercise.relevance}
+                  </li>)}
+                </ul></details>}
+                {part.output.warnings.map((warning, warningIndex) => <p key={warningIndex}>{warning}</p>)}
+              </div>;
+            }
             if (part.type === "tool-proposeSessionPlan") {
               if (part.state === "output-error") return <p className="notice error" key={index}>Forslaget bestod ikke kontrollen. Assistenten må rette det før det kan brukes.</p>;
               if (part.state !== "output-available") return <p role="status" key={index}>Lager og kontrollerer forslag …</p>;
@@ -132,7 +145,7 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, initi
             : <ActionButton type="button" variant="secondary" onPress={() => { setMessages([]); clearError(); setApplied([]); setApplyError(""); }}>Ny samtale</ActionButton>}
         </div>
       </form>
-      <small>NFF-fagplan brukes sammen med trenerføringer og årsplan. Kontroller plan, utstyr og øvelseskilder selv. Ingen automatikk eller evalueringer.</small>
+      <small>NFF-fagplan brukes sammen med trenerføringer og årsplan. Kontroller plan, utstyr og øvelseskilder selv. Evalueringer er ikke implementert.</small>
     </details>
   </aside>;
 }

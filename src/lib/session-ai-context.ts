@@ -19,15 +19,25 @@ export async function sessionAIContext(db: Database, userId: string, groupId: st
   const details = await trainingEventDetails(db, userId, groupId, eventId);
   if (details.event.revision !== revision) throw new DomainError("Økten er endret av en annen trener. Last siden på nytt før du bruker AI.");
   if (details.event.cancelledAt) throw new DomainError("Angre avlysningen før du bruker AI.");
-  const priorities = planningPrioritiesSchema.parse(details.group.aiPriorities);
+  return buildSessionAIContext(db, userId, groupId, eventId, draft, details.event.coachInput, curriculumReader);
+}
+
+export async function scheduledSessionAIContext(db: Database, userId: string, groupId: string, draft: AIDraft,
+  curriculumReader = getNffCurriculum) {
+  return buildSessionAIContext(db, userId, groupId, null, draft, "", curriculumReader);
+}
+
+async function buildSessionAIContext(db: Database, userId: string, groupId: string, eventId: string | null, draft: AIDraft,
+  input: string, curriculumReader: typeof getNffCurriculum) {
   const year = Number(draft.event.date.slice(0, 4));
   const annual = await annualPlanning(db, userId, groupId, year);
+  const priorities = planningPrioritiesSchema.parse(annual.group.aiPriorities);
   const history = await db.select({
     event: trainingEvents, plan: sessionVersions.plan,
   }).from(trainingEvents).innerJoin(sessionVersions, and(
     eq(sessionVersions.eventId, trainingEvents.id), eq(sessionVersions.groupId, groupId),
     sql`${sessionVersions.version} = (select max(v.version) from session_versions v where v.event_id = ${trainingEvents.id})`,
-  )).where(and(eq(trainingEvents.groupId, groupId), ne(trainingEvents.id, eventId),
+  )).where(and(eq(trainingEvents.groupId, groupId), eventId ? ne(trainingEvents.id, eventId) : undefined,
     or(lt(trainingEvents.date, draft.event.date), and(eq(trainingEvents.date, draft.event.date), lt(trainingEvents.startTime, draft.event.startTime))),
     isNull(trainingEvents.cancelledAt)))
     .orderBy(desc(trainingEvents.date), desc(trainingEvents.startTime)).limit(5);
@@ -54,7 +64,6 @@ export async function sessionAIContext(db: Database, userId: string, groupId: st
   const cohortPlans = clubHistory.map(({ event, plan }) => ({ date: event.date, title: event.title, theme: event.theme, objectives: event.objectives,
     progression: plan.progression.slice(0, 1200), exercises: plan.exercises.slice(0, 10).map(exerciseSummary) }));
   const tiimExercises = exercises.filter((exercise) => exercise.sourceUrl && new URL(exercise.sourceUrl).hostname === "tiim.no").slice(0, 12).map(exerciseSummary);
-  const input = details.event.coachInput;
   const guidelines = await db.select({ name: clubDocuments.name, text: clubDocuments.extractedText })
     .from(clubDocuments).where(and(eq(clubDocuments.clubId, annual.group.clubId), isNull(clubDocuments.archivedAt)))
     .orderBy(clubDocuments.createdAt);
@@ -66,7 +75,7 @@ export async function sessionAIContext(db: Database, userId: string, groupId: st
     coach_input: { status: input ? "available" : "unavailable", data: input, reason: input ? "Innspill registrert ved manuell oppretting." : "Ingen særskilte trenerinnspill registrert ved oppretting." },
     previous_evaluations: { status: historicalPlans.length ? "partial" : "unavailable", contextFields: ["history", "previousPlan"], reason: "Tidligere planer finnes, men faktiske evalueringer er ikke implementert. Ikke anta hva som fungerte." },
     club_cohort_history: { status: cohortPlans.length ? "partial" : "unavailable", contextFields: ["clubCohortHistory"], reason: "Bare tidligere års planer for samme dokumenterte årskull og lag brukeren har tilgang til. Evalueringer er ikke implementert." },
-    tiim_exercises: { status: tiimExercises.length ? "partial" : "unavailable", contextFields: ["tiimExercises"], reason: "Bare tidligere oppgitte Tiim-øvelser og kildefelt. Ny innhenting og kontroll av konkrete øvelsessider er ikke aktivert." },
+    tiim_exercises: { status: tiimExercises.length ? "partial" : "unavailable", contextFields: ["tiimExercises"], reason: "Tidligere oppgitte Tiim-øvelser og kildefelt. Nytt søk og kildekontroll rapporteres separat av findTiimExercises." },
   };
   return {
     priorities,
@@ -86,6 +95,6 @@ export async function sessionAIContext(db: Database, userId: string, groupId: st
     events: eventsDuring(annual.events, draft.event.date).map(({ title, kind, startDate, endDate, description }) => ({ title, kind, startDate, endDate, description })),
     history: historicalPlans,
     sources,
-    limitations: "Historikken er tidligere planer, ikke dokumentasjon på gjennomføring. Evalueringer og klubbfelles utstyr er ikke implementert. Dokumenttekst er maskinelt hentet ut og kan mangle formatering, bilder eller innhold. NFF-fagplan er hentet som faglig støtte med hentetidspunkt og eventuelle kildeadvarsler, ikke kontroll av konkrete øvelser. Øvelsenes kildedata er tidligere treneropplysninger, ikke ny kildekontroll.",
+    limitations: "Historikken er tidligere planer, ikke dokumentasjon på gjennomføring. Evalueringer og klubbfelles utstyr er ikke implementert. Dokumenttekst er maskinelt hentet ut og kan mangle formatering, bilder eller innhold. NFF-fagplan er hentet som faglig støtte med hentetidspunkt og eventuelle kildeadvarsler, ikke kontroll av konkrete øvelser. Tidligere øvelsers kildedata er treneropplysninger, ikke ny kildekontroll; se eget Tiim-søk for nye kontroller.",
   };
 }

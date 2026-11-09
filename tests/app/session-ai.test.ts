@@ -74,6 +74,9 @@ test("AI cannot invent source checks and stale proposals never overwrite edits",
 
 test("ToolLoopAgent streams scoped context, a validated proposal and text through AI SDK UI", async () => {
   const proposal = aiProposal();
+  proposal.plan.exercises[0].sourceUrl = "https://tiim.no/ovelse/pasning";
+  proposal.plan.exercises[0].sourceAge = "Oppdiktet alder";
+  proposal.plan.exercises[0].sourceCheckedOn = "2000-01-01";
   const context: Awaited<ReturnType<typeof sessionAIContext>> = {
     draft: { ...aiDraft(), plan: structuredClone(proposal.plan) },
     age: { age: 9, url: "https://www.fotball.no/barn-og-ungdom/barn_8-9/", label: "9 år i 2026" },
@@ -84,7 +87,13 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
   };
   const model = mockSessionModel(proposal);
   const response = await createAgentUIStreamResponse({
-    agent: createSessionAgent(context, model),
+    agent: createSessionAgent(context, model, async (age, theme, objectives) => {
+      assert.equal(age, 9);
+      assert.equal(theme, context.draft.event.theme);
+      assert.equal(objectives, context.draft.event.objectives);
+      return { exercises: [{ sourceUrl: "https://tiim.no/ovelse/pasning", title: "Pasning", sourceAge: "8-9 år",
+        sourceCheckedOn: "2026-11-09", theme: "Pasning", relevance: "Pasning", summary: "En øvelse." }], warnings: ["Fiktivt Tiim-søk"] };
+    }),
     uiMessages: [{ id: "u", role: "user", parts: [{ type: "text", text: "Lag et forslag" }] }],
   });
   const data = await response.text();
@@ -93,20 +102,45 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
   assert.match(data, /Pasning og bevegelse/);
   assert.match(data, /Kontroller planen/);
   assert.doesNotMatch(data, /"type":"error"/);
-  assert.equal(model.doStreamCalls.length, 5);
+  const chunks = data.split("\n").filter((line) => line.startsWith("data: ") && line !== "data: [DONE]")
+    .map((line) => JSON.parse(line.slice(6)));
+  const suggested = chunks.find((chunk) => chunk.type === "tool-output-available" && chunk.toolCallId === "proposal-1").output;
+  assert.equal(suggested.draft.plan.exercises[0].sourceAge, "8-9 år");
+  assert.equal(suggested.draft.plan.exercises[0].sourceCheckedOn, "2026-11-09");
+  assert.equal(model.doStreamCalls.length, 6);
   assert.deepEqual(model.doStreamCalls[0].toolChoice, { type: "tool", toolName: "readPlanningPriorities" });
   assert.deepEqual(model.doStreamCalls[1].toolChoice, { type: "tool", toolName: "readPlanningContext" });
   assert.deepEqual(model.doStreamCalls[2].toolChoice, { type: "tool", toolName: "readClubDocuments" });
+  assert.deepEqual(model.doStreamCalls[3].toolChoice, { type: "tool", toolName: "findTiimExercises" });
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktive testdata/);
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fagplan fra NFF/);
   assert.doesNotMatch(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktiv sportsplan om spillglede/);
   assert.match(JSON.stringify(model.doStreamCalls[3].prompt), /Fiktiv sportsplan om spillglede/);
+  assert.match(JSON.stringify(model.doStreamCalls[4].prompt), /Fiktivt Tiim-søk/);
   assert.match(JSON.stringify(model.doStreamCalls[1].prompt), /tiim_exercises/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /Trenerens eksplisitte ønsker/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /be om avklaring/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /samme delferdighet i 2–3 økter/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /Ikke bytt ut alle øvelsene/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /Behold øvelsens ID/);
+});
+
+test("failed Tiim search warns and still permits a proposal without invented sources", async () => {
+  const proposal = aiProposal();
+  const context: Awaited<ReturnType<typeof sessionAIContext>> = {
+    draft: { ...aiDraft(), plan: structuredClone(proposal.plan) }, age: { age: 9, url: "", label: "9 år" },
+    annualObjectives: "", periods: [], events: [], history: [], sources: [], limitations: "",
+    curriculum: { topics: [], fetchedAt: "", warnings: [] }, priorities: defaultPlanningPriorities, prioritySources: [], coachInput: "",
+    clubCohortHistory: [], clubGuidelines: [], previousPlan: null, tiimExercises: [],
+  };
+  const response = await createAgentUIStreamResponse({
+    agent: createSessionAgent(context, mockSessionModel(proposal), async () => { throw new Error("Nettverksfeil"); }),
+    uiMessages: [{ id: "u", role: "user", parts: [{ type: "text", text: "Lag et forslag" }] }],
+  });
+  const data = await response.text();
+  assert.match(data, /Tiim-søket kunne ikke fullføres/);
+  assert.match(data, /"toolCallId":"proposal-1"/);
+  assert.doesNotMatch(data, /"type":"tool-output-error"/);
 });
 
 test("invalid model proposals are streamed as tool errors, never usable plans", async () => {
