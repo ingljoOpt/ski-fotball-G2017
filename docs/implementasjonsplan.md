@@ -52,7 +52,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 - [x] Første øktagent med Vercel AI SDK ToolLoopAgent, Vercel AI Gateway og `@ai-sdk/react` (AI SDK UI): streaming-chat i sidestolpe ved redigering, forhåndsvisning og eksplisitt bruk av et validert forslag.
 - [x] Tenant-avgrenset kontekst fra gjeldende usparte økt, årgang, årsplan, hendelser og fem tidligere planer; gjenbruk av eksisterende kildeopplysninger uten ny kildekontroll.
-- [x] Bruke aktive klubbdokumenter som tenant-avgrenset kilde i øktagenten, med tydelig informasjon om at uttrukket tekst sendes til modellleverandøren.
+- [x] Bruke aktive klubbdokumenter som tenant-avgrenset kilde i øktagenten via et eget dokumentverktøy, med tydelig informasjon om at uttrukket tekst sendes til modellleverandøren. Dokumenter lastes opp av klubben; automatisk innhenting fra klubbens nettsted er ikke implementert.
 - [ ] Utvide agentkontekst med faktiske evalueringer og klubbfelles utstyr når disse finnes.
 - [x] Foreslå årsplantemaer og øvingsmål fra lagret aldersriktig NFF-fagplan, med kildeopplysninger og eksplisitt trenerbekreftelse. Ved oppdatering kontrolleres kildebelegg og aldersmerking; 8–9 år følger med som startdata.
 - [ ] Verifisere faktisk NFF-innhenting via Gateway og aktuelle kilder for andre aldersklasser enn de medfølgende startdataene. Oppdatering og kildekontroll er hittil testet med simulert modell og fiktive kilder.

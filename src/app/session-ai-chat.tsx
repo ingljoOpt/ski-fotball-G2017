@@ -89,6 +89,9 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, initi
           {message.parts.map((part, index) => {
             if (part.type === "text") return <p className="preserve-lines" key={index}>{part.text}</p>;
             if (part.type === "tool-readPlanningContext") return <p className="muted" key={index}>{part.state === "output-available" ? "Årsplan og historikk lest." : "Leser planleggingskontekst …"}</p>;
+            if (part.type === "tool-readClubDocuments") return <p className="muted" key={index}>{part.state === "output-available"
+              ? part.output.status === "available" ? "Klubbens dokumenter lest." : "Ingen aktive klubbdokumenter funnet."
+              : part.state === "output-error" ? "Klubbens dokumenter kunne ikke leses." : "Leser klubbens dokumenter …"}</p>;
             if (part.type === "tool-proposeSessionPlan") {
               if (part.state === "output-error") return <p className="notice error" key={index}>Forslaget bestod ikke kontrollen. Assistenten må rette det før det kan brukes.</p>;
               if (part.state !== "output-available") return <p role="status" key={index}>Lager og kontrollerer forslag …</p>;

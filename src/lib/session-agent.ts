@@ -7,10 +7,11 @@ import { priorityLabels } from "./planning-priorities.ts";
 export function createSessionAgent(context: Awaited<ReturnType<typeof sessionAIContext>>, model: LanguageModel) {
   let prioritiesRead = false;
   let contextRead = false;
+  let clubDocumentsRead = false;
   return new ToolLoopAgent({
     model,
     instructions: `Du er en fotballøktplanlegger. Svar på norsk bokmål, kort og praktisk.
-Les readPlanningPriorities først. Deretter les readPlanningContext for å hente kildegrunnlaget til prioriteringene, før du genererer planen.
+Les readPlanningPriorities først, deretter readPlanningContext og readClubDocuments før du genererer planen.
 Trenerens eksplisitte ønsker og lagets kilder vurderes i den lagrede prioriteringsrekkefølgen, høyest først. Bruk prioritySources til å se hvilke opplysninger som finnes, mangler eller bare er delvis tilgjengelige.
 Bekreftede rammer, sikkerhet, dato, klokkeslett og personvern er ufravikelige krav uansett rekkefølge. Ingen prioritering gir lov til å finne på opplysninger.
 Gi låst tema, delferdighet og øvingsmomenter særlig vekt innen periodens prioritet. Ved motstrid mot en høyere prioritert kilde: be om avklaring, ikke bytt stille.
@@ -51,22 +52,34 @@ Ikke be om navn eller private opplysninger om barn. Avvis forespørsler om andre
         execute: async () => {
           if (!prioritiesRead) throw new Error("Les prioriteringene før planleggingsgrunnlaget.");
           contextRead = true;
-          return context;
+          const { clubGuidelines, ...planningContext } = context;
+          void clubGuidelines;
+          return planningContext;
+        },
+      }),
+      readClubDocuments: tool({
+        description: "Les tekst fra klubbens aktive sportsplan, retningslinjer og opplastede Markdown-, PDF- og Word-dokumenter. Teksten kan mangle bilder og formatering.",
+        inputSchema: z.object({}),
+        execute: async () => {
+          if (!contextRead) throw new Error("Les planleggingsgrunnlaget før klubbdokumentene.");
+          clubDocumentsRead = true;
+          return { status: context.clubGuidelines.length ? "available" : "unavailable", documents: context.clubGuidelines };
         },
       }),
       proposeSessionPlan: tool({
         description: "Valider og vis et komplett øktforslag. Ingen lagring eller godkjenning. Bevar rammene fra readPlanningContext.",
         inputSchema: aiProposalInputSchema,
         execute: async (input) => {
-          if (!prioritiesRead || !contextRead) throw new Error("Prioriteringer og nødvendige kildeopplysninger må leses før planen genereres.");
+          if (!prioritiesRead || !contextRead || !clubDocumentsRead) throw new Error("Prioriteringer og nødvendige kildeopplysninger må leses før planen genereres.");
           return prepareAIProposal(input, context.draft, context.sources);
         },
       }),
     },
     prepareStep: () => !prioritiesRead
       ? { toolChoice: { type: "tool", toolName: "readPlanningPriorities" }, activeTools: ["readPlanningPriorities"] }
-      : !contextRead ? { toolChoice: { type: "tool", toolName: "readPlanningContext" }, activeTools: ["readPlanningContext"] } : {},
-    stopWhen: isStepCount(4),
+      : !contextRead ? { toolChoice: { type: "tool", toolName: "readPlanningContext" }, activeTools: ["readPlanningContext"] }
+      : !clubDocumentsRead ? { toolChoice: { type: "tool", toolName: "readClubDocuments" }, activeTools: ["readClubDocuments"] } : {},
+    stopWhen: isStepCount(5),
     maxOutputTokens: 8000,
     maxRetries: 0,
   });

@@ -103,7 +103,9 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     await archiveClubDocument(db, admin.id, club.id, revised.id);
     await assert.rejects(getClubDocument(db, coach.id, club.id, docs[0].id), DomainError);
     assert.deepEqual((await listClubDocuments(db, coach.id, club.id)).map((item) => item.name), ["veiledning.md"]);
-    requestedAges.splice(-2);
+    const afterArchive = await sessionAIContext(db, coach.id, group.id, id, 1, draft);
+    assert.deepEqual(afterArchive.clubGuidelines, [{ name: "veiledning.md", text: "Retningslinjer" }]);
+    requestedAges.splice(-3);
     const future = await sessionAIContext(db, admin.id, group.id, id, 1, {
       ...draft, event: { ...draft.event, date: "2027-01-02", theme: "Manuelt endret tema" },
     });

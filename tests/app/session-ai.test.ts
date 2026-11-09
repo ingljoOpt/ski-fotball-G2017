@@ -93,12 +93,14 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
   assert.match(data, /Pasning og bevegelse/);
   assert.match(data, /Kontroller planen/);
   assert.doesNotMatch(data, /"type":"error"/);
-  assert.equal(model.doStreamCalls.length, 4);
+  assert.equal(model.doStreamCalls.length, 5);
   assert.deepEqual(model.doStreamCalls[0].toolChoice, { type: "tool", toolName: "readPlanningPriorities" });
   assert.deepEqual(model.doStreamCalls[1].toolChoice, { type: "tool", toolName: "readPlanningContext" });
+  assert.deepEqual(model.doStreamCalls[2].toolChoice, { type: "tool", toolName: "readClubDocuments" });
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktive testdata/);
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fagplan fra NFF/);
-  assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktiv sportsplan om spillglede/);
+  assert.doesNotMatch(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktiv sportsplan om spillglede/);
+  assert.match(JSON.stringify(model.doStreamCalls[3].prompt), /Fiktiv sportsplan om spillglede/);
   assert.match(JSON.stringify(model.doStreamCalls[1].prompt), /tiim_exercises/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /Trenerens eksplisitte ønsker/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /be om avklaring/);
@@ -124,6 +126,8 @@ test("invalid model proposals are streamed as tool errors, never usable plans", 
   });
   const chunks = (await response.text()).split("\n").filter((line) => line.startsWith("data: ") && line !== "data: [DONE]")
     .map((line) => JSON.parse(line.slice(6)));
+  assert.deepEqual(chunks.find((chunk) => chunk.type === "tool-output-available" && chunk.toolCallId === "documents-1")?.output,
+    { status: "unavailable", documents: [] });
   assert.ok(chunks.some((chunk) => chunk.type === "tool-output-error" && chunk.toolCallId === "proposal-1"));
   assert.ok(!chunks.some((chunk) => chunk.type === "tool-output-available" && chunk.toolCallId === "proposal-1"));
 });

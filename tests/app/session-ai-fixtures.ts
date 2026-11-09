@@ -25,6 +25,7 @@ export function mockSessionModel(proposal: AIProposalInput) {
   return new MockLanguageModelV4({ doStream: [
     stream([{ type: "tool-call", toolCallId: "priorities-1", toolName: "readPlanningPriorities", input: "{}" }], "tool-calls"),
     stream([{ type: "tool-call", toolCallId: "context-1", toolName: "readPlanningContext", input: "{}" }], "tool-calls"),
+    stream([{ type: "tool-call", toolCallId: "documents-1", toolName: "readClubDocuments", input: "{}" }], "tool-calls"),
     stream([{ type: "tool-call", toolCallId: "proposal-1", toolName: "proposeSessionPlan", input: JSON.stringify(proposal) }], "tool-calls"),
     stream([{ type: "text-start", id: "text-1" }, { type: "text-delta", id: "text-1", delta: "Her er forslaget. Kontroller planen før lagring." },
       { type: "text-end", id: "text-1" }], "stop"),
