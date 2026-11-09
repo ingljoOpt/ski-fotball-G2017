@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useId, useState, type ReactNode } from "react";
 import {
   closestCenter, DndContext, DragOverlay, KeyboardSensor, MeasuringStrategy, PointerSensor, pointerWithin,
   useDroppable, useSensor, useSensors, type CollisionDetection,
@@ -21,10 +21,11 @@ const collisionDetection: CollisionDetection = (args) => {
 };
 
 export function PlanningDnd({ children }: { children: ReactNode }) {
+  const id = useId();
   const [preview, setPreview] = useState<DragPreview>({ theme: "", month: null, group: null });
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor));
   function clear() { setPreview({ theme: "", month: null, group: null }); }
-  return <DndContext sensors={sensors} collisionDetection={collisionDetection} measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+  return <DndContext id={id} sensors={sensors} collisionDetection={collisionDetection} measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
     accessibility={{ screenReaderInstructions: { draggable: "Trykk mellomrom for å dra temaet. Bruk piltaster til å velge måned, mellomrom for å slippe og Escape for å avbryte." } }}
     onDragStart={({ active }) => setPreview({ theme: String(active.data.current?.theme ?? ""), month: null, group: null })}
     onDragOver={({ active, over }) => {

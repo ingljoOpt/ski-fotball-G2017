@@ -32,13 +32,15 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 - [x] Månedsvisning i årsplanen med gjentakende treninger, unntak og enkeltøkter. Ingen separat kalenderside; gamle lenker videresendes med valgt år/måned.
 - [x] Cup, ferie/fridag og øvrige heldagshendelser med datointervall, redigering/fjerning, tenant-grenser og revisjonsvern. Hendelser avlyser ikke treninger automatisk og inngår i nye kontekstsnapshots uten å endre historiske øktversjoner.
-- [x] Lagmeny med Økter, Årsplan, Brukere, Innstillinger og Egne øvelser. Økter som startside med neste trening, genereringsplassholder, manuell oppretting og fem siste lagrede økter.
+- [x] Lagmeny med Økter, Årsplan, Brukere, Innstillinger, Egne øvelser og Sportsplan. Økter som startside med neste trening, genereringsplassholder, manuell oppretting og fem siste lagrede økter.
 - [x] Klikkbart årshjul og vertikalt rullbar årsoversikt med månedens temaer, øvingsmål og progresjon.
 - [x] Fra-/til-tid på hver økt, automatisk beregnet varighet og serverstyrt arv av tidsrom fra valgt trening. Migrere eksisterende tider/økter og historiske snapshots uten å endre tidligere varighet.
 - [x] Års-/periodeplan med tema, øvingsmål og progresjon. Årgang er en laginnstilling, med rollebeskyttet redigering og alder/NFF-kilde per planår.
 - [x] Bruk «Lag» i grensesnittet. Behold eksisterende lenker og interne modellnavn. Migrer entydige årganger fra årsplaner, vis konflikter for avklaring og bevar tidligere verdier og øktversjoner.
 - [x] Aldersbestemt NFF-kildelenke og lagret årsplankontekst, uten automatisk temagenerering før steg 4.
-- [ ] Klubbfelles sportsplan, veiledning og utstyr med versjonering.
+- [x] Klubbfelles sportsplan og veiledning: administratorstyrt opplasting av flere Markdown-, PDF- og Word-dokumenter, Markdown-redigering, lesetilgang for trenere og arkivering av tidligere versjoner. Lagrede øktplaner endres ikke.
+- [ ] Visning og gjenoppretting av arkiverte klubbdokumenter.
+- [ ] Klubbfelles utstyrsliste med versjonering og lokale lagtilpasninger.
 - [x] Manuelle øktutkast med Tiim-inspirert oppbygning, ordnede øvelseskort og uforanderlige planversjoner.
 - [x] Tiim-inspirert øktdesign med toppdel, faktaboks, innholdsnavigasjon, tidsummerte deler og øvelseskort med sammenleggbare fag-/ressursfelt. Blå standardpalett og lokalt levert Montserrat; lagrede klubbprofiler og øvelsesrekkefølge bevares. Utskrift og snarvei til redigering.
 - [x] Full endringshistorikk for økter, årsplaner og periodeplaner: vis hvem, når og hva som ble endret, også ved statusendringer og sletting av perioder. Lagre historikk atomisk med endringen, skill bruker-/AI-/systemhandlinger og hold aktøridentitet utenfor offentlig deling. Eksisterende øktversjoner er migrert; uloggede statusendringer og årsplaner/perioder fra før funksjonen mangler snapshots og kan ikke rekonstrueres.
@@ -50,8 +52,10 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 - [x] Første øktagent med Vercel AI SDK ToolLoopAgent, Vercel AI Gateway og `@ai-sdk/react` (AI SDK UI): streaming-chat i sidestolpe ved redigering, forhåndsvisning og eksplisitt bruk av et validert forslag.
 - [x] Tenant-avgrenset kontekst fra gjeldende usparte økt, årgang, årsplan, hendelser og fem tidligere planer; gjenbruk av eksisterende kildeopplysninger uten ny kildekontroll.
-- [ ] Utvide agentkontekst med faktiske evalueringer og klubbfelles veiledning/utstyr når disse finnes.
-- [ ] NFFs aldersriktige sportsplan/fagplan som standard forslag til årsplantemaer og øvingsmål, med faktisk kildekontroll og trenergodkjenning. Ikke generer dette før AI er på plass.
+- [x] Bruke aktive klubbdokumenter som tenant-avgrenset kilde i øktagenten, med tydelig informasjon om at uttrukket tekst sendes til modellleverandøren.
+- [ ] Utvide agentkontekst med faktiske evalueringer og klubbfelles utstyr når disse finnes.
+- [x] Foreslå årsplantemaer og øvingsmål fra lagret aldersriktig NFF-fagplan, med kildeopplysninger og eksplisitt trenerbekreftelse. Ved oppdatering kontrolleres kildebelegg og aldersmerking; 8–9 år følger med som startdata.
+- [ ] Verifisere faktisk NFF-innhenting via Gateway og aktuelle kilder for andre aldersklasser enn de medfølgende startdataene. Oppdatering og kildekontroll er hittil testet med simulert modell og fiktive kilder.
 - [x] Bruke planleggingskontrakten og versjonsflyten for AI-assisterte revisjoner; ta hensyn til manuelt oppdaterte spiller-/trenerantall, bevare bekreftede rammer, eksakt tidslengde og gamle øktversjoner.
 - [ ] Nettleserverktøy for Tiim, kildekontroll og tydelig feilrapportering.
 - [x] Komplett AI-forslag med kontrollpunkter, eksplisitt erstatning i skjemaet, vern mot utdaterte forslag og AI-merket versjon ved trenerens lagring. Manuelt opprettede enkeltøkter starter med et automatisk AI-førsteutkast som kan redigeres eller justeres videre i chatten. Forslaget lagres ikke før treneren velger lagring/godkjenning.
@@ -78,6 +82,8 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 
 ## Leveransestatus
 
+Sportsplan og veiledning har egen klubb- og lagmeny. Administrator kan laste opp dokumenter eller opprette og redigere Markdown; trenere kan lese og laste ned. Endringer arkiverer tidligere versjon, men arkivvisning og gjenoppretting mangler. Øktagenten får bare aktive dokumenter fra riktig klubb. Målrettet kjøring av dokument-, tilgangs-, AI- og NFF-testene ga 31 beståtte tester, inkludert databasekontroller. NFF-innhenting og AI-forslag i denne testkjøringen bruker simulert modell, ikke et ekte Gateway-kall.
+
 Første AI-øktassistent er implementert med AI SDK/Gateway og AI SDK UI-chat i øktredigeringen. Kontroller av kontekst, tenant-grenser, kildedata, eksakt varighet, ressurser og eksplisitt AI-assistert versjonslagring er testet. Verifiseringen omfatter 43 enhetstester og 33 databasekontroller, typekontroll, lint og produksjonsbygg. Streaming/proposal-flyten er kontrollert med simulert modell; ekte Gateway-kall krever servernøkkel og er ikke verifisert uten denne.
 
 Autentiserte HTTP-kontroller dekker manglende Gateway-nøkkel (503), innlogging (401), fremmed origin (403), ugyldig melding/størrelsesgrense (400) og feil økt/utdatert revisjon (409). Nettleserkontrollen med fiktive data dekker desktop-sidestolpe, mobil ved 320/375 piksler uten overløp, forslag uten automatisk lagring, avvisning etter manuell endring, eksplisitt bruk og ny AI-merket versjon, strømmefeil og bevaring av skjema ved avvist godkjenning. Ingen ekte klubbdata er sendt til en modell eller brukt som testdata.
@@ -88,7 +94,7 @@ Verifisert med 37 enhetstester og 32 databasekontroller. Autentisert nettleserko
 
 Grensesnittet bruker nå «Lag», og årgang administreres på laget, ikke i årsplanen. Migrering av entydige årganger, avklaring av konflikter, rollegrenser og uendrede historiske øktversjoner er verifisert med 33 enhetstester og 29 databasekontroller. Typekontroll, lint og produksjonsbygg er bestått. Autentisert HTTP-kontroll dekker lagmeny, oppretting, innstillinger og aldersriktig NFF-kilde på tvers av planår. Lokal database er migrert.
 
-Navigasjonsoppryddingen skiller oversikter fra administrasjon: klubbens lag, brukere og profilinnstillinger har egne ruter. Lagets fem menyvalg er Økter, Årsplan, Brukere, Innstillinger og Egne øvelser, samlet i slide-in-meny på mobil og venstre sidemeny på desktop. Økter viser kommende trening og siste lagrede økter; genereringsdato er tydelig merket som en inaktiv AI-plassholder. Årsplanen har et interaktivt årshjul og rullbar månedsoversikt. Animasjonseditoren gjenbruker eksisterende kode og JSON-format lokalt i appen, med filbasert lagring hos treneren inntil felles øvelsesbank er implementert. Oppretting av klubb, lag og enkeltøkt har dedikerte sider. Kalenderen nås fra Økter. Konto og utlogging er samlet i en egen meny.
+Navigasjonsoppryddingen skiller oversikter fra administrasjon: klubbens lag, brukere og profilinnstillinger har egne ruter. Lagmenyen inneholder Økter, Årsplan, Brukere, Innstillinger, Egne øvelser og Sportsplan, samlet i slide-in-meny på mobil og venstre sidemeny på desktop. Økter viser kommende trening og siste lagrede økter; genereringsdato er tydelig merket som en inaktiv AI-plassholder. Årsplanen har et interaktivt årshjul og rullbar månedsoversikt. Animasjonseditoren gjenbruker eksisterende kode og JSON-format lokalt i appen, med filbasert lagring hos treneren inntil felles øvelsesbank er implementert. Oppretting av klubb, lag og enkeltøkt har dedikerte sider. Kalenderen nås fra Økter. Konto og utlogging er samlet i en egen meny.
 
 Verifisert med 30 enhets-/animasjonstester, 26 databasekontroller, typekontroll, lint og produksjonsbygg. Nettleserkontrollen dekker seks hoved-/administrasjonssider ved 375 pikslers bredde, kalender, profil og enkeltøktskjema ved 320 piksler og klubboversikt ved 1280 piksler uten horisontal sideoverløp. Hamburgermenyen er kontrollert med tastatur, Escape, aktivt menyvalg og lukking ved navigasjon. Avviste skjemaer returnerer til riktig underside uten å opprette data.
 
@@ -112,4 +118,4 @@ Fra-/til-tider er kontrollert med 30 enhets-/animasjonstester og 26 databasekont
 
 Nettleserkontrollen med en vanlig trener og isolerte, fiktive data dekker årsplan og temaperiode, aldersriktig NFF-lenke, kalender med arvede temaer, utkast og godkjenning, øvelsesrekkefølge/fjerning, versjonshistorikk, flytting og avlysning/gjenåpning. Avvist godkjenning bevarer tekstfelt, tekstområder, tall og øktdel. Årsplan, kalender og åpen øktbygger er kontrollert ved 375 pikslers bredde uten horisontal overløp. Ingen faktiske lagøkter er opprettet i Markdown-historikken.
 
-Klubbfelles dokumenter/utstyr og faktisk gjennomføring/evaluering gjenstår i steg 3. AI, NFF-temagenerering, automatisk generering, Neon Auth og offentlig deling er fortsatt uferdige. Automatisk gruppering kommer sammen med AI; dagens tallkontroll gjør ikke om organiseringen på egen hånd. Avkrysning gjøres først når funksjonen er implementert og verifisert. Se også kjente utviklingsavhengighetsvarsler i [README](../README.md#verifisering-og-migreringer).
+Klubbfelles utstyr, arkivvisning for dokumenter og faktisk gjennomføring/evaluering gjenstår i steg 3. Den første AI-assistenten og lokale NFF-temaforslag er implementert, men live NFF-innhenting via Gateway, planlagte automatiske utkast, Neon Auth og offentlig deling er fortsatt uverifisert eller uferdig. Dagens tallkontroll gjør ikke om organiseringen på egen hånd. Avkrysning gjøres først når funksjonen er implementert og verifisert. Se også kjente utviklingsavhengighetsvarsler i [README](../README.md#verifisering-og-migreringer).

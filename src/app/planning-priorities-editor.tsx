@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { GripVertical } from "lucide-react";
@@ -8,12 +8,13 @@ import { priorityLabels, type PlanningPriority } from "@/lib/planning-priorities
 import { ActionButton } from "@/app/ui";
 
 export function PlanningPrioritiesEditor({ priorities, disabled = false }: { priorities: PlanningPriority[]; disabled?: boolean }) {
+  const id = useId();
   const [items, setItems] = useState(priorities);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   return <>
     <input type="hidden" name="aiPriorities" value={JSON.stringify(items)} />
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
+    <DndContext id={id} sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
       if (!disabled && over && active.id !== over.id) setItems((current) => arrayMove(current,
         current.indexOf(active.id as PlanningPriority), current.indexOf(over.id as PlanningPriority)));
     }} accessibility={{ screenReaderInstructions: { draggable: "Trykk mellomrom for å flytte prioriteringen, bruk piltaster for å endre rekkefølgen, og mellomrom for å slippe. Escape avbryter." } }}>
