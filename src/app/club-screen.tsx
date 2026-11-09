@@ -5,15 +5,19 @@ import { ZodError } from "zod";
 import { getDatabase } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { clubAdministration, DomainError, listClubGroups } from "@/lib/domain";
-import { deleteClubAdmin, newAdminInvitation, newGroup, revokeAdminInvitation } from "@/app/actions";
+import { archiveDocument, deleteClubAdmin, newAdminInvitation, newGroup, revokeAdminInvitation } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubTheme } from "@/app/club-theme";
 import { ClubProfileEditor } from "@/app/club-profile-editor";
 import { NavigationLinks } from "@/app/navigation";
 import { clubUrl, teamUrl } from "@/lib/slugs";
+import { listClubDocuments } from "@/lib/club-documents";
+import { ClubDocumentUpload } from "@/app/club-document-upload";
+import { ClubMarkdownEditor } from "@/app/club-markdown-editor";
+import { MarkdownView } from "@/app/markdown-view";
 
 export async function ClubScreen({ params, searchParams, section = "grupper" }: {
-  params: Promise<{ clubId: string }>; searchParams: SearchParams; section?: "grupper" | "ny-gruppe" | "brukere" | "innstillinger";
+  params: Promise<{ clubId: string }>; searchParams: SearchParams; section?: "grupper" | "ny-gruppe" | "brukere" | "innstillinger" | "sportsplan";
 }) {
   const user = await requireUser();
   const { clubId } = await params;
@@ -24,10 +28,12 @@ export async function ClubScreen({ params, searchParams, section = "grupper" }: 
     if (error instanceof DomainError || error instanceof ZodError) notFound();
     throw error;
   }
-  if (section !== "grupper" && !details.club.isAdmin) notFound();
+  if (section !== "grupper" && section !== "sportsplan" && !details.club.isAdmin) notFound();
   const basePath = clubUrl(details.club);
   const administration = section === "brukere"
     ? await clubAdministration(await getDatabase(), user.id, clubId) : null;
+  const documents = section === "sportsplan"
+    ? await listClubDocuments(await getDatabase(), user.id, clubId) : [];
   const profileKey = `${details.club.primaryColor}-${details.club.accentColor}-${createHash("sha256").update(details.club.logoData ?? "").digest("hex")}`;
   return (
     <ClubTheme club={details.club} header>
@@ -35,14 +41,46 @@ export async function ClubScreen({ params, searchParams, section = "grupper" }: 
       <AppLink className="back" href="/oversikt">← Mine klubber</AppLink>
       <NavigationLinks className="context-navigation" label="Klubbmeny" items={[
         { href: basePath, label: "Lag" },
+        { href: `${basePath}/lag/sportsplan`, label: "Sportsplan" },
         ...(details.club.isAdmin ? [
           { href: `${basePath}/brukere`, label: "Brukere" },
           { href: `${basePath}/innstillinger`, label: "Innstillinger" },
         ] : []),
       ]} />
-      <h1>{section === "grupper" ? "Lag" : section === "ny-gruppe" ? "Opprett lag" : section === "brukere" ? "Brukere" : "Klubbinnstillinger"}</h1>
+      <h1>{section === "grupper" ? "Lag" : section === "ny-gruppe" ? "Opprett lag" : section === "brukere" ? "Brukere" : section === "sportsplan" ? "Sportsplan og retningslinjer" : "Klubbinnstillinger"}</h1>
       <Notices searchParams={searchParams} />
-      {section === "innstillinger" && <div className="settings-content" id="klubbprofil"><p className="muted">Klubbens nettadresse: {basePath}</p><ClubProfileEditor key={profileKey} clubId={clubId} club={details.club} /></div>}
+      {section === "innstillinger" && <div className="settings-content stack" id="klubbprofil"><p className="muted">Klubbens nettadresse: {basePath}</p><ClubProfileEditor key={profileKey} clubId={clubId} club={details.club} /></div>}
+      {section === "sportsplan" && <div className="settings-content stack">
+        <Card className="app-card">
+          <p>Dokumentene er tilgjengelige for klubbens trenere. Teksten sendes til AI-leverandøren når øktassistenten brukes. Ikke last opp personopplysninger eller materiale klubben ikke har rett til å bruke.</p>
+          {details.club.isAdmin && <>
+            <details className="exercise-detail"><summary>Last opp dokumenter</summary><ClubDocumentUpload clubId={clubId} /></details>
+            <details className="exercise-detail"><summary>Opprett Markdown-dokument</summary><ClubMarkdownEditor key={documents.length} clubId={clubId} /></details>
+            <small>Fjernede dokumenter og tidligere versjoner arkiveres. Lagrede øktplaner endres ikke.</small>
+          </>}
+        </Card>
+        <section className="stack" aria-label="Klubbens dokumenter">
+          {documents.length ? documents.map((document) => {
+            const text = document.markdownData === null ? null : Buffer.from(document.markdownData, "base64").toString("utf8");
+            return <Card className="app-card" key={document.id}>
+              <h2>{document.name}</h2>
+              <a href={`/api/klubbdokumenter/${clubId}/${document.id}`}>Last ned {document.name}</a>
+              {text !== null && <MarkdownView text={text} />}
+              {text === null && <details className="exercise-detail"><summary>Les dokumenttekst</summary>
+                <small>Automatisk tekstuttrekk kan mangle bilder, formatering eller annet innhold. Last ned originalen for hele dokumentet.</small>
+                <p className="preserve-lines">{document.extractedText}</p>
+              </details>}
+              {details.club.isAdmin && <>
+                {text !== null && <details className="exercise-detail"><summary>Rediger Markdown</summary>
+                  <ClubMarkdownEditor clubId={clubId} document={{ id: document.id, name: document.name, text }} />
+                </details>}
+                <form action={archiveDocument}><input type="hidden" name="clubId" value={clubId} /><input type="hidden" name="documentId" value={document.id} />
+                  <SubmitButton variant="danger-soft" size="sm">Fjern fra aktive dokumenter</SubmitButton></form>
+              </>}
+            </Card>;
+          }) : <p className="muted">Ingen dokumenter er lagt til.</p>}
+        </section>
+      </div>}
       {section === "grupper" && <div className="page-content">
         {details.club.isAdmin && <AppLink href={`${basePath}/lag/ny`}>+ Opprett lag</AppLink>}
         <section className="stack">

@@ -23,6 +23,7 @@ import {
 import { yearSchema } from "@/lib/planning";
 import { canonicalDestination } from "@/lib/tenant-routing";
 import { refreshNffCurriculum } from "@/lib/nff-curriculum";
+import { archiveClubDocument, saveClubMarkdown, uploadClubDocuments } from "@/lib/club-documents";
 
 const field = (form: FormData, key: string) => {
   const value = form.get(key);
@@ -36,6 +37,37 @@ const clubPath = (form: FormData) => {
   const id = idSchema.safeParse(field(form, "clubId"));
   return id.success ? `/klubber/${id.data}` : "/oversikt";
 };
+
+export async function uploadDocuments(form: FormData) {
+  const user = await requireUser();
+  return run(`${clubPath(form)}/lag/sportsplan`, async () => {
+    const files = form.getAll("documents").filter((value): value is File => value instanceof File && Boolean(value.name));
+    await uploadClubDocuments(await getDatabase(), user.id, field(form, "clubId"), files);
+    return `${clubPath(form)}/lag/sportsplan?melding=${encodeURIComponent("Dokumentene er lastet opp.")}`;
+  });
+}
+
+export async function archiveDocument(form: FormData) {
+  const user = await requireUser();
+  return run(`${clubPath(form)}/lag/sportsplan`, async () => {
+    await archiveClubDocument(await getDatabase(), user.id, field(form, "clubId"), field(form, "documentId"));
+    return `${clubPath(form)}/lag/sportsplan?melding=${encodeURIComponent("Dokumentet er fjernet fra aktive klubbkilder.")}`;
+  });
+}
+
+export async function saveMarkdown(_state: { message: string; saved: boolean }, form: FormData) {
+  const user = await requireUser();
+  try {
+    await saveClubMarkdown(await getDatabase(), user.id, field(form, "clubId"), field(form, "documentId"), field(form, "name"), field(form, "content"));
+    revalidatePath(await canonicalDestination(await getDatabase(), user.id, `${clubPath(form)}/lag/sportsplan`));
+    return { message: "Markdown-dokumentet er lagret.", saved: true };
+  } catch (error) {
+    if (error instanceof DomainError) return { message: error.message, saved: false };
+    if (error instanceof ZodError) return { message: "Ugyldig dokument eller klubb.", saved: false };
+    console.error("Markdown-dokumentet kunne ikke lagres:", error);
+    return { message: "Lagringen feilet. Teksten er beholdt i skjemaet; prøv igjen.", saved: false };
+  }
+}
 
 async function run(fallback: string, operation: () => Promise<string>): Promise<never> {
   let destination: string;

@@ -80,7 +80,7 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
     annualObjectives: "Pasning og bevegelse", periods: [], events: [], history: [], sources: [], limitations: "Fiktive testdata",
     curriculum: { topics: [], fetchedAt: "2026-11-08T12:00:00Z", warnings: ["Fagplan fra NFF"] },
     priorities: [...defaultPlanningPriorities].reverse(), prioritySources: [], coachInput: "Fiktive trenerinnspill",
-    clubCohortHistory: [], previousPlan: null, tiimExercises: [],
+    clubCohortHistory: [], clubGuidelines: [{ name: "plan.md", text: "Fiktiv sportsplan om spillglede" }], previousPlan: null, tiimExercises: [],
   };
   const model = mockSessionModel(proposal);
   const response = await createAgentUIStreamResponse({
@@ -98,6 +98,7 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
   assert.deepEqual(model.doStreamCalls[1].toolChoice, { type: "tool", toolName: "readPlanningContext" });
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktive testdata/);
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fagplan fra NFF/);
+  assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktiv sportsplan om spillglede/);
   assert.match(JSON.stringify(model.doStreamCalls[1].prompt), /tiim_exercises/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /Trenerens eksplisitte ønsker/);
   assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /be om avklaring/);
@@ -115,7 +116,7 @@ test("invalid model proposals are streamed as tool errors, never usable plans", 
     annualObjectives: "", periods: [], events: [], history: [], sources: [], limitations: "Fiktive testdata",
     curriculum: { topics: [], fetchedAt: "", warnings: [] },
     priorities: defaultPlanningPriorities, prioritySources: [], coachInput: "",
-    clubCohortHistory: [], previousPlan: null, tiimExercises: [],
+    clubCohortHistory: [], clubGuidelines: [], previousPlan: null, tiimExercises: [],
   };
   const response = await createAgentUIStreamResponse({
     agent: createSessionAgent(context, mockSessionModel(proposal)),

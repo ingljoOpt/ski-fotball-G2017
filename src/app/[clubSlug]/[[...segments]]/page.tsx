@@ -32,6 +32,7 @@ export default async function TenantPage({ params, searchParams }: {
   if (!path) return <ClubScreen {...clubProps} />;
   if (path === "brukere" || path === "innstillinger") return <ClubScreen {...clubProps} section={path} />;
   if (path === "lag/ny") return <ClubScreen {...clubProps} section="ny-gruppe" />;
+  if (path === "lag/sportsplan") return <ClubScreen {...clubProps} section="sportsplan" />;
   let team;
   try { team = await teamBySlug(db, user.id, clubSlug, segments[0]); }
   catch (error) {

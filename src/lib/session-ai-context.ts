@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
 import type { Database } from "../db/index.ts";
-import { groups, sessionVersions, trainingEvents } from "../db/schema.ts";
+import { clubDocuments, groups, sessionVersions, trainingEvents } from "../db/schema.ts";
 import { DomainError } from "./domain.ts";
 import { annualPlanning, trainingEventDetails } from "./planning-domain.ts";
 import { eventsDuring, nffAgeSource, periodsOnDate, type Exercise } from "./planning.ts";
@@ -55,8 +55,13 @@ export async function sessionAIContext(db: Database, userId: string, groupId: st
     progression: plan.progression.slice(0, 1200), exercises: plan.exercises.slice(0, 10).map(exerciseSummary) }));
   const tiimExercises = exercises.filter((exercise) => exercise.sourceUrl && new URL(exercise.sourceUrl).hostname === "tiim.no").slice(0, 12).map(exerciseSummary);
   const input = details.event.coachInput;
+  const guidelines = await db.select({ name: clubDocuments.name, text: clubDocuments.extractedText })
+    .from(clubDocuments).where(and(eq(clubDocuments.clubId, annual.group.clubId), isNull(clubDocuments.archivedAt)))
+    .orderBy(clubDocuments.createdAt);
   const sourceData = {
-    club_guidelines: { status: "unavailable", reason: "Klubbens retningslinjer og sportsplan er ikke registrert i appen." },
+    club_guidelines: guidelines.length
+      ? { status: "available", contextFields: ["clubGuidelines"], reason: "Aktive klubbdokumenter med uttrukket tekst." }
+      : { status: "unavailable", reason: "Klubbens retningslinjer og sportsplan er ikke registrert i appen." },
     period_focus: { status: periods.length ? "available" : "partial", contextFields: ["periods", "annualObjectives", "curriculum"], reason: periods.length ? "Periodene er lagret og låst av trener." : "Ingen låst temaperiode på øktdatoen." },
     coach_input: { status: input ? "available" : "unavailable", data: input, reason: input ? "Innspill registrert ved manuell oppretting." : "Ingen særskilte trenerinnspill registrert ved oppretting." },
     previous_evaluations: { status: historicalPlans.length ? "partial" : "unavailable", contextFields: ["history", "previousPlan"], reason: "Tidligere planer finnes, men faktiske evalueringer er ikke implementert. Ikke anta hva som fungerte." },
@@ -67,6 +72,7 @@ export async function sessionAIContext(db: Database, userId: string, groupId: st
     priorities,
     prioritySources: priorities.map((id) => ({ id, label: priorityLabels[id], ...sourceData[id] })),
     coachInput: input,
+    clubGuidelines: guidelines,
     clubCohortHistory: cohortPlans,
     previousPlan: historicalPlans.length ? historicalPlans[0] : null,
     tiimExercises,
@@ -80,6 +86,6 @@ export async function sessionAIContext(db: Database, userId: string, groupId: st
     events: eventsDuring(annual.events, draft.event.date).map(({ title, kind, startDate, endDate, description }) => ({ title, kind, startDate, endDate, description })),
     history: historicalPlans,
     sources,
-    limitations: "Historikken er tidligere planer, ikke dokumentasjon på gjennomføring. Evalueringer og klubbfelles sportsplan/utstyr er ikke implementert. NFF-fagplan er hentet som faglig støtte med hentetidspunkt og eventuelle kildeadvarsler, ikke kontroll av konkrete øvelser. Øvelsenes kildedata er tidligere treneropplysninger, ikke ny kildekontroll.",
+    limitations: "Historikken er tidligere planer, ikke dokumentasjon på gjennomføring. Evalueringer og klubbfelles utstyr er ikke implementert. Dokumenttekst er maskinelt hentet ut og kan mangle formatering, bilder eller innhold. NFF-fagplan er hentet som faglig støtte med hentetidspunkt og eventuelle kildeadvarsler, ikke kontroll av konkrete øvelser. Øvelsenes kildedata er tidligere treneropplysninger, ikke ny kildekontroll.",
   };
 }

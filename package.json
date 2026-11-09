@@ -29,13 +29,18 @@
     "cheerio": "^1.2.0",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.70.0",
+    "mammoth": "^1.11.0",
     "next": "^16.0.0",
+    "pdf-parse": "^2.4.5",
     "postgres": "^3.4.7",
     "proper-lockfile": "^4.1.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
     "sharp": "^0.35.5",
+    "yauzl": "^3.2.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -44,10 +49,12 @@
     "@types/proper-lockfile": "^4.1.4",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@types/yauzl": "^2.10.3",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.6",
     "eslint": "^9.39.0",
     "eslint-config-next": "^16.0.0",
+    "jszip": "^3.10.1",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.3"
   }

@@ -32,12 +32,20 @@ PGlite skal bare åpnes av én prosess om gangen. Appen deler én instans mellom
 På desktop (fra 1000 piksler) vises hovedmenyen og klubb-/lagvalgene i en fast sidemeny til venstre. På mindre skjermer åpner hamburgerknappen **Meny** én samlet meny som glir inn fra venstre, med både hovedvalg og klubb-/lagvalg. Ingen ekstra faner eller sidemenyer vises i sideinnholdet på mobil. Menyen markerer aktiv side, holder tastaturfokus inne og lukkes med Escape, lukkeknappen, valg av lenke eller trykk på bakgrunnen. Bakgrunnssiden kan ikke rulles mens menyen er åpen. Redusert bevegelse respekteres.
 
 - **Mine klubber** viser klubbene; **Opprett klubb** har egen side.
-- **Klubb → Lag** viser lagene; oppretting av lag, **Brukere** (klubbadministratorer) og **Innstillinger** (logo/farger) har egne sider.
+- **Klubb → Lag** viser lagene. **Sportsplan** viser klubbens dokumenter for trenere og administratorer; oppretting av lag, **Brukere** (klubbadministratorer) og **Innstillinger** (logo/farger) har egne sider.
 - **Lag → Økter** viser neste trening og siste lagrede økter. Lagmenyen har også **Årsplan**, **Brukere**, **Innstillinger** og **Egne øvelser**. **Innstillinger** samler årgang, treningstider og automatiseringsrammer.
 - **Årsplan** samler årshjul, temaer og månedsvisning av treninger og hendelser. Velg måned i hjulet, månedsmenyen eller den rullbare oversikten. På mobil viser dagene antall økter og hendelser; detaljer og handlinger finnes under. Det er ingen separat kalenderside.
 - **Kontoavataren** øverst til høyre viser brukerens forbokstav og åpner en egen meny med innloggingsinformasjon og **Logg ut**. Escape lukker menyen og flytter fokus tilbake til avataren.
 
 Administratorsider og redigeringshandlinger beholder eksisterende tilgangskontroll. Lagring og valideringsfeil returnerer til den aktuelle administrasjonssiden.
+
+### Sportsplan og retningslinjer
+
+**Sportsplan** i klubb- og lagmenyen viser klubbens dokumenter. Trenere kan lese Markdown og uttrukket tekst fra PDF og Word på siden, og laste ned originalene, men bare klubbadministratorer kan opprette, redigere, laste opp eller fjerne dem. Tekstuttrekk kan mangle bilder, formatering og annet innhold. Administratorer kan opprette og redigere Markdown med formateringsknapper og forhåndsvisning. HTML og bilder vises ikke i Markdown-visningen; bilder kan fremdeles finnes i originalfilen.
+
+Klubbadministrator laster opp Markdown (.md eller .markdown, UTF-8), PDF med utvinnbar tekst eller Word (.docx) på **Sportsplan**. Flere filer kan velges samtidig. Andre klubber og offentlige lesere har ikke tilgang. Opptil fem filer kan lastes opp om gangen, hver på høyst 2 MiB. Klubben kan ha ti aktive dokumenter med høyst 50 000 tegn per dokument og 200 000 tegn til sammen. Skannede PDF-er uten utvinnbar tekst må tekstgjenkjennes før opplasting.
+
+Øktassistenten mottar den uttrukne teksten fra alle aktive dokumenter via AI Gateway og modellleverandøren. Bilder, formatering og annen informasjon kan mangle i tekstuttrekket. Ikke last opp personopplysninger eller materiale klubben ikke har rett til å bruke. Ved redigering arkiveres den forrige versjonen, og en ny aktiv versjon opprettes. Samtidige endringer avvises uten å tømme skjemaet. For PDF og Word fjernes den aktive filen før en erstatning lastes opp. Arkiverte filer lagres i databasen, men har foreløpig ingen visning eller gjenoppretting i appen. Eksisterende lagrede øktplaner endres ikke. Dokumenter lagres i den lokale databasen, ikke i Git.
 
 ### Administrere roller
 

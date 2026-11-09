@@ -81,7 +81,7 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, initi
       <p className="muted">{initialDraft
         ? "Førsteutkastet fylles automatisk inn her. Rediger det eller be assistenten justere; ingenting lagres før du lagrer økten."
         : "Få et forslag eller juster økten. Forslag endrer ingenting før du velger å bruke dem."}</p>
-      <p className="ai-privacy">Øktinnhold, årsplan og inntil fem tidligere planer sendes via Vercel AI Gateway. Ikke skriv navn eller private opplysninger om barn. Chatten lagres ikke.</p>
+      <p className="ai-privacy">Øktinnhold, årsplan, klubbens aktive dokumenttekst og inntil fem tidligere planer sendes via Vercel AI Gateway til modellleverandøren. Ikke skriv navn eller private opplysninger om barn. Chatten lagres ikke.</p>
       <div ref={log} className="ai-messages" role="log" aria-label="Samtale med øktassistenten">
         {!messages.length && <p>For eksempel: «Lag en økt med pasning og bevegelse» eller «Tilpass organiseringen til rammene i skjemaet».</p>}
         {messages.map((message) => <article className={`ai-message ai-message-${message.role}`} key={message.id}>

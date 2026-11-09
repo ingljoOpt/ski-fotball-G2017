@@ -67,6 +67,14 @@ small { color: var(--muted); }
 .profile-colors input { min-height: 48px; }
 .profile-preview { padding: 1rem; border: 2px solid var(--club-primary); border-radius: .6rem; display: grid; gap: 1rem; background: white; }
 .profile-preview > .club-logo { margin-bottom: .5rem; }
+.markdown-toolbar { display: flex; gap: .5rem; flex-wrap: wrap; }
+.markdown-content { overflow-wrap: anywhere; min-width: 0; }
+.markdown-content h1, .markdown-content h2, .markdown-content h3 { margin: 1rem 0 .5rem; font-size: revert; }
+.markdown-content ul, .markdown-content ol { padding-left: 1.5rem; list-style: revert; }
+.markdown-content blockquote { border-left: 3px solid var(--line); padding-left: 1rem; }
+.markdown-content pre, .markdown-content table { display: block; overflow-x: auto; }
+.markdown-content table { border-collapse: collapse; }
+.markdown-content th, .markdown-content td { border: 1px solid var(--line); padding: .4rem; }
 .planning-nav { display: flex; flex-wrap: wrap; gap: 1.2rem; padding: 1rem 0; border-bottom: 1px solid var(--line); margin-bottom: 1.5rem; }
 .year-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .75rem; margin-top: 2rem; }
 .month-card { padding: 1rem; overflow-wrap: anywhere; }

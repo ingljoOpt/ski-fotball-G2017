@@ -15,6 +15,7 @@ import { prepareAIProposal } from "../../src/lib/session-ai.ts";
 import { aiEvent, aiProposal } from "./session-ai-fixtures.ts";
 import { defaultPlanningPriorities } from "../../src/lib/planning-priorities.ts";
 import { completePlan } from "./planning-fixtures.ts";
+import { archiveClubDocument, getClubDocument, listClubDocuments, saveClubMarkdown, uploadClubDocuments } from "../../src/lib/club-documents.ts";
 
 const requestedAges: (number | null)[] = [];
 const sessionAIContext: typeof buildSessionAIContext = (db, userId, groupId, eventId, revision, draft) =>
@@ -82,6 +83,27 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     const serialized = JSON.stringify(context);
     assert.doesNotMatch(serialized, /OTHER TENANT|@example.invalid|createdBy|userId|clubId|groupId|logoData/);
     assert.match(context.limitations, /ikke dokumentasjon på gjennomføring/);
+    await assert.rejects(uploadClubDocuments(db, coach.id, club.id, [new File(["Nei"], "plan.md")]), DomainError);
+    await uploadClubDocuments(db, admin.id, club.id, [new File(["# Klubbplan\nSpillglede"], "plan.md"), new File(["Retningslinjer"], "veiledning.md")]);
+    await uploadClubDocuments(db, outsider.id, otherClub.id, [new File(["HEMMELIG ANNEN KLUBB"], "andre.md")]);
+    const docs = await listClubDocuments(db, coach.id, club.id);
+    assert.equal(docs.length, 2);
+    assert.equal((await getClubDocument(db, coach.id, club.id, docs[0].id)).name, "plan.md");
+    await assert.rejects(getClubDocument(db, outsider.id, club.id, docs[0].id), DomainError);
+    await assert.rejects(archiveClubDocument(db, coach.id, club.id, docs[0].id), DomainError);
+    const withDocuments = await sessionAIContext(db, coach.id, group.id, id, 1, draft);
+    assert.equal(withDocuments.prioritySources.find((source) => source.id === "club_guidelines")?.status, "available");
+    assert.match(JSON.stringify(withDocuments.clubGuidelines), /Spillglede/);
+    assert.doesNotMatch(JSON.stringify(withDocuments), /HEMMELIG ANNEN KLUBB/);
+    await saveClubMarkdown(db, admin.id, club.id, docs[0].id, docs[0].name, "# Revidert sportsplan");
+    const revised = (await listClubDocuments(db, coach.id, club.id)).find((item) => item.name === "plan.md")!;
+    const updatedContext = await sessionAIContext(db, coach.id, group.id, id, 1, draft);
+    assert.match(JSON.stringify(updatedContext.clubGuidelines), /Revidert sportsplan/);
+    assert.doesNotMatch(JSON.stringify(updatedContext.clubGuidelines), /Spillglede/);
+    await archiveClubDocument(db, admin.id, club.id, revised.id);
+    await assert.rejects(getClubDocument(db, coach.id, club.id, docs[0].id), DomainError);
+    assert.deepEqual((await listClubDocuments(db, coach.id, club.id)).map((item) => item.name), ["veiledning.md"]);
+    requestedAges.splice(-2);
     const future = await sessionAIContext(db, admin.id, group.id, id, 1, {
       ...draft, event: { ...draft.event, date: "2027-01-02", theme: "Manuelt endret tema" },
     });

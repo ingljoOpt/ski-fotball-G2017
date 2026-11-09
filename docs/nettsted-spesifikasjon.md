@@ -33,6 +33,7 @@ En bruker kan være medlem av flere klubber og lag, med forskjellig rolle i hver
 - Ved overføring må mottakeren være et eksisterende medlem av samme lag. Overføringen utføres bare av klubbadministrator, og tidligere hovedtrener beholdes som vanlig trener. Rollebyttet og tilbakekalling av ubrukte hovedtrenerinvitasjoner gjøres atomisk.
 - Et lag har egne hovedtrenere/trenere, års-/periodeplan, kalender, økter og evalueringer.
 - Klubben kan vedlikeholde innhold som deles med lagene: sportsplan, trenerveiledning, utstyrsliste og andre dokumenter.
+- Sportsplan har en egen meny på klubb- og lagsider. Trenere kan lese Markdown og uttrukket tekst fra PDF og Word samt laste ned aktive dokumenter; bare klubbadministrator kan laste opp og arkivere dokumenter eller opprette og redigere Markdown. Tidligere versjoner arkiveres ved redigering, og samtidige redigeringer avvises.
 - Felles innhold skal versjoneres. En endring skal ikke i det stille endre en allerede godkjent eller gjennomført økt.
 - Lagets utstyrsbeholdning kan arve klubbens liste, med mulighet for lokale opplysninger og konkret tilgjengelighet per økt.
 
@@ -97,7 +98,7 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 - Agentens verktøy kan lese denne konteksten og foreslå en komplett plan. De kan ikke skrive til databasen. Bekreftet oppmøte/utstyr og dato/tid bevares; tidsplanen valideres mot faktisk øktlengde og samtidig ressursbehov.
 - Treneren ser øvelser og kontrollpunkter før **Bruk forslaget i skjemaet** erstatter tittel, tema, øvingsmål og planen. Forslag basert på et endret skjema avvises. Eksisterende lagring/godkjenning er fortsatt eksplisitt og oppretter en ny uforanderlig versjon med innlogget aktør og AI-assistert opprinnelse.
 - `AI_GATEWAY_API_KEY` er server-only, med valgfri `AI_MODEL` i Gateway-format. Manglende konfigurasjon og modell-/strømmefeil vises tydelig; manuell redigering fortsetter å fungere.
-- Chat/kontekst sendes til Vercel AI Gateway/modellleverandøren og må bare inneholde treningsinnhold. Chatten lagres ikke. Første versjon har ingen Tiim-nettleser, faktisk evaluering, klubbfelles dokumentinnhenting eller tidsstyrt generering. Kildeopplysninger fra tidligere planer er ikke ny verifisering.
+- Chat/kontekst, inkludert uttrukket tekst fra aktive klubbdokumenter, sendes til Vercel AI Gateway/modellleverandøren og må bare inneholde treningsinnhold. Chatten lagres ikke. Første versjon har ingen Tiim-nettleser, faktisk evaluering eller tidsstyrt generering. Kildeopplysninger fra tidligere planer er ikke ny verifisering.
 - Første agent har fire modellsteg og 110 sekunders tidsgrense per melding, avgrenset forespørsels-/chatstørrelse og seks forespørsler per bruker/minutt per prosess. Delt ratebegrensning/kostnadsbudsjett kreves før flerinstans-produksjon.
 
 ### Økter, redigering og evaluering

@@ -171,6 +171,18 @@ export const clubAdmins = pgTable("club_admins", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
 }, (table) => [primaryKey({ columns: [table.clubId, table.userId] })]);
 
+export const clubDocuments = pgTable("club_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  mediaType: text("media_type").notNull(),
+  data: text("data").notNull(),
+  extractedText: text("extracted_text").notNull(),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdAt: createdAt(),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
+}, (table) => [index("club_documents_club_idx").on(table.clubId)]);
+
 export const clubInvitations = pgTable("club_invitations", {
   id: uuid("id").defaultRandom().primaryKey(),
   clubId: uuid("club_id").notNull().references(() => clubs.id, { onDelete: "cascade" }),
