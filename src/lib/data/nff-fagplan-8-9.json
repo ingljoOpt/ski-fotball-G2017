@@ -1,0 +1,140 @@
+{
+  "aldersklasse": { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Fagplan 8-9 år - Femmerfotball", "fra": 8, "til": 9 },
+  "hovedtemaer": [
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Spille seg framover i banen", "navn": "Spille seg framover i banen",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Ut av pasningsskyggen – «jeg vil ha ballen»", "tekst": "Gjør deg spillbar ved å bevege deg ut av pasningsskyggen og gi tydelig signal om at du vil ha ballen." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Gjøre oss store sammen i bredde og dybde", "tekst": "Medspillere uten ball skaper bredde og dybde slik at laget får flere pasningsalternativer." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Utnytte rom fremover i banen ved å føre, drible eller «vennlig hilsen» pasning", "tekst": "Ballfører utnytter ledig rom fremover med føring, dribling eller en enkel fremoverpasning." }
+      ],
+      "delferdigheter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Medtak/mottak", "navn": "Medtak/mottak", "kobling": "tolkning" },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Pasning", "navn": "Pasning", "kobling": "tolkning" },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Føring", "navn": "Føring", "kobling": "tolkning" }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Komme til avslutning – score mål", "navn": "Komme til avslutning – score mål",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Plassering framfor kraft i avslutningen", "tekst": "I avslutningen prioriteres plassering fremfor kraft – se på keeper, se på ballen og vær tålmodig." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Bevegelser for å frigjøre seg: «fra – imot», «imot – fra»", "tekst": "Bruk fra–imot-bevegelser for å frigjøre seg fra markering og komme til skuddmulighet." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Overtall spill og kombinasjoner for å spille seg igjennom (eks. veggspill)", "tekst": "Skap overtall med kombinasjoner som veggspill for å bryte ned forsvaret og komme til avslutning." }
+      ],
+      "delferdigheter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Dribling", "navn": "Dribling", "kobling": "tolkning" },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Skudd", "navn": "Skudd", "kobling": "tolkning" },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Vending", "navn": "Vending", "kobling": "tolkning" }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Vinne ball – Hindre motstander å komme forbi oss", "navn": "Vinne ball – Hindre motstander å komme forbi oss",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Komme tett i press med rett fart og oppretthold presset med riktig kroppsstilling og korte, raske steg", "tekst": "Førsteforsvarer nærmer seg med kontrollert fart og opprettholder press med riktig kroppsstilling og raske steg." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Reagere hurtig sammen når 1F går for vinne ball", "tekst": "Resten av laget reagerer raskt og korter ned avstandene når førsteforsvarer går for å vinne ball." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Korte avstander mellom spillere i lengden", "tekst": "Laget holder korte avstander i lengde og bredde for å stenge rom og gjøre presset effektivt." }
+      ],
+      "delferdigheter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Press/tackling", "navn": "Press/tackling", "kobling": "tolkning" },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Kampen om ballen - fra angrep til forsvar", "navn": "Kampen om ballen - fra angrep til forsvar", "kobling": "tolkning" }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Hindre avslutning – hindre mål", "navn": "Hindre avslutning – hindre mål",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Komme seg på rett side mellom ball og eget mål", "tekst": "Alle forsvarere posisjonerer seg mellom ballen og eget mål for å nekte farlige rom." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Offervilje – først på ball", "tekst": "Vise offervilje og prioritere å komme først på ballen for å hindre avslutning." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Opp i blokk: blokke med fremsiden av kroppen", "tekst": "Når skudd ikke kan hindres, går spillerne opp i blokk med fremsiden av kroppen og jakter returer." }
+      ],
+      "delferdigheter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Press/tackling", "navn": "Press/tackling", "kobling": "tolkning" },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Klarering", "navn": "Klarering", "kobling": "tolkning" }
+      ]
+    }
+  ],
+  "delferdigheter": [
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Medtak/mottak", "navn": "Medtak/mottak",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Motta ballen med foten din som er nærmest motstanders mål dersom du ikke er under hardt press", "tekst": "Motta med foten nærmest motstanders mål når mulig – gir bedre kontroll og raskere videre spill." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Første touch til ledig rom, bort fra motstander", "tekst": "Første touch styres til ledig rom og bort fra motstander for å sikre ballbesittelse." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Løft blikket raskt", "tekst": "Etter mottak løftes blikket raskt for å velge neste handling (pasning, føring eller skudd)." }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Dribling", "navn": "Dribling",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Bruk hele kroppen til å finte (hofter, skuldre, blikk)", "tekst": "Bruk hele kroppen – hofter, skuldre og blikk – for å finte av motstander." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Hold blikket opp så mye som mulig", "tekst": "Hold blikket oppe så mye som mulig for å se medspillere og rom under dribling." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Akselerer forbi motstanderen etter at du har passert", "tekst": "Akselerér forbi motstanderen raskt etter gjennomført finte for å utnytte rommet." }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Vending", "navn": "Vending",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Orienter deg for å se om du skal vende", "tekst": "Orienter deg før vendingen – sjekk om det er rom og plass til å snu opp." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Bruk innside, utside eller såle for å snu ballen", "tekst": "Bruk innside, utside eller såle for å snu ballen kontrollert med ballen nær foten." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Sett fart i ny retning", "tekst": "Etter vendingen løftes blikket og det settes fart i ny retning." }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Pasning", "navn": "Pasning",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Blikket opp før tilslag for å sikte", "tekst": "Løft blikket og sikt mot mottaker før du slår pasningen." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Treff midt på ballen for flat pasning, under for løft, siden for skru", "tekst": "Treffpunkt på ballen bestemmer ballbanen: midt for flat, under for løft, siden for skru." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Beveg deg for å støtte angrepet eller vinne ballen tilbake", "tekst": "Etter pasningen beveger du deg for å støtte videre angrep eller hente tilbake eventuelt balltap." }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Føring", "navn": "Føring",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Bruk små touch når det er trangt, lengre touch i åpent rom", "tekst": "Tilpass antall touch til situasjonen: korte touch i trangt rom, lengre i åpent rom." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Veksle mellom innside, utside og såle for å holde ballen unna motstandere", "tekst": "Veksle mellom innside, utside og såle for å beholde ballen unna motstanderen." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Hold blikket opp ofte", "tekst": "Hold blikket oppe ofte under føringen for å oppdage rom og medspillere." }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Skudd", "navn": "Skudd",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Se på mål og keeper for å finne plass å skyte", "tekst": "Se på mål og keeper for å velge riktig skuddretning før du avslutter." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Velg skuddtype (innside for presisjon, vrist for kraft)", "tekst": "Velg skuddtype etter behov: innside for presisjon, vrist for kraft." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Følg opp returer med nytt skudd eller pasning", "tekst": "Følg alltid opp etter skudd – jakt returer med nytt skudd eller pasning til medspiller." }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Press/tackling", "navn": "Press/tackling",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Tilnærm deg kontrollert og senk farten", "tekst": "Nærm deg ballfører kontrollert og sett ned farten for å unngå å bli driblet av." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Stå sidevendt for å stenge den ene siden", "tekst": "Stå sidevendt for å stenge én side og lede ballføreren dit du ønsker." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Takle når ballen er litt for langt fra foten til ballføreren", "tekst": "Vent med takling til ballen er litt for langt fra ballførerens fot – unngå for tidlig inngripen." }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Klarering", "navn": "Klarering",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Stå skrått – magen delvis mot motstanderens mål, delvis mot sidelinje", "tekst": "Stå skrått med kroppen delvis mot motstanderens mål og delvis mot sidelinjen for best klareringsvinkel." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Spark ballen høyt og langt", "tekst": "Klarer ballen høyt og langt for å fjerne trusselen fra farlig sone." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Push ut sammen med laget", "tekst": "Etter klareringen skyver hele laget ut sammen for å begrense rommet bak." }
+      ]
+    },
+    {
+      "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Kampen om ballen - fra angrep til forsvar", "navn": "Kampen om ballen - fra angrep til forsvar",
+      "laeringsmomenter": [
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Hold tett kontakt uten å miste balansen", "tekst": "Bruk kroppen klokt i duellen – hold tett kontakt med styrke i overkroppen uten å miste balansen." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Les motstanderens første touch – gå på hvis den blir for lang", "tekst": "Les motstanderens første touch og gå inn for å vinne ballen hvis berøringen er for lang." },
+        { "kildeUrl": "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball", "sitat": "Hvis du vinner ballen, spill den til en trygg medspiller eller før fremover", "tekst": "Vinner du ballen, spill trygt til medspiller eller før fremover – kommuniser med nærmeste lagkamerat." }
+      ]
+    }
+  ],
+  "merknader": [
+    "Fagplanen gjelder 8–9 år (femmerfotball). Denne strukturen dekker 9-åringer, som er innenfor aldersgruppen.",
+    "De fire spillfasetemaene ('Spille seg framover i banen', 'Komme til avslutning – score mål', 'Vinne ball – Hindre motstander å komme forbi oss', 'Hindre avslutning – hindre mål') er de eneste eksplisitte hovedtemaene i kildens spillmodell for 8–9 år.",
+    "Delferdigheter som heading er inkludert i kilden (fagplan-8-9-ar-femmerfotball), men er ikke eksplisitt koblet til et bestemt spillfasetema i kilden og er derfor utelatt fra tema-delferdighetslistene. Se kilden for fullstendig liste.",
+    "Spillmodellen beskrives delvis gjennom bilder som ikke er lest (bildebeskrivelse angir 'Spillmodell 8-9 år'). Innhold i disse bildene er ikke fanget opp.",
+    "Øvelsesbanken (lenker til tiim.no/okter-og-ovelser) er ikke lest. Se kilden for ferdige treningsøkter per tema.",
+    "'Sjef over ballen'-øvelsene (25 % av øktandelen) er nevnt som aktivitetskategori, ikke som eget faglig tema eller delferdighet, og er ikke inkludert som hovedtema.",
+    "Dette er et prioritert utvalg med maksimalt tre læringsmomenter per tema og delferdighet. Se https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball og https://tiim.no/artikkel/slik-spiller-vi-femmerfotball for fullstendig faginnhold.",
+    "Keeper- og futsalplaner for 8–9 år er ikke inkludert her da de ikke er del av den ordinære fotballfagplanen.",
+    "Koblinger uten eksplisitt belegg er konservativt merket som AI-tolkning, og må vurderes av trener."
+  ]
+}

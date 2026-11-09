@@ -1,0 +1,2 @@
+ALTER TABLE "groups" ADD COLUMN "ai_priorities" jsonb DEFAULT '["club_guidelines","period_focus","coach_input","previous_evaluations","club_cohort_history","tiim_exercises"]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "training_events" ADD COLUMN "coach_input" text DEFAULT '' NOT NULL;

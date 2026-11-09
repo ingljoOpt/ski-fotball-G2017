@@ -13,6 +13,8 @@ import type { SearchParams } from "@/app/components";
 import { withSearch } from "@/lib/tenant-routing";
 import { teamUrl } from "@/lib/slugs";
 
+export const maxDuration = 240;
+
 export default async function TenantPage({ params, searchParams }: {
   params: Promise<{ clubSlug: string; segments?: string[] }>; searchParams: SearchParams;
 }) {

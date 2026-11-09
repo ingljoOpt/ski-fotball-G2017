@@ -3,9 +3,105 @@ import assert from "node:assert/strict";
 import {
   annualPlanSchema, checkSessionPlan, dateSchema, datesInYear, emptySessionPlan, eventSchema, nffAgeSource,
   generationDate, osloToday, periodSchema, sessionPlanSchema, sessionSections, sourceUrlSchema, weekdayFor,
+  skillProgression, objectivesForSkill, parseSkillObjectives, selectedMomentIndices, annualThemeSuggestions, themePeriodContent, skillForSession, planningThemeDrop,
 } from "../../src/lib/planning.ts";
 import { completePlan } from "./planning-fixtures.ts";
 import { birthYearSchema, formatTimeRange, settingsSchema, timeRangeSchema } from "../../src/lib/validation.ts";
+import { defaultPlanningPriorities, planningPrioritiesSchema } from "../../src/lib/planning-priorities.ts";
+
+test("AI priorities preserve a complete user order and reject duplicates, omissions and unknown sources", () => {
+  const reversed = [...defaultPlanningPriorities].reverse();
+  assert.deepEqual(planningPrioritiesSchema.parse(reversed), reversed);
+  assert.equal(planningPrioritiesSchema.safeParse(defaultPlanningPriorities.slice(1)).success, false);
+  assert.equal(planningPrioritiesSchema.safeParse(Array(6).fill("coach_input")).success, false);
+  assert.equal(planningPrioritiesSchema.safeParse([...defaultPlanningPriorities.slice(1), "unknown"]).success, false);
+  assert.deepEqual(settingsSchema.parse({ generationDaysBefore: 3, aiPriorities: reversed }).aiPriorities, reversed);
+  assert.equal(settingsSchema.parse({ generationDaysBefore: 3 }).aiPriorities, undefined);
+});
+
+test("planning drops require a known theme payload and valid target month", () => {
+  assert.deepEqual(planningThemeDrop({ topicId: "nff-1", theme: "Pasning" }, { month: 2 }), { topicId: "nff-1", month: 2 });
+  assert.equal(planningThemeDrop(undefined, { month: 2 }), null);
+  assert.equal(planningThemeDrop({ topicId: "nff-1", theme: "Pasning" }, undefined), null);
+  assert.equal(planningThemeDrop({ topicId: "", theme: "Pasning" }, { month: 2 }), null);
+  assert.equal(planningThemeDrop({ topicId: "nff-1", theme: "Pasning" }, { month: 13 }), null);
+});
+
+test("moment selection handles missing curriculum and preserves locked or edited choices", () => {
+  assert.deepEqual(selectedMomentIndices(undefined, null), []);
+  const skill = { id: "pasning", moments: ["Se opp", "Støtt", "Bli spillbar"] };
+  assert.deepEqual(selectedMomentIndices(skill, null), [0, 1]);
+  assert.deepEqual(selectedMomentIndices(skill, null, ["Bli spillbar"]), [2]);
+  assert.deepEqual(selectedMomentIndices(skill, { id: "pasning", indices: [] }), []);
+  assert.deepEqual(selectedMomentIndices(skill, { id: "medtak", indices: [2] }), [0, 1]);
+});
+
+test("session subskill suggestions follow coach order and two or three session blocks", () => {
+  const skills = [{ title: "Medtak" }, { title: "Pasning" }];
+  const progression = skillProgression([{ title: "Pasning", sessions: 2 }, { title: "Medtak", sessions: 3 }]);
+  assert.deepEqual(Array.from({ length: 6 }, (_, index) => skillForSession(skills, index, progression)?.title),
+    ["Pasning", "Pasning", "Medtak", "Medtak", "Medtak", "Pasning"]);
+  assert.equal(skillForSession(skills, 3)?.title, "Pasning");
+  assert.equal(skillForSession([], 0), undefined);
+});
+
+test("changing main theme regenerates goals, subskills and source together", () => {
+  const attack = { theme: "Spille fremover", moments: ["Bli spillbar"], sourceUrl: "https://tiim.no/artikkel/angrep", skills: [{ title: "Pasning" }] };
+  const defence = { theme: "Hindre mål", moments: ["Steng skuddrom"], sourceUrl: "https://tiim.no/artikkel/forsvar", skills: [{ title: "Press" }] };
+  assert.match(themePeriodContent(attack).progression, /Pasning: 3 økter/);
+  const updated = themePeriodContent(defence);
+  assert.equal(updated.theme, "Hindre mål");
+  assert.equal(updated.objectives, "Steng skuddrom");
+  assert.equal(updated.sourceUrl, defence.sourceUrl);
+  assert.match(updated.progression, /Press: 3 økter/);
+  assert.doesNotMatch(updated.progression, /Pasning/);
+  assert.deepEqual(attack.moments, ["Bli spillbar"]);
+});
+
+test("annual suggestions form long periods, fill only empty months and never mutate saved plans", () => {
+  const themes = ["Spille fremover", "Score mål", "Vinne ball", "Hindre mål"].map((theme, index) => ({
+    id: String(index), kind: "main", theme, moments: ["Se opp"], sourceUrl: "https://tiim.no/artikkel/fagplan", skills: [{ title: "Pasning" }],
+  }));
+  const empty = annualThemeSuggestions(2028, [], themes);
+  assert.equal(empty.length, 6);
+  assert.equal(empty[0].startDate, "2028-01-01");
+  assert.equal(empty[0].endDate, "2028-02-29");
+  assert.equal(empty[5].endDate, "2028-12-31");
+  const period = { ...empty[0], id: "saved", startDate: "2028-02-10", endDate: "2028-02-20", theme: "Trenerens tema" };
+  const snapshot = structuredClone(period);
+  const suggestions = annualThemeSuggestions(2028, [period], themes);
+  assert.ok(suggestions.every((suggestion) => suggestion.endDate < period.startDate || suggestion.startDate > period.endDate));
+  assert.equal(suggestions[0].endDate, "2028-01-31");
+  assert.equal(suggestions[1].startDate, "2028-03-01");
+  assert.deepEqual(period, snapshot);
+  assert.deepEqual(annualThemeSuggestions(2028, [], []), []);
+  assert.deepEqual(annualThemeSuggestions(2028, [{ ...period, startDate: "2028-01-01", endDate: "2028-12-31" }], themes), []);
+  assert.equal(annualThemeSuggestions(2028, [], [themes[0], themes[1], { ...themes[2], kind: "support" }])[0].endDate, "2028-02-29");
+  assert.equal(annualThemeSuggestions(2028, [], [themes[0]]).length, 6);
+  assert.ok(empty.every((proposal) => Number(proposal.endDate.slice(5, 7)) - Number(proposal.startDate.slice(5, 7)) <= 1));
+});
+
+test("skill blocks preserve chosen order, two or three sessions and coach notes", () => {
+  const progression = skillProgression([{ title: "Pasning", sessions: 3 }, { title: "Medtak", sessions: 2 }], "Fra par til smålagsspill");
+  assert.match(progression, /1\. Pasning: 3 økter\n2\. Medtak: 2 økter/);
+  assert.match(progression, /Fra par til smålagsspill/);
+  assert.match(progression, /Behold hovedtemaet/);
+  assert.match(skillProgression([]), /2–3 økter/);
+});
+
+test("session skill focuses objectives without replacing annual goals or changing the theme", () => {
+  const objectives = objectivesForSkill("Bli spillbar", { title: "Pasning", moments: ["Se opp", "Treff med innsiden"] });
+  assert.match(objectives, /^Delferdighet: Pasning/);
+  assert.match(objectives, /Treff med innsiden/);
+  assert.match(objectives, /Periodens øvingsmål:\nBli spillbar/);
+  assert.deepEqual(parseSkillObjectives(objectives), { title: "Pasning", moments: ["Se opp", "Treff med innsiden"], annualObjectives: "Bli spillbar" });
+  assert.deepEqual(parseSkillObjectives(objectivesForSkill("Trenerens mål", { title: "Pasning", moments: ["Bare valgt moment"] }))?.moments, ["Bare valgt moment"]);
+  assert.equal(parseSkillObjectives("Trenerens egne mål"), undefined);
+  assert.equal(objectivesForSkill("Trenerens egne mål"), "Trenerens egne mål");
+  const longObjectives = objectivesForSkill("x".repeat(8000), { title: "Pasning", moments: [] });
+  assert.ok(longObjectives.endsWith("x".repeat(8000)), "coach objectives are never silently truncated");
+  assert.equal(eventSchema.safeParse({ date: "2026-11-04", startTime: "17:00", endTime: "18:00", title: "Økt", theme: "Angrep", objectives: longObjectives }).success, false);
+});
 
 test("from/to times determine duration, including boundaries and midnight, never submitted duration", () => {
   const input = { date: "2026-11-04", startTime: "17:00", endTime: "18:15", durationMinutes: 999, title: "Økt", theme: "", objectives: "" };

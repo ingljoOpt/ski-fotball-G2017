@@ -1,9 +1,11 @@
 import type { groupCalendar } from "@/lib/planning-domain";
-import { annualEventLabels, eventsDuring, osloToday, periodsOnDate, type AnnualEvent } from "@/lib/planning";
+import { annualEventLabels, eventsDuring, osloToday, parseSkillObjectives, periodsOnDate, slotKey, type AnnualEvent, type ThemeSuggestion } from "@/lib/planning";
 import { formatTimeRange } from "@/lib/validation";
-import { deleteYearEvent, newTrainingEvent, saveYearEvent } from "@/app/actions";
+import { deleteYearEvent, newTrainingEvent, saveYearEvent, lockTrainingFocus } from "@/app/actions";
 import { AppLink, Card, Chip, NativeInput, OptionSelect, SubmitButton, TextAreaInput, TextInput } from "@/app/ui";
 import { eventStatusLabels, formatDate, months } from "@/app/planning-components";
+import type { Curriculum } from "@/lib/nff-curriculum";
+import { SessionSkillFields } from "@/app/nff-curriculum-list";
 
 export function AnnualEventFields({ date, event }: { date: string; event?: AnnualEvent }) {
   return <>
@@ -18,14 +20,19 @@ export function AnnualEventFields({ date, event }: { date: string; event?: Annua
   </>;
 }
 
-export function AnnualMonth({ details, year, month, basePath }: {
-  details: Awaited<ReturnType<typeof groupCalendar>>; year: number; month: number; basePath: string;
+export function AnnualMonth({ details, year, month, basePath, curriculum, suggestion }: {
+  details: Awaited<ReturnType<typeof groupCalendar>>; year: number; month: number; basePath: string; curriculum?: Curriculum; suggestion?: ThemeSuggestion;
 }) {
   const groupId = details.group.id;
   const prefix = `${year}-${String(month).padStart(2, "0")}`;
   const dayCount = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const offset = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7;
   const entries = details.entries.filter((entry) => entry.date.startsWith(prefix));
+  function sessionIndex(entry: typeof entries[number]) {
+    const startDate = periodsOnDate(details.periods, entry.date)[0]?.startDate ?? suggestion?.startDate ?? `${prefix}-01`;
+    return details.entries.filter((item) => item.status !== "cancelled" && item.date >= startDate
+      && slotKey(item.date, item.startTime) < slotKey(entry.date, entry.startTime)).length;
+  }
   const events = eventsDuring(details.events, `${prefix}-01`, `${prefix}-${dayCount}`);
   const hidden = <>
     <input type="hidden" name="groupId" value={groupId} />
@@ -81,15 +88,28 @@ export function AnnualMonth({ details, year, month, basePath }: {
           </Card>)}
           {training.map((entry) => <Card className="app-card" key={entry.id ?? entry.recurrenceKey}>
             <div className="row"><strong>Trening · {formatTimeRange(entry.startTime, entry.endTime)}</strong><Chip>{eventStatusLabels[entry.status]}</Chip></div>
-            <h5>{entry.title}</h5><p>{entry.theme || "Tema ikke satt"} · {entry.durationMinutes} minutter</p>
+            <h5>{entry.title}</h5><p>{entry.theme || "Øktfokus fra månedens tema"} · {entry.durationMinutes} minutter</p>
             <p className="preserve-lines">{entry.objectives}</p>
             {entry.virtual ? <form action={newTrainingEvent}>{hidden}
               {Object.entries({ date: entry.date, startTime: entry.startTime, endTime: entry.endTime, title: entry.title,
-                theme: entry.theme, objectives: entry.objectives, recurrenceKey: entry.recurrenceKey ?? "" })
+                recurrenceKey: entry.recurrenceKey ?? "" })
                 .map(([key, value]) => <input type="hidden" name={key} value={value} key={key} />)}
-              <div className="row"><SubmitButton name="intent" value="create">Planlegg denne treningen</SubmitButton>
+              <SessionSkillFields theme={entry.theme} objectives={entry.objectives}
+                sessionIndex={sessionIndex(entry)}
+                skills={curriculum?.topics.find((topic) => topic.kind === "main" && topic.theme === entry.theme)?.skills ?? []} />
+              <div className="row"><SubmitButton name="intent" value="lock-focus">Lås øktfokus</SubmitButton>
+                <SubmitButton name="intent" value="create" variant="secondary">Planlegg denne treningen</SubmitButton>
                 <SubmitButton name="intent" value="cancel" variant="danger-soft">Avlys denne treningen</SubmitButton></div>
-            </form> : <AppLink href={`${basePath}/okter/${entry.id}`}>Åpne øktplan →</AppLink>}
+            </form> : <>
+              {entry.id && entry.status !== "cancelled" && "planDeletedAt" in entry && !entry.planDeletedAt && <form action={lockTrainingFocus}>{hidden}
+                <input type="hidden" name="eventId" value={entry.id} /><input type="hidden" name="revision" value={entry.revision} />
+                <SessionSkillFields key={`${entry.id}-${entry.revision}`} theme={entry.theme} objectives={entry.objectives} locked={Boolean(parseSkillObjectives(entry.objectives))}
+                  sessionIndex={sessionIndex(entry)}
+                  skills={curriculum?.topics.find((topic) => topic.kind === "main" && topic.theme === entry.theme)?.skills ?? []} />
+                <SubmitButton>Lås øktfokus</SubmitButton>
+              </form>}
+              <AppLink href={`${basePath}/okter/${entry.id}`}>Åpne øktplan →</AppLink>
+            </>}
           </Card>)}
         </section>;
       })}

@@ -10,6 +10,7 @@ import { migrateLocalDatabase } from "../../scripts/migrate.ts";
 import { clubs, groups, users } from "../../src/db/schema.ts";
 import { acceptInvitation, clubBySlug, createClub, createGroup, DomainError, teamBySlug } from "../../src/lib/domain.ts";
 import { canonicalDestination } from "../../src/lib/tenant-routing.ts";
+import { defaultPlanningPriorities, type PlanningPriority } from "../../src/lib/planning-priorities.ts";
 
 test("unique stable slugs and scoped lookup preserve role and tenant boundaries", async () => {
   const directory = await mkdtemp(join(tmpdir(), "club-slugs-"));
@@ -92,10 +93,12 @@ test("migration backfills existing names, duplicates and reserved routes without
     await migrateLocalDatabase(database);
     connection = await connectLocalDatabase(database);
     const migratedClubs = await connection.client.query<{ slug: string }>("select * from clubs order by id");
-    const migratedGroups = await connection.client.query<{ slug: string }>("select * from groups order by id");
+    const migratedGroups = await connection.client.query<{ slug: string; ai_priorities: PlanningPriority[] }>("select * from groups order by id");
     const withoutSlug = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).filter(([key]) => key !== "slug"));
     assert.deepEqual(migratedClubs.rows.map(withoutSlug), originalClubs.rows);
-    assert.deepEqual(migratedGroups.rows.map(withoutSlug), originalGroups.rows);
+    const withoutAddedGroupFields = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).filter(([key]) => !["slug", "ai_priorities"].includes(key)));
+    assert.deepEqual(migratedGroups.rows.map(withoutAddedGroupFields), originalGroups.rows);
+    for (const row of migratedGroups.rows) assert.deepEqual(row.ai_priorities, defaultPlanningPriorities);
     assert.equal(new Set(migratedClubs.rows.map((row) => row.slug)).size, 5, "suffix-like existing names cannot cause migration collisions");
     assert.ok(migratedClubs.rows.some((row) => row.slug === "ae-o-a"));
     assert.ok(migratedClubs.rows.some((row) => row.slug === "klubb"));

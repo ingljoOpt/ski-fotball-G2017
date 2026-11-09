@@ -149,6 +149,80 @@ export function periodsOnDate(periods: Period[], date: string) {
   return periods.filter((period) => period.startDate <= date && period.endDate >= date);
 }
 
+export function skillProgression(blocks: { title: string; sessions: number }[], notes = "") {
+  const sequence = blocks.length ? `Delferdigheter i rekkefølge:\n${blocks.map((block, index) => `${index + 1}. ${block.title}: ${block.sessions} økter`).join("\n")}\n\n` : "";
+  return `${sequence}Behold hovedtemaet gjennom perioden. Viderefør de fleste øvelsene i 2–3 økter per delferdighet, med små justeringer i rom, motstand eller regler.\n${notes}`.trim();
+}
+
+export function objectivesForSkill(objectives: string, skill?: { title: string; moments: string[] }) {
+  if (!skill) return objectives;
+  return `Delferdighet: ${skill.title}\n${skill.moments.join("\n")}\n\nPeriodens øvingsmål:\n${objectives}`;
+}
+
+export function parseSkillObjectives(objectives: string) {
+  const marker = "\n\nPeriodens øvingsmål:\n";
+  const boundary = objectives.indexOf(marker);
+  if (!objectives.startsWith("Delferdighet: ") || boundary < 0) return undefined;
+  const lines = objectives.slice(0, boundary).split("\n");
+  return { title: lines[0].slice("Delferdighet: ".length), moments: lines.slice(1).filter(Boolean), annualObjectives: objectives.slice(boundary + marker.length) };
+}
+
+export function selectedMomentIndices(skill: { id: string; moments: string[] } | undefined, choice: { id: string; indices: number[] } | null,
+  storedMoments?: string[]) {
+  if (!skill) return [];
+  if (choice?.id === skill.id) return choice.indices;
+  return storedMoments ? skill.moments.flatMap((moment, index) => storedMoments.includes(moment) ? [index] : [])
+    : skill.moments.map((_, index) => index).slice(0, 2);
+}
+
+export function skillForSession<Skill extends { title: string }>(skills: Skill[], sessionIndex: number, progression = ""): Skill | undefined {
+  const planned = [...progression.matchAll(/^\d+\.\s+(.+):\s+([23]) økter\s*$/gm)].flatMap((match) => {
+    const skill = skills.find((item) => item.title === match[1]);
+    return skill ? [{ skill, sessions: Number(match[2]) }] : [];
+  });
+  const blocks = planned.length ? planned : skills.map((skill) => ({ skill, sessions: 3 }));
+  const total = blocks.reduce((sum, block) => sum + block.sessions, 0);
+  if (!total) return undefined;
+  let position = sessionIndex % total;
+  for (const block of blocks) {
+    if (position < block.sessions) return block.skill;
+    position -= block.sessions;
+  }
+}
+
+export type ThemeSuggestion = Period & { topicId: string };
+export function planningThemeDrop(source: unknown, target: unknown) {
+  const theme = z.object({ topicId: z.string().min(1), theme: z.string().min(1) }).safeParse(source);
+  const month = z.object({ month: z.number().int().min(1).max(12) }).safeParse(target);
+  return theme.success && month.success ? { topicId: theme.data.topicId, month: month.data.month } : null;
+}
+
+export function themePeriodContent(topic: { theme: string; moments: string[]; sourceUrl: string; skills: { title: string }[] }) {
+  return { theme: topic.theme, objectives: topic.moments.join("\n") || `Arbeide med hovedtemaet ${topic.theme}.`,
+    progression: skillProgression(topic.skills.slice(0, 3).map((skill) => ({ title: skill.title, sessions: 3 }))), sourceUrl: topic.sourceUrl };
+}
+
+export function annualThemeSuggestions(year: number, periods: Period[], topics: {
+  id: string; kind: string; theme: string; moments: string[]; sourceUrl: string; skills: { title: string }[];
+}[]): ThemeSuggestion[] {
+  yearSchema.parse(year);
+  const themes = topics.filter((topic) => topic.kind === "main").slice(0, 12);
+  if (!themes.length) return [];
+  const result: ThemeSuggestion[] = [];
+  for (let month = 1; month <= 12; month++) {
+    const prefix = `${year}-${String(month).padStart(2, "0")}`;
+    const startDate = `${prefix}-01`;
+    const endDate = `${prefix}-${new Date(Date.UTC(year, month, 0)).getUTCDate()}`;
+    if (periods.some((period) => period.startDate <= endDate && period.endDate >= startDate)) continue;
+    const topic = themes[Math.floor((month - 1) * Math.max(6, themes.length) / 12) % themes.length];
+    const previous = result.at(-1);
+    if (previous?.topicId === topic.id && Number(previous.endDate.slice(5, 7)) === month - 1 && month - Number(previous.startDate.slice(5, 7)) < 2) {
+      previous.endDate = endDate;
+    } else result.push({ id: `forslag-${year}-${month}-${topic.id}`, topicId: topic.id, startDate, endDate, ...themePeriodContent(topic) });
+  }
+  return result;
+}
+
 export function checkSessionPlan(plan: SessionPlan, durationMinutes: number) {
   const warnings: string[] = [];
   const totalMinutes = plan.exercises.reduce((total, exercise) => total + exercise.durationMinutes, 0);

@@ -38,6 +38,11 @@ p { margin: .7rem 0 1.25rem; }
 .app-card { padding: 1.7rem; border: 1px solid var(--line); border-radius: 1rem; box-shadow: none; min-width: 0; gap: .75rem; }
 .app-card h2 { margin-bottom: .5rem; }
 .app-card > .chip { align-self: start; }
+.planning-history h2 { margin-bottom: .75rem; }
+.history-changes { display: grid; gap: .4rem; margin: .75rem 0 0; }
+.history-changes > div { display: grid; grid-template-columns: minmax(130px, .75fr) minmax(0, 1.25fr); gap: .5rem; padding-top: .45rem; border-top: 1px solid var(--line); }
+.history-changes dt { font-weight: 700; }
+.history-changes dd { min-width: 0; margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .narrow { max-width: 540px; margin: 2rem auto; }
 .narrow h1 { font-size: 2.5rem; }
 form { display: grid; gap: 1rem; }
@@ -157,6 +162,7 @@ summary { cursor: pointer; }
 .session-administration { grid-template-columns: minmax(0, 1fr); }
 #rediger-okt { scroll-margin-top: 100px; }
 @media (max-width: 600px) {
+  .history-changes > div { grid-template-columns: minmax(0, 1fr); gap: .15rem; }
   .session-heading, .session-overview, .session-coach-notes { padding: 1.25rem; }
   .session-introduction { padding: 1.25rem 1.25rem 0; }
   .session-overview, .exercise-guidance-grid { grid-template-columns: minmax(0, 1fr); }
@@ -175,6 +181,61 @@ summary { cursor: pointer; }
   .session-contents { display: none; }
 }
 .annual-wheel { display: grid; grid-template-columns: minmax(240px, 360px) minmax(0, 1fr); gap: 1.5rem; margin-block: 1.5rem; }
+.annual-toolbar { margin-bottom: 1rem; }
+.nff-drawer { position: fixed; inset: 90px 0 0 auto; width: min(420px, 100%); z-index: 45; background: var(--paper); border-inline-start: 1px solid var(--line); box-shadow: -8px 0 24px #00000012; overflow-y: auto; overscroll-behavior: contain; }
+.nff-drawer[hidden] { display: none; }
+.nff-drawer-header { position: sticky; top: 0; z-index: 1; background: white; border-bottom: 1px solid var(--line); padding: .75rem 1rem; display: flex; align-items: center; justify-content: space-between; }
+.nff-drawer-header button { width: 40px; height: 40px; padding: 0; font-size: 1.5rem; }
+.nff-drawer .nff-curriculum { padding: 1rem; border: 0; }
+.nff-drawer .nff-topic-list { max-height: none; overflow: visible; }
+.nff-drawer > .notice { margin-inline: 1rem; }
+.annual-proposed-period { border: 1px dashed var(--club-primary); border-radius: .5rem; padding: 1rem; color: var(--muted); background: var(--club-soft); }
+.annual-proposed-period h3 { opacity: .7; }
+.annual-proposed-period .button { opacity: 1; }
+.annual-locked-period { border-inline-start: 3px solid var(--club-primary); padding-inline-start: 1rem; }
+.annual-period-editor { margin-block: 1rem; }
+.annual-period-editor form { margin-block: 1rem; }
+.planning-info-button { width: 32px; height: 32px; min-width: 32px; padding: 0; flex-shrink: 0; }
+.planning-priority-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.planning-priority-item { display: grid; grid-template-columns: 36px 24px minmax(0, 1fr); gap: .5rem; align-items: center; min-height: 60px; padding: .5rem; border: 1px solid var(--line); border-radius: .5rem; background: white; overflow-wrap: anywhere; }
+.priority-drag-handle { width: 36px; height: 36px; padding: 0; touch-action: none; cursor: grab; }
+.priority-drag-handle:active { cursor: grabbing; }
+.priority-rank { color: var(--muted); font-weight: 700; }
+.priority-is-dragging { z-index: 2; border-color: var(--club-primary); box-shadow: 0 4px 16px #00000020; }
+.planning-info-dialog { width: min(360px, calc(100vw - 32px)); max-height: min(480px, 70vh); overflow-y: auto; padding: 1rem; overflow-wrap: anywhere; }
+.planning-info-dialog ul { padding-inline-start: 1.25rem; }
+.skill-suggestions { display: grid; gap: .75rem; margin-block: 1rem; }
+.skill-suggestion { border-top: 1px solid var(--line); padding-top: .5rem; }
+.session-skill-focus { display: grid; gap: .75rem; border-top: 1px dashed var(--line); padding-top: .75rem; }
+.session-skill-focus > .row > .app-field { flex: 1; }
+.curriculum-planning-layout { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.curriculum-planning-layout > div, .nff-curriculum { min-width: 0; }
+.nff-curriculum { border-inline-end: 1px solid var(--line); padding-inline-end: 1rem; gap: .75rem; }
+.nff-curriculum h2 { font-size: 1.25rem; margin-bottom: 0; letter-spacing: 0; }
+.nff-topic-list { max-height: 520px; overflow-y: auto; overscroll-behavior: contain; }
+.nff-topic-item { border: 1px dashed var(--club-primary); border-radius: .5rem; padding: .9rem; overflow-wrap: anywhere; display: grid; gap: .5rem; background: white; }
+.nff-topic-item + .nff-topic-item { margin-top: .75rem; }
+.nff-topic-title { display: flex; align-items: center; gap: .6rem; cursor: grab; min-height: 36px; touch-action: none; user-select: none; }
+.nff-topic-title > svg { flex-shrink: 0; color: var(--club-primary); }
+.nff-topic-title:hover { color: var(--club-primary); }
+.nff-topic-title:active { cursor: grabbing; }
+.theme-is-dragging { opacity: .4; }
+.planning-drag-preview { display: flex; align-items: center; gap: .6rem; width: 300px; max-width: calc(100vw - 32px); padding: 1rem; border: 2px solid var(--club-primary); border-radius: .5rem; background: white; color: var(--ink); box-shadow: 0 8px 24px #00000026; }
+.planning-drag-preview svg { flex-shrink: 0; }
+.planning-drop-active { position: relative; }
+.planning-drop-active .annual-proposed-period { border: 2px solid var(--club-primary); box-shadow: 0 0 0 3px var(--club-border); }
+.planning-drop-message { position: absolute; inset: 3.8rem 1.25rem 1.25rem; z-index: 2; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .75rem; padding: 1.25rem; background: color-mix(in srgb, white 94%, var(--club-primary)); border: 2px solid var(--club-primary); border-radius: .5rem; color: var(--ink); text-align: center; pointer-events: none; overflow-wrap: anywhere; }
+.planning-drop-message strong { font-size: 1.1rem; }
+.wheel-drop-active path { stroke: var(--club-primary); stroke-width: 3; }
+.nff-topic-list ul { padding-inline-start: 1.2rem; }
+.nff-period-form { border-block-start: 2px solid var(--club-primary); padding-block-start: 1rem; overflow-wrap: anywhere; }
+.curriculum-planning-layout .annual-wheel { grid-template-columns: minmax(200px, .8fr) minmax(0, 1fr); }
+@media (max-width: 1200px) { .curriculum-planning-layout .annual-wheel { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 800px) {
+  .curriculum-planning-layout { grid-template-columns: minmax(0, 1fr); }
+  .nff-curriculum { border-inline-end: 0; border-block-end: 1px solid var(--line); padding-inline-end: 0; padding-block-end: 1rem; }
+  .nff-topic-list { max-height: 320px; }
+}
 .wheel-chart svg { width: 100%; max-height: 360px; }
 .wheel-chart select { width: 100%; min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--line); border-radius: .6rem; background: white; color: var(--ink); }
 .wheel-chart text { fill: var(--ink); font-size: 13px; pointer-events: none; }

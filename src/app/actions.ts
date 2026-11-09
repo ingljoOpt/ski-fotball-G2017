@@ -17,10 +17,12 @@ import {
 import { idSchema } from "@/lib/validation";
 import { logoFromForm } from "@/lib/logo";
 import {
-  changeTrainingStatus, createTrainingEvent, removeAnnualEvent, removePlanPeriod, saveAnnualEvent, saveAnnualPlan, savePlanPeriod, saveSessionPlan,
+  createTrainingEvent, deleteSessionPlan, removeAnnualEvent, removePlanPeriod, saveAnnualEvent, saveAnnualPlan, savePlanPeriod, saveSessionPlan,
+  setTrainingCancellation, saveSessionFocus, annualPlanning, unlockPlanMonth,
 } from "@/lib/planning-domain";
 import { yearSchema } from "@/lib/planning";
 import { canonicalDestination } from "@/lib/tenant-routing";
+import { refreshNffCurriculum } from "@/lib/nff-curriculum";
 
 const field = (form: FormData, key: string) => {
   const value = form.get(key);
@@ -141,6 +143,7 @@ export async function saveGroupSettings(form: FormData) {
     await updateGroupSettings(await getDatabase(), user.id, field(form, "groupId"), {
       generationDaysBefore: field(form, "generationDaysBefore"),
       birthYear: field(form, "birthYear"),
+      ...(form.has("aiPriorities") ? { aiPriorities: JSON.parse(field(form, "aiPriorities")) } : {}),
     });
     return `${groupPath(form)}/innstillinger?melding=${encodeURIComponent("Innstillingene er lagret. Automatisk generering er ikke implementert ennå.")}`;
   });
@@ -242,6 +245,25 @@ const eventPath = (form: FormData) => {
   return eventId.success ? `${groupPath(form)}/okter/${eventId.data}` : groupPath(form);
 };
 
+export async function updateNffCurriculum(form: FormData): Promise<{ error: string }> {
+  const user = await requireUser();
+  try {
+    const db = await getDatabase();
+    const groupId = idSchema.parse(field(form, "groupId"));
+    const year = yearSchema.parse(field(form, "year"));
+    const annual = await annualPlanning(db, user.id, groupId, year);
+    if (annual.group.birthYear === null) throw new DomainError("Sett årskull i laginnstillingene før du oppdaterer fagplanen.");
+    await refreshNffCurriculum(year - annual.group.birthYear);
+    const destination = await canonicalDestination(db, user.id, planningPath(form));
+    revalidatePath(destination.split("?")[0]);
+    return { error: "" };
+  } catch (error) {
+    if (error instanceof DomainError) return { error: error.message };
+    console.error("Fagplanoppdatering feilet:", error instanceof Error ? error.name : "Ukjent feil");
+    return { error: "Fagplanen kunne ikke oppdateres. Sist lagrede fagplan er beholdt. Kontroller AI-oppsettet og prøv igjen." };
+  }
+}
+
 export async function saveYearPlan(form: FormData) {
   const user = await requireUser();
   return run(planningPath(form), async () => {
@@ -258,7 +280,7 @@ export async function saveThemePeriod(form: FormData) {
     await savePlanPeriod(await getDatabase(), user.id, field(form, "groupId"), yearSchema.parse(field(form, "year")), {
       startDate: field(form, "startDate"), endDate: field(form, "endDate"), theme: field(form, "theme"),
       objectives: field(form, "objectives"), progression: field(form, "progression"), sourceUrl: field(form, "sourceUrl"),
-    }, field(form, "revision"), field(form, "periodId") || undefined);
+    }, field(form, "revision"), field(form, "periodId") || undefined, true);
     return `${planningPath(form)}&melding=${encodeURIComponent("Temaperioden er lagret. Eksisterende øktplaner er ikke endret.")}`;
   });
 }
@@ -271,15 +293,37 @@ export async function deleteThemePeriod(form: FormData) {
   });
 }
 
+export async function unlockMonthTheme(form: FormData) {
+  const user = await requireUser();
+  return run(planningPath(form), async () => {
+    await unlockPlanMonth(await getDatabase(), user.id, field(form, "groupId"), field(form, "periodId"), field(form, "month"), field(form, "revision"));
+    return `${planningPath(form)}&melding=${encodeURIComponent("Temaet er låst opp for måneden. Eksisterende øktplaner er beholdt.")}`;
+  });
+}
+
 export async function newTrainingEvent(form: FormData) {
   const user = await requireUser();
   const month = Number(field(form, "month"));
   const year = yearSchema.safeParse(field(form, "year"));
   const singlePath = `${groupPath(form)}/okter/ny${year.success && Number.isInteger(month) && month >= 1 && month <= 12 ? `?year=${year.data}&month=${month}` : ""}`;
   return run(field(form, "singleSession") === "1" ? singlePath : planningPath(form), async () => {
+    const singleSession = field(form, "singleSession") === "1";
+    if (field(form, "intent") === "lock-focus" && (!field(form, "theme").trim() || !field(form, "objectives").trim())) {
+      throw new DomainError("Velg et hovedtema og øvingsmål før du låser øktfokuset.");
+    }
     const eventId = await createTrainingEvent(await getDatabase(), user.id, field(form, "groupId"),
-      eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel");
-    return `${groupPath(form)}/okter/${eventId}`;
+      eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel", singleSession ? field(form, "coachInput") : "");
+    if (field(form, "intent") === "lock-focus") return `${planningPath(form)}&melding=${encodeURIComponent("Øktfokuset er låst. Åpne øktplanen for å planlegge øvelsene.")}`;
+    return `${groupPath(form)}/okter/${eventId}${singleSession ? "?initialDraft=1" : ""}`;
+  });
+}
+
+export async function lockTrainingFocus(form: FormData) {
+  const user = await requireUser();
+  return run(planningPath(form), async () => {
+    await saveSessionFocus(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"), field(form, "revision"),
+      { theme: field(form, "theme"), objectives: field(form, "objectives") });
+    return `${planningPath(form)}&melding=${encodeURIComponent("Øktfokuset er låst i en ny kladdversjon. Eksisterende øvelser er beholdt.")}`;
   });
 }
 
@@ -328,8 +372,16 @@ export async function saveTrainingPlan(_previous: { error: string } | null, form
 export async function setTrainingStatus(form: FormData) {
   const user = await requireUser();
   return run(eventPath(form), async () => {
-    await changeTrainingStatus(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"),
-      field(form, "revision"), field(form, "intent") === "cancel" ? "cancelled" : "draft");
-    return `${eventPath(form)}?melding=${encodeURIComponent("Øktstatus er oppdatert. Planversjonene er bevart.")}`;
+    await setTrainingCancellation(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"),
+      field(form, "revision"), field(form, "intent") === "cancel");
+    return `${eventPath(form)}?melding=${encodeURIComponent("Avlysningsstatusen er oppdatert. Øktplanen er uendret.")}`;
+  });
+}
+
+export async function deleteSessionPlanAction(form: FormData) {
+  const user = await requireUser();
+  return run(eventPath(form), async () => {
+    await deleteSessionPlan(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"), field(form, "revision"));
+    return `${eventPath(form)}?melding=${encodeURIComponent("Øktplanen er slettet. Treningen og tidligere revisjoner er bevart.")}`;
   });
 }

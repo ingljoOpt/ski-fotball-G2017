@@ -41,7 +41,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [ ] Klubbfelles sportsplan, veiledning og utstyr med versjonering.
 - [x] Manuelle øktutkast med Tiim-inspirert oppbygning, ordnede øvelseskort og uforanderlige planversjoner.
 - [x] Tiim-inspirert øktdesign med toppdel, faktaboks, innholdsnavigasjon, tidsummerte deler og øvelseskort med sammenleggbare fag-/ressursfelt. Blå standardpalett og lokalt levert Montserrat; lagrede klubbprofiler og øvelsesrekkefølge bevares. Utskrift og snarvei til redigering.
-- [ ] Full endringshistorikk for økter, årsplaner og periodeplaner: vis hvem, når og hva som ble endret, også ved statusendringer og sletting av perioder. Lagre historikk atomisk med endringen, skill bruker-/AI-/systemhandlinger og hold aktøridentitet utenfor offentlig deling.
+- [x] Full endringshistorikk for økter, årsplaner og periodeplaner: vis hvem, når og hva som ble endret, også ved statusendringer og sletting av perioder. Lagre historikk atomisk med endringen, skill bruker-/AI-/systemhandlinger og hold aktøridentitet utenfor offentlig deling. Eksisterende øktversjoner er migrert; uloggede statusendringer og årsplaner/perioder fra før funksjonen mangler snapshots og kan ikke rekonstrueres.
 - [x] Oppmøteforutsetninger og kontroller av tid, trenerbehov og samtidig utstyr, med sperre mot ufullstendig godkjenning.
 - [x] Felles strukturert plan-/kildekontrakt og kontekstsnapshots som grunnlag for AI i steg 4.
 - [ ] Faktisk gjennomføring og privat evaluering uten spillerprofiler.
@@ -54,7 +54,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [ ] NFFs aldersriktige sportsplan/fagplan som standard forslag til årsplantemaer og øvingsmål, med faktisk kildekontroll og trenergodkjenning. Ikke generer dette før AI er på plass.
 - [x] Bruke planleggingskontrakten og versjonsflyten for AI-assisterte revisjoner; ta hensyn til manuelt oppdaterte spiller-/trenerantall, bevare bekreftede rammer, eksakt tidslengde og gamle øktversjoner.
 - [ ] Nettleserverktøy for Tiim, kildekontroll og tydelig feilrapportering.
-- [x] Komplett AI-forslag med kontrollpunkter, eksplisitt erstatning i skjemaet, vern mot utdaterte forslag og AI-merket versjon ved trenerens lagring. Ingen automatisk lagring/godkjenning.
+- [x] Komplett AI-forslag med kontrollpunkter, eksplisitt erstatning i skjemaet, vern mot utdaterte forslag og AI-merket versjon ved trenerens lagring. Manuelt opprettede enkeltøkter starter med et automatisk AI-førsteutkast som kan redigeres eller justeres videre i chatten. Forslaget lagres ikke før treneren velger lagring/godkjenning.
 - [ ] Produksjonsklar felles ratebegrensning og kostnadsbudsjett på tvers av Vercel-instanser. Første lokale agent har grense per prosess.
 - [ ] Planlagte jobber som lager utkast før trening, uten duplikater.
 - [ ] Støtte for gjenbruk av økt i flere uker og individuell gjennomføring per dato.

@@ -45,6 +45,8 @@ export default async function NewSession({ params, searchParams }: {
         <small>Tidsrom: 15–240 minutter. Tidligere til-tid betyr neste dag.</small>
         <TextInput label="Tema (valgfritt)" name="theme" maxLength={150} />
         <TextAreaInput label="Øvingsmål (valgfritt)" name="objectives" rows={3} maxLength={8000} />
+        <TextAreaInput label="Innspill til AI-planlegging (valgfritt)" name="coachInput" rows={4} maxLength={8000} />
+        <small>Bare treningsinnhold. Ikke oppgi navn eller private opplysninger om barn.</small>
         <SubmitButton>Opprett øktutkast</SubmitButton>
       </form>
     </Card>

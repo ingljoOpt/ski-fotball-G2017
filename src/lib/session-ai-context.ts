@@ -1,10 +1,12 @@
-import { and, desc, eq, lt, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
 import type { Database } from "../db/index.ts";
-import { sessionVersions, trainingEvents } from "../db/schema.ts";
+import { groups, sessionVersions, trainingEvents } from "../db/schema.ts";
 import { DomainError } from "./domain.ts";
 import { annualPlanning, trainingEventDetails } from "./planning-domain.ts";
 import { eventsDuring, nffAgeSource, periodsOnDate, type Exercise } from "./planning.ts";
 import type { AIDraft } from "./session-ai.ts";
+import { getNffCurriculum, relevantCurriculum } from "./nff-curriculum.ts";
+import { planningPrioritiesSchema, priorityLabels } from "./planning-priorities.ts";
 
 function exerciseSummary(exercise: Exercise) {
   return { ...exercise, description: exercise.description.slice(0, 1200), organization: exercise.organization.slice(0, 1200),
@@ -12,10 +14,12 @@ function exerciseSummary(exercise: Exercise) {
     easier: exercise.easier.slice(0, 500), harder: exercise.harder.slice(0, 500), localAdaptations: exercise.localAdaptations.slice(0, 500) };
 }
 
-export async function sessionAIContext(db: Database, userId: string, groupId: string, eventId: string, revision: number, draft: AIDraft) {
+export async function sessionAIContext(db: Database, userId: string, groupId: string, eventId: string, revision: number, draft: AIDraft,
+  curriculumReader = getNffCurriculum) {
   const details = await trainingEventDetails(db, userId, groupId, eventId);
   if (details.event.revision !== revision) throw new DomainError("Økten er endret av en annen trener. Last siden på nytt før du bruker AI.");
-  if (details.event.status === "cancelled") throw new DomainError("Gjenåpne økten før du bruker AI.");
+  if (details.event.cancelledAt) throw new DomainError("Angre avlysningen før du bruker AI.");
+  const priorities = planningPrioritiesSchema.parse(details.group.aiPriorities);
   const year = Number(draft.event.date.slice(0, 4));
   const annual = await annualPlanning(db, userId, groupId, year);
   const history = await db.select({
@@ -25,24 +29,57 @@ export async function sessionAIContext(db: Database, userId: string, groupId: st
     sql`${sessionVersions.version} = (select max(v.version) from session_versions v where v.event_id = ${trainingEvents.id})`,
   )).where(and(eq(trainingEvents.groupId, groupId), ne(trainingEvents.id, eventId),
     or(lt(trainingEvents.date, draft.event.date), and(eq(trainingEvents.date, draft.event.date), lt(trainingEvents.startTime, draft.event.startTime))),
-    ne(trainingEvents.status, "cancelled")))
+    isNull(trainingEvents.cancelledAt)))
     .orderBy(desc(trainingEvents.date), desc(trainingEvents.startTime)).limit(5);
-  const sources = [...draft.plan.exercises, ...history.flatMap((item) => item.plan.exercises)]
+  const clubHistory = annual.group.birthYear === null ? [] : await db.select({ event: trainingEvents, plan: sessionVersions.plan })
+    .from(trainingEvents).innerJoin(groups, eq(groups.id, trainingEvents.groupId))
+    .innerJoin(sessionVersions, and(eq(sessionVersions.eventId, trainingEvents.id),
+      sql`${sessionVersions.version} = (select max(v.version) from session_versions v where v.event_id = ${trainingEvents.id})`))
+    .where(and(eq(groups.clubId, annual.group.clubId), ne(groups.id, groupId), lt(trainingEvents.date, `${year}-01-01`), isNull(trainingEvents.cancelledAt),
+      sql`${sessionVersions.planningContext}->>'birthYear' = ${String(annual.group.birthYear)}`,
+      ...(annual.isAdmin ? [] : [sql`exists (select 1 from group_members member where member.group_id = ${groups.id} and member.user_id = ${userId})`])))
+    .orderBy(desc(trainingEvents.date), desc(trainingEvents.startTime)).limit(3);
+  const exercises = [...draft.plan.exercises, ...history.flatMap((item) => item.plan.exercises), ...clubHistory.flatMap((item) => item.plan.exercises)];
+  const sources = exercises
     .filter((exercise) => exercise.sourceUrl).map(({ sourceUrl, sourceAge, sourceCheckedOn }) => ({ sourceUrl, sourceAge, sourceCheckedOn }));
+  const age = nffAgeSource(year, annual.group.birthYear);
+  const periods = periodsOnDate(annual.periods, draft.event.date);
+  const curriculum = relevantCurriculum(await curriculumReader(age.age), [draft.event.theme, draft.event.objectives,
+    annual.plan?.objectives ?? "", ...periods.flatMap((period) => [period.theme, period.objectives])]);
+  const historicalPlans = history.map(({ event, plan }) => ({
+    date: event.date, title: event.title, theme: event.theme, objectives: event.objectives,
+    status: event.status, introduction: plan.introduction.slice(0, 1200),
+    progression: plan.progression.slice(0, 1200), exercises: plan.exercises.slice(0, 10).map(exerciseSummary),
+  }));
+  const cohortPlans = clubHistory.map(({ event, plan }) => ({ date: event.date, title: event.title, theme: event.theme, objectives: event.objectives,
+    progression: plan.progression.slice(0, 1200), exercises: plan.exercises.slice(0, 10).map(exerciseSummary) }));
+  const tiimExercises = exercises.filter((exercise) => exercise.sourceUrl && new URL(exercise.sourceUrl).hostname === "tiim.no").slice(0, 12).map(exerciseSummary);
+  const input = details.event.coachInput;
+  const sourceData = {
+    club_guidelines: { status: "unavailable", reason: "Klubbens retningslinjer og sportsplan er ikke registrert i appen." },
+    period_focus: { status: periods.length ? "available" : "partial", contextFields: ["periods", "annualObjectives", "curriculum"], reason: periods.length ? "Periodene er lagret og låst av trener." : "Ingen låst temaperiode på øktdatoen." },
+    coach_input: { status: input ? "available" : "unavailable", data: input, reason: input ? "Innspill registrert ved manuell oppretting." : "Ingen særskilte trenerinnspill registrert ved oppretting." },
+    previous_evaluations: { status: historicalPlans.length ? "partial" : "unavailable", contextFields: ["history", "previousPlan"], reason: "Tidligere planer finnes, men faktiske evalueringer er ikke implementert. Ikke anta hva som fungerte." },
+    club_cohort_history: { status: cohortPlans.length ? "partial" : "unavailable", contextFields: ["clubCohortHistory"], reason: "Bare tidligere års planer for samme dokumenterte årskull og lag brukeren har tilgang til. Evalueringer er ikke implementert." },
+    tiim_exercises: { status: tiimExercises.length ? "partial" : "unavailable", contextFields: ["tiimExercises"], reason: "Bare tidligere oppgitte Tiim-øvelser og kildefelt. Ny innhenting og kontroll av konkrete øvelsessider er ikke aktivert." },
+  };
   return {
+    priorities,
+    prioritySources: priorities.map((id) => ({ id, label: priorityLabels[id], ...sourceData[id] })),
+    coachInput: input,
+    clubCohortHistory: cohortPlans,
+    previousPlan: historicalPlans.length ? historicalPlans[0] : null,
+    tiimExercises,
     draft,
-    age: nffAgeSource(year, annual.group.birthYear),
+    age,
+    curriculum,
     annualObjectives: annual.plan?.objectives ?? "",
-    periods: periodsOnDate(annual.periods, draft.event.date).map(({ startDate, endDate, theme, objectives, progression, sourceUrl }) => ({
+    periods: periods.map(({ startDate, endDate, theme, objectives, progression, sourceUrl }) => ({
       startDate, endDate, theme, objectives, progression, sourceUrl,
     })),
     events: eventsDuring(annual.events, draft.event.date).map(({ title, kind, startDate, endDate, description }) => ({ title, kind, startDate, endDate, description })),
-    history: history.map(({ event, plan }) => ({
-      date: event.date, title: event.title, theme: event.theme, objectives: event.objectives,
-      status: event.status, introduction: plan.introduction.slice(0, 1200),
-      progression: plan.progression.slice(0, 1200), exercises: plan.exercises.slice(0, 10).map(exerciseSummary),
-    })),
+    history: historicalPlans,
     sources,
-    limitations: "Historikken er tidligere planer, ikke dokumentasjon på gjennomføring. Evalueringer, klubbfelles sportsplan/utstyr og nettleserkontroll av Tiim er ikke implementert. Kildedata er tidligere treneropplysninger, ikke ny kildekontroll.",
+    limitations: "Historikken er tidligere planer, ikke dokumentasjon på gjennomføring. Evalueringer og klubbfelles sportsplan/utstyr er ikke implementert. NFF-fagplan er hentet som faglig støtte med hentetidspunkt og eventuelle kildeadvarsler, ikke kontroll av konkrete øvelser. Øvelsenes kildedata er tidligere treneropplysninger, ikke ny kildekontroll.",
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { checkSessionPlan, stageLabels, type EventInput, type Exercise, type SessionPlan } from "@/lib/planning";
 import { saveTrainingPlan } from "./actions";
 import { minutesBetween, timeRangeSchema } from "@/lib/validation";
@@ -19,14 +19,20 @@ const resourceFields = [
 ] as const;
 const countValue = (value: string) => value === "" ? null : Number(value);
 
-export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, initialPlan }: {
-  groupId: string; eventId: string; revision: number; initialEvent: EventInput; initialPlan: SessionPlan;
+export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, initialPlan, initialDraft = false }: {
+  groupId: string; eventId: string; revision: number; initialEvent: EventInput; initialPlan: SessionPlan; initialDraft?: boolean;
 }) {
   const [event, setEvent] = useState(initialEvent);
   const [plan, setPlan] = useState(initialPlan);
   const [origin, setOrigin] = useState<"manual" | "ai">("manual");
   const [state, action, pending] = useActionState(saveTrainingPlan, null);
   const formRef = useRef<HTMLFormElement>(null);
+  const aiDraft = useMemo(() => ({ event, plan }), [event, plan]);
+  const applyAIProposal = useCallback(({ draft }: { draft: { event: EventInput; plan: SessionPlan } }) => {
+    setEvent(draft.event);
+    setPlan(draft.plan);
+    setOrigin("ai");
+  }, []);
   useEffect(() => {
     const form = formRef.current;
     // Server Action responses reset forms, including React Aria's controlled fields on validation errors.
@@ -130,6 +136,7 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
       <SubmitButton name="intent" value="approve" variant="secondary" isDisabled={pending}>Godkjenn som planlagt</SubmitButton>
     </div>
     <small>Hver lagring lager en ny, uforanderlig planversjon. Utkast kan være ufullstendige. Godkjenning krever utfylte rammer og tallkontroll, men er ingen garanti for praktisk gjennomførbarhet.</small>
-  </form><SessionAIChat groupId={groupId} eventId={eventId} revision={revision} draft={{ event, plan }} saving={pending}
-    onApply={({ draft }) => { setEvent(draft.event); setPlan(draft.plan); setOrigin("ai"); }} /></div>;
+  </form><SessionAIChat groupId={groupId} eventId={eventId} revision={revision} draft={aiDraft} saving={pending}
+    initialDraft={initialDraft}
+    onApply={applyAIProposal} /></div>;
 }

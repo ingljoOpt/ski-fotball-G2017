@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { planningPrioritiesSchema } from "./planning-priorities.ts";
 
 export const nameSchema = z.string().trim().min(2, "Navnet må ha minst to tegn.").max(100, "Navnet er for langt.");
 export const emailSchema = z.email("Oppgi en gyldig e-postadresse.").trim().toLowerCase().max(254);
@@ -9,6 +10,7 @@ export const birthYearSchema = z.preprocess((value) => value === "" ? null : val
 export const settingsSchema = z.object({
   generationDaysBefore: z.coerce.number().int().min(0).max(30),
   birthYear: birthYearSchema.optional(),
+  aiPriorities: planningPrioritiesSchema.optional(),
 });
 export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Oppgi klokkeslett som TT:MM.");
 export function minutesBetween(startTime: string, endTime: string) {

@@ -12,6 +12,7 @@ import { groupSessions } from "@/lib/planning-domain";
 import { eventStatusLabels, formatDate, PlanningNavigation } from "@/app/planning-components";
 import { formatTimeRange } from "@/lib/validation";
 import { clubUrl, teamUrl } from "@/lib/slugs";
+import { PlanningPrioritiesEditor } from "@/app/planning-priorities-editor";
 
 const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 const roleName = (role: string) => role === "head_coach" ? "Hovedtrener" : "Trener";
@@ -49,14 +50,13 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
             <h3>{upcoming.title}</h3><p>{upcoming.theme || "Tema ikke satt"} · {upcoming.durationMinutes} minutter</p>
             {upcoming.virtual ? <>
               <p>Ingen øktplan er opprettet ennå.</p>
-              <p className="notice">Ønsket genereringsdato: {formatDate(generationDate(upcoming.date, group.generationDaysBefore))} ({group.generationDaysBefore} dager før trening).
-                Automatisk generering er ikke aktivert ennå; dette er en plassholder, ikke en planlagt AI-jobb.</p>
+              <p className="notice">Denne øktplanen opprettes automatisk den {formatDate(generationDate(upcoming.date, group.generationDaysBefore))}.</p>
               <form action={newTrainingEvent}>
                 <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={upcoming.date.slice(0, 4)} />
                 {Object.entries({ date: upcoming.date, startTime: upcoming.startTime, endTime: upcoming.endTime, title: upcoming.title,
                   theme: upcoming.theme, objectives: upcoming.objectives, recurrenceKey: upcoming.recurrenceKey ?? "" })
                   .map(([key, value]) => <input type="hidden" name={key} value={value} key={key} />)}
-                <SubmitButton name="intent" value="create">Opprett denne økten manuelt</SubmitButton>
+                <SubmitButton name="intent" value="create">Opprett plan nå</SubmitButton>
               </form>
             </> : <><p>{eventStatusLabels[upcoming.status]}</p><AppLink href={`${basePath}/okter/${upcoming.id}`}>Åpne øktplan →</AppLink></>}
           </> : <><p>Ingen kommende treninger er registrert.</p>
@@ -120,8 +120,12 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
               <NativeInput label="Årgang (valgfritt)" name="birthYear" type="number" min={1900} max={2100} step={1} defaultValue={group.birthYear ?? ""} />
               <small>For eksempel 2017. Brukes i alle årsplaner og nye øktforslag. Tidligere øktversjoner endres ikke.</small>
               <NativeInput label="Dager før trening for nytt utkast" name="generationDaysBefore" type="number" min={0} max={30} required defaultValue={group.generationDaysBefore} />
+              <h3>Prioriteringer for AI-genererte økter</h3>
+              <PlanningPrioritiesEditor key={JSON.stringify(group.aiPriorities)} priorities={group.aiPriorities} />
               <SubmitButton>Lagre rammer</SubmitButton>
-            </form> : <><p>Årgang: {group.birthYear ?? "Ikke oppgitt"}.</p><p>Ønsket utkast {group.generationDaysBefore} dager før trening.</p></>}
+            </form> : <><p>Årgang: {group.birthYear ?? "Ikke oppgitt"}.</p><p>Ønsket utkast {group.generationDaysBefore} dager før trening.</p>
+              <h3>Prioriteringer for AI-genererte økter</h3><PlanningPrioritiesEditor priorities={group.aiPriorities} disabled />
+            </>}
             <p className="muted">Årgang settes av hovedtrener eller klubbadministrator. Øktlengden beregnes fra fra- og til-tidspunktet for hver trening. Ingen felles standardvarighet.</p>
             <p className="notice">Innstillingene lagres nå. Automatisk oppretting er ikke aktivert. AI-øktassistenten kan brukes manuelt i øktredigeringen.</p>
           </Card>}

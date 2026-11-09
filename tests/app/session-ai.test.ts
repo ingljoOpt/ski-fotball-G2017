@@ -6,6 +6,7 @@ import { createSessionAgent } from "../../src/lib/session-agent.ts";
 import { aiConfiguration, aiProposalInputSchema, aiRequestSchema, chatTextMessages, prepareAIProposal, sameAIDraft } from "../../src/lib/session-ai.ts";
 import { aiDraft, aiProposal, mockSessionModel } from "./session-ai-fixtures.ts";
 import type { sessionAIContext } from "../../src/lib/session-ai-context.ts";
+import { defaultPlanningPriorities } from "../../src/lib/planning-priorities.ts";
 
 test("AI setup requires server credentials and a Gateway model address", () => {
   assert.throws(() => aiConfiguration({}), /AI_GATEWAY_API_KEY/);
@@ -77,6 +78,9 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
     draft: { ...aiDraft(), plan: structuredClone(proposal.plan) },
     age: { age: 9, url: "https://www.fotball.no/barn-og-ungdom/barn_8-9/", label: "9 år i 2026" },
     annualObjectives: "Pasning og bevegelse", periods: [], events: [], history: [], sources: [], limitations: "Fiktive testdata",
+    curriculum: { topics: [], fetchedAt: "2026-11-08T12:00:00Z", warnings: ["Fagplan fra NFF"] },
+    priorities: [...defaultPlanningPriorities].reverse(), prioritySources: [], coachInput: "Fiktive trenerinnspill",
+    clubCohortHistory: [], previousPlan: null, tiimExercises: [],
   };
   const model = mockSessionModel(proposal);
   const response = await createAgentUIStreamResponse({
@@ -89,9 +93,17 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
   assert.match(data, /Pasning og bevegelse/);
   assert.match(data, /Kontroller planen/);
   assert.doesNotMatch(data, /"type":"error"/);
-  assert.equal(model.doStreamCalls.length, 3);
-  assert.deepEqual(model.doStreamCalls[0].toolChoice, { type: "tool", toolName: "readPlanningContext" });
-  assert.match(JSON.stringify(model.doStreamCalls[1].prompt), /Fiktive testdata/);
+  assert.equal(model.doStreamCalls.length, 4);
+  assert.deepEqual(model.doStreamCalls[0].toolChoice, { type: "tool", toolName: "readPlanningPriorities" });
+  assert.deepEqual(model.doStreamCalls[1].toolChoice, { type: "tool", toolName: "readPlanningContext" });
+  assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktive testdata/);
+  assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fagplan fra NFF/);
+  assert.match(JSON.stringify(model.doStreamCalls[1].prompt), /tiim_exercises/);
+  assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /Trenerens eksplisitte ønsker/);
+  assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /be om avklaring/);
+  assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /samme delferdighet i 2–3 økter/);
+  assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /Ikke bytt ut alle øvelsene/);
+  assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /Behold øvelsens ID/);
 });
 
 test("invalid model proposals are streamed as tool errors, never usable plans", async () => {
@@ -101,6 +113,9 @@ test("invalid model proposals are streamed as tool errors, never usable plans", 
   const context: Awaited<ReturnType<typeof sessionAIContext>> = {
     draft: { ...aiDraft(), plan: base }, age: { age: null, url: "", label: "Ukjent" },
     annualObjectives: "", periods: [], events: [], history: [], sources: [], limitations: "Fiktive testdata",
+    curriculum: { topics: [], fetchedAt: "", warnings: [] },
+    priorities: defaultPlanningPriorities, prioritySources: [], coachInput: "",
+    clubCohortHistory: [], previousPlan: null, tiimExercises: [],
   };
   const response = await createAgentUIStreamResponse({
     agent: createSessionAgent(context, mockSessionModel(proposal)),

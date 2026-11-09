@@ -11,8 +11,8 @@ import {
   acceptInvitation, addTrainingTime, createClub, createGroup, DomainError, groupDetails, inviteCoach, removeMember, updateGroupSettings,
 } from "../../src/lib/domain.ts";
 import {
-  annualPlanning, changeTrainingStatus, createTrainingEvent, groupCalendar, groupSessions, removePlanPeriod,
-  saveAnnualPlan, savePlanPeriod, saveSessionPlan, trainingEventDetails,
+  annualPlanHistory, annualPlanning, createTrainingEvent, groupCalendar, groupSessions, removePlanPeriod, unlockPlanMonth,
+  deleteSessionPlan, saveAnnualPlan, savePlanPeriod, saveSessionPlan, sessionHistory, setTrainingCancellation, trainingEventDetails,
 } from "../../src/lib/planning-domain.ts";
 import { emptySessionPlan, slotKey } from "../../src/lib/planning.ts";
 import { completePlan } from "./planning-fixtures.ts";
@@ -62,18 +62,67 @@ test("calendar, annual themes and immutable session plans", async (t) => {
 
     await t.test("all coaches can plan, while outsiders and other clubs are denied", async () => {
       await assert.rejects(annualPlanning(db, outsider.id, group.id, 2026), DomainError);
+      await assert.rejects(annualPlanHistory(db, outsider.id, group.id, 2026), DomainError);
       await assert.rejects(saveAnnualPlan(db, outsider.id, group.id, { year: 2026, birthYear: 2017, objectives: "" }, 0), DomainError);
       await saveAnnualPlan(db, coach.id, group.id, { year: 2026, birthYear: 2018, objectives: "Utvikle samspill" }, 0);
       const annual = await annualPlanning(db, head.id, group.id, 2026);
+      assert.equal(Object.hasOwn(annual, "history"), false, "AI and calendar planning data excludes actor history");
+      const annualHistory = await annualPlanHistory(db, head.id, group.id, 2026);
       assert.equal(annual.group.birthYear, 2017, "annual input cannot change the team's cohort");
       assert.equal(annual.plan?.legacyBirthYear, null, "annual input no longer stores a cohort");
       assert.equal(annual.periods.length, 0, "NFF themes are not generated or seeded");
+      assert.equal(annualHistory.length, 1);
+      assert.equal(annualHistory[0].entityType, "annual_plan");
+      assert.equal(annualHistory[0].actorType, "user");
+      assert.equal(annualHistory[0].actorEmail, coach.email);
+      assert.equal(annualHistory[0].afterSnapshot?.objectives, "Utvikle samspill");
       await assert.rejects(savePlanPeriod(db, outsider.id, group.id, 2026, periodInput, 1), DomainError);
       await savePlanPeriod(db, head.id, group.id, 2026, periodInput, 1);
+      const periodHistory = await annualPlanHistory(db, head.id, group.id, 2026);
+      const createdPeriod = periodHistory.find((entry) => entry.entityType === "plan_period");
+      assert.equal(createdPeriod?.action, "created");
+      assert.equal(createdPeriod?.afterSnapshot?.theme, "Pasning");
+      assert.equal(createdPeriod?.actorEmail, head.email);
       await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2026, periodInput, 1), /endret av en annen/);
       await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2026, periodInput, 2), /overlappe/);
+      assert.equal((await annualPlanHistory(db, head.id, group.id, 2026)).length, 2, "rejected writes do not create audit rows");
       await assert.rejects(saveAnnualPlan(db, head.id, group.id, { year: 2026, birthYear: 2017, objectives: "" }, 0), /endret av en annen/);
       assert.equal((await annualPlanning(db, outsider.id, otherGroup.id, 2026)).periods.length, 0);
+    });
+
+    await t.test("confirming a first period creates the annual plan atomically and preserves revision protection", async () => {
+      const input = { ...periodInput, startDate: "2028-01-01", endDate: "2028-03-31" };
+      await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2028, input, 0), /Lagre årsplanen/);
+      await assert.rejects(savePlanPeriod(db, outsider.id, group.id, 2028, input, 0, undefined, true), DomainError);
+      await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2028, input, 9, undefined, true), /endret/);
+      assert.equal((await annualPlanning(db, head.id, group.id, 2028)).plan, null);
+      await savePlanPeriod(db, coach.id, group.id, 2028, input, 0, undefined, true);
+      const annual = await annualPlanning(db, head.id, group.id, 2028);
+      assert.equal(annual.plan?.objectives, "");
+      assert.equal(annual.periods.length, 1);
+      assert.equal((await annualPlanHistory(db, head.id, group.id, 2028)).length, 2);
+      await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2028, input, 0, undefined, true), /endret/);
+      await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2028, input, annual.plan!.revision, undefined, true), /overlappe/);
+      assert.equal((await annualPlanning(db, head.id, group.id, 2028)).periods.length, 1);
+    });
+
+    await t.test("unlocking one month preserves the other months, audit history and session versions", async () => {
+      const annual = await annualPlanning(db, head.id, group.id, 2028);
+      const period = annual.periods[0];
+      await assert.rejects(unlockPlanMonth(db, outsider.id, group.id, period.id, 2, annual.plan!.revision), DomainError);
+      await assert.rejects(unlockPlanMonth(db, head.id, group.id, period.id, 2, 0), /endret/);
+      await assert.rejects(unlockPlanMonth(db, head.id, group.id, period.id, 13, annual.plan!.revision));
+      const versionCount = (await db.select().from(sessionVersions)).length;
+      await unlockPlanMonth(db, head.id, group.id, period.id, 2, annual.plan!.revision);
+      const unlocked = await annualPlanning(db, head.id, group.id, 2028);
+      assert.deepEqual(unlocked.periods.map(({ startDate, endDate }) => ({ startDate, endDate })).sort((first, second) => first.startDate.localeCompare(second.startDate)),
+        [{ startDate: "2028-01-01", endDate: "2028-01-31" }, { startDate: "2028-03-01", endDate: "2028-03-31" }]);
+      assert.ok(unlocked.periods.every((item) => item.theme === period.theme && item.objectives === period.objectives));
+      assert.equal((await db.select().from(sessionVersions)).length, versionCount);
+      assert.ok((await annualPlanHistory(db, head.id, group.id, 2028)).some((item) => item.beforeSnapshot?.endDate === "2028-03-31"));
+      const january = unlocked.periods.find((item) => item.startDate === "2028-01-01")!;
+      await unlockPlanMonth(db, head.id, group.id, january.id, 1, unlocked.plan!.revision);
+      assert.equal((await annualPlanning(db, head.id, group.id, 2028)).periods.length, 1);
     });
 
     await t.test("recurring calendar is virtual, includes both same-day slots and year themes", async () => {
@@ -97,7 +146,13 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(results[0], results[1]);
       eventId = results[0];
       const details = await trainingEventDetails(db, coach.id, group.id, eventId);
+      const history = await sessionHistory(db, coach.id, group.id, eventId);
       assert.equal(details.versions.length, 1);
+      assert.equal(history.length, 1);
+      assert.equal(history[0].action, "created");
+      assert.equal(history[0].actorType, "user");
+      assert.equal(history[0].actorEmail, coach.email);
+      assert.equal(history[0].afterSnapshot?.event && (history[0].afterSnapshot.event as { title: string }).title, eventInput.title);
       assert.equal(details.versions[0].origin, "manual");
       assert.equal(details.versions[0].planningContext.curriculum.provider, "nff");
       assert.equal(details.versions[0].planningContext.curriculum.suggestions, "pending_ai");
@@ -131,6 +186,16 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(future.upcoming?.id, futureId, "saved future sessions are found even beyond next year without recurring times");
     });
 
+    await t.test("AI-generated plan revisions are attributed privately", async () => {
+      const aiInput = { ...eventInput, date: "2026-11-25", title: "AI-assistert økt" };
+      const aiEventId = await createTrainingEvent(db, coach.id, group.id, aiInput);
+      await saveSessionPlan(db, coach.id, group.id, aiEventId, aiInput, completePlan(), 1, "draft", "ai");
+      const aiHistory = await sessionHistory(db, head.id, group.id, aiEventId);
+      assert.equal(aiHistory[0].actorType, "ai");
+      assert.equal(aiHistory[0].actorEmail, coach.email);
+      assert.equal(Object.hasOwn(aiHistory[0], "actorId"), false, "private actor ids are not exposed in the history view model");
+    });
+
     await t.test("calendar drafts inherit the actual slot and edits derive duration without changing the schedule", async () => {
       const input = { ...eventInput, date: "2026-11-18", startTime: "19:30", endTime: "20:00", durationMinutes: 30 };
       const id = await createTrainingEvent(db, coach.id, group.id, input, "2026-11-18T19:30");
@@ -155,21 +220,32 @@ test("calendar, annual themes and immutable session plans", async (t) => {
     });
 
     await t.test("draft validation, approval, immutable versions and stale-edit protection", async () => {
+      const initialHistoryCount = (await sessionHistory(db, coach.id, group.id, eventId)).length;
       await assert.rejects(saveSessionPlan(db, coach.id, group.id, eventId, eventInput, emptySessionPlan(), 1, "planned"), /godkjennes/);
+      assert.equal((await sessionHistory(db, coach.id, group.id, eventId)).length, initialHistoryCount);
       await saveSessionPlan(db, coach.id, group.id, eventId, eventInput, completePlan(), 1, "planned");
       const saved = await trainingEventDetails(db, head.id, group.id, eventId);
+      const savedHistory = await sessionHistory(db, head.id, group.id, eventId);
       assert.equal(saved.event.status, "planned");
       assert.equal(saved.versions[0].eventSnapshot.status, "planned");
       assert.equal(saved.versions.length, 2);
       assert.equal(saved.versions[1].plan.exercises.length, 0);
       assert.equal(saved.versions[0].plan.exercises[0].title, "Lokalt smålagsspill");
+      const approval = savedHistory.find((entry) => entry.action === "status_changed");
+      assert.equal(approval?.beforeSnapshot?.event && (approval.beforeSnapshot.event as { status: string }).status, "draft");
+      assert.equal(approval?.afterSnapshot?.event && (approval.afterSnapshot.event as { status: string }).status, "planned");
+      assert.equal(approval?.actorEmail, coach.email);
       await assert.rejects(saveSessionPlan(db, coach.id, group.id, eventId, eventInput, completePlan(), 1, "draft"), /endret av en annen/);
+      assert.equal((await sessionHistory(db, head.id, group.id, eventId)).length, savedHistory.length);
       await saveSessionPlan(db, head.id, group.id, eventId, { ...eventInput, theme: "Endret tema" }, completePlan(), 2, "draft");
       const revised = await trainingEventDetails(db, coach.id, group.id, eventId);
+      const revisedHistory = await sessionHistory(db, coach.id, group.id, eventId);
       assert.equal(revised.event.status, "draft", "editing an approved plan does not silently retain approval");
       assert.equal(revised.versions[1].eventSnapshot.theme, "Pasning");
       assert.equal(revised.versions[1].eventSnapshot.status, "planned");
       assert.equal(revised.versions[0].eventSnapshot.theme, "Endret tema");
+      assert.ok(revisedHistory.some((entry) => entry.beforeSnapshot?.event && (entry.beforeSnapshot.event as { theme: string }).theme === "Pasning"
+        && entry.afterSnapshot?.event && (entry.afterSnapshot.event as { theme: string }).theme === "Endret tema"));
     });
 
     await t.test("annual plan changes do not retroactively alter session snapshots", async () => {
@@ -180,8 +256,16 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(session.versions[0].planningContext.periods[0].theme, "Pasning");
       assert.equal(session.event.theme, "Endret tema");
       const updated = await annualPlanning(db, coach.id, group.id, 2026);
+      const updatedHistory = await annualPlanHistory(db, coach.id, group.id, 2026);
+      assert.ok(updatedHistory.some((entry) => entry.action === "updated" && entry.beforeSnapshot?.theme === "Pasning"
+        && entry.afterSnapshot?.theme === "Vending"));
       await assert.rejects(removePlanPeriod(db, outsider.id, group.id, updated.periods[0].id, updated.plan!.revision), DomainError);
       await removePlanPeriod(db, coach.id, group.id, updated.periods[0].id, updated.plan!.revision);
+      const afterDelete = await annualPlanHistory(db, coach.id, group.id, 2026);
+      const deletion = afterDelete.find((entry) => entry.action === "deleted");
+      assert.equal(deletion?.beforeSnapshot?.theme, "Vending");
+      assert.equal(deletion?.afterSnapshot, null);
+      assert.equal(deletion?.actorEmail, coach.email);
       assert.equal((await trainingEventDetails(db, coach.id, group.id, eventId)).versions[0].planningContext.periods[0].theme, "Pasning");
     });
 
@@ -215,18 +299,59 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       const calendar = await groupCalendar(db, coach.id, group.id, 2026);
       assert.equal(calendar.entries.filter((event) => event.date === "2026-11-11" && event.startTime === "18:00").length, 1);
       assert.equal(calendar.entries.find((event) => event.id === cancelledId)?.status, "cancelled");
-      await assert.rejects(saveSessionPlan(db, coach.id, group.id, cancelledId, cancelledInput, completePlan(), 1, "draft"), /Gjenåpne/);
-      await changeTrainingStatus(db, coach.id, group.id, cancelledId, 1, "draft");
+      await assert.rejects(saveSessionPlan(db, coach.id, group.id, cancelledId, cancelledInput, completePlan(), 1, "draft"), /Angre avlysningen/);
+      await setTrainingCancellation(db, coach.id, group.id, cancelledId, 1, false);
       assert.equal((await trainingEventDetails(db, coach.id, group.id, cancelledId)).versions.length, 1);
-      await assert.rejects(changeTrainingStatus(db, coach.id, group.id, cancelledId, 1, "cancelled"), /endret av en annen/);
-      await changeTrainingStatus(db, coach.id, group.id, cancelledId, 2, "cancelled");
+      await assert.rejects(setTrainingCancellation(db, coach.id, group.id, cancelledId, 1, true), /endret av en annen/);
+      await setTrainingCancellation(db, coach.id, group.id, cancelledId, 2, true);
+      const history = await sessionHistory(db, head.id, group.id, cancelledId);
+      assert.equal(history.filter((entry) => entry.action === "status_changed").length, 2);
+      const reopened = history.find((entry) => entry.action === "status_changed" && entry.beforeSnapshot?.cancelled === true);
+      assert.equal(reopened?.afterSnapshot?.cancelled, false);
+      assert.equal((reopened?.beforeSnapshot?.event as { status: string } | undefined)?.status, "draft");
+      assert.equal(reopened?.actorType, "user");
+    });
+
+    await t.test("deleting a plan preserves its session, and cancellation is independent and reversible", async () => {
+      const input = { ...eventInput, date: "2028-03-01", title: "Uten plan" };
+      const id = await createTrainingEvent(db, coach.id, group.id, input);
+      await saveSessionPlan(db, coach.id, group.id, id, input, completePlan(), 1, "draft");
+      await deleteSessionPlan(db, coach.id, group.id, id, 2);
+      let details = await trainingEventDetails(db, head.id, group.id, id);
+      assert.equal(details.event.status, "no_plan");
+      assert.equal(details.event.cancelledAt, null);
+      assert.equal(details.versions.length, 2, "deleted active plans remain in revision history");
+      assert.equal((await groupCalendar(db, head.id, group.id, 2028)).entries.find((item) => item.id === id)?.status, "no_plan");
+      let history = await sessionHistory(db, head.id, group.id, id);
+      assert.ok(history.some((entry) => entry.action === "deleted" && entry.afterSnapshot === null));
+
+      await setTrainingCancellation(db, head.id, group.id, id, 3, true);
+      details = await trainingEventDetails(db, head.id, group.id, id);
+      assert.equal(details.event.status, "cancelled");
+      assert.ok(details.event.cancelledAt);
+      assert.ok(details.event.planDeletedAt);
+      await setTrainingCancellation(db, head.id, group.id, id, 4, false);
+      details = await trainingEventDetails(db, head.id, group.id, id);
+      assert.equal(details.event.status, "no_plan", "undoing cancellation does not restore a deleted plan");
+      assert.equal(details.event.cancelledAt, null);
+
+      await saveSessionPlan(db, head.id, group.id, id, input, completePlan(), 5, "draft");
+      details = await trainingEventDetails(db, head.id, group.id, id);
+      assert.equal(details.event.status, "draft");
+      assert.equal(details.event.planDeletedAt, null);
+      assert.equal(details.versions.length, 3, "a new plan starts a new revision without deleting prior versions");
+      history = await sessionHistory(db, head.id, group.id, id);
+      assert.ok(history.some((entry) => entry.action === "deleted"));
     });
 
     await t.test("session access and composite foreign keys isolate tenant writes and version history", async () => {
       await assert.rejects(trainingEventDetails(db, outsider.id, group.id, eventId), DomainError);
+      await assert.rejects(sessionHistory(db, outsider.id, group.id, eventId), DomainError);
       await assert.rejects(trainingEventDetails(db, outsider.id, otherGroup.id, eventId), DomainError);
+      assert.equal(Object.hasOwn(await trainingEventDetails(db, head.id, group.id, eventId), "history"), false,
+        "AI planning inputs exclude private actor history");
       await assert.rejects(saveSessionPlan(db, outsider.id, otherGroup.id, eventId, eventInput, completePlan(), 4, "draft"), DomainError);
-      await assert.rejects(changeTrainingStatus(db, outsider.id, group.id, eventId, 4, "cancelled"), DomainError);
+      await assert.rejects(setTrainingCancellation(db, outsider.id, group.id, eventId, 4, true), DomainError);
       await assert.rejects(createTrainingEvent(db, outsider.id, group.id, { ...eventInput, date: "2026-11-12" }), DomainError);
       await assert.rejects(db.transaction(async (tx) => {
         await tx.insert(trainingEvents).values({ ...eventInput, clubId: otherClub.id, groupId: group.id });

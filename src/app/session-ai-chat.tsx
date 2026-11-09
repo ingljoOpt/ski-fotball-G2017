@@ -2,14 +2,15 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import type { SessionAgentMessage } from "@/lib/session-agent";
 import { aiDraftSchema, sameAIDraft, type AIDraft, type AIProposal } from "@/lib/session-ai";
 import { ActionButton, TextAreaInput } from "./ui";
 
-export function SessionAIChat({ groupId, eventId, revision, draft, saving, onApply }: {
+export function SessionAIChat({ groupId, eventId, revision, draft, saving, initialDraft = false, onApply }: {
   groupId: string; eventId: string; revision: number; draft: AIDraft; saving: boolean;
+  initialDraft?: boolean;
   onApply: (proposal: AIProposal) => void;
 }) {
   const transport = useMemo(() => new DefaultChatTransport<SessionAgentMessage>({
@@ -34,9 +35,10 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, onApp
   const [applied, setApplied] = useState<string[]>([]);
   const [applyError, setApplyError] = useState("");
   const log = useRef<HTMLDivElement>(null);
+  const initialRequest = useRef(false);
+  const initialMessageOffset = useRef<number | null>(null);
   const busy = status === "submitted" || status === "streaming";
-  useEffect(() => { if (log.current) log.current.scrollTop = log.current.scrollHeight; }, [messages, status]);
-  function apply(proposal: AIProposal, id: string) {
+  const apply = useCallback((proposal: AIProposal, id: string) => {
     if (!sameAIDraft(proposal.baseDraft, draft)) {
       setApplyError("Økten er endret siden dette forslaget. Be om et nytt forslag for å unngå å overskrive endringene.");
       return;
@@ -49,11 +51,36 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, onApp
     onApply({ ...proposal, draft: parsed.data });
     setApplied((current) => [...current, id]);
     setApplyError("");
-  }
+  }, [draft, onApply]);
+  useEffect(() => { if (log.current) log.current.scrollTop = log.current.scrollHeight; }, [messages, status]);
+  useEffect(() => {
+    if (!initialDraft || initialRequest.current) return;
+    const key = `klubbokter-initial-draft-${eventId}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "started");
+    } catch { /* Continue with the in-memory guard when storage is unavailable. */ }
+    initialRequest.current = true;
+    initialMessageOffset.current = messages.length;
+    void sendMessage({ text: "Lag et komplett førsteutkast til denne økten. Ta utgangspunkt i oppgitt tema, mål, årsplan og lagets rammer. Hvis tema eller mål mangler, velg en enkel progresjon som passer alderen og forklar forutsetningene. Ikke finn på oppmøte eller utstyr. Jeg skal kontrollere og redigere forslaget før jeg lagrer." },
+      { body: { groupId, eventId, revision, draft } });
+  }, [initialDraft, groupId, eventId, revision, draft, messages.length, sendMessage]);
+  useEffect(() => {
+    const offset = initialMessageOffset.current;
+    if (!initialDraft || offset === null || messages.length <= offset || busy) return;
+    const proposalPart = messages.slice(offset).flatMap((message) => message.parts)
+      .find((part) => part.type === "tool-proposeSessionPlan" && part.state === "output-available");
+    if (proposalPart?.type === "tool-proposeSessionPlan" && proposalPart.state === "output-available") {
+      apply(proposalPart.output, proposalPart.toolCallId);
+    }
+    initialMessageOffset.current = null;
+  }, [initialDraft, messages, busy, apply]);
   return <aside className="session-ai-sidebar" aria-label="AI-øktassistent">
     <details open className="ai-chat-panel">
       <summary><h3>AI-øktassistent</h3></summary>
-      <p className="muted">Få et forslag eller juster økten. Forslag endrer ingenting før du velger å bruke dem.</p>
+      <p className="muted">{initialDraft
+        ? "Førsteutkastet fylles automatisk inn her. Rediger det eller be assistenten justere; ingenting lagres før du lagrer økten."
+        : "Få et forslag eller juster økten. Forslag endrer ingenting før du velger å bruke dem."}</p>
       <p className="ai-privacy">Øktinnhold, årsplan og inntil fem tidligere planer sendes via Vercel AI Gateway. Ikke skriv navn eller private opplysninger om barn. Chatten lagres ikke.</p>
       <div ref={log} className="ai-messages" role="log" aria-label="Samtale med øktassistenten">
         {!messages.length && <p>For eksempel: «Lag en økt med pasning og bevegelse» eller «Tilpass organiseringen til rammene i skjemaet».</p>}
@@ -102,7 +129,7 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, onApp
             : <ActionButton type="button" variant="secondary" onPress={() => { setMessages([]); clearError(); setApplied([]); setApplyError(""); }}>Ny samtale</ActionButton>}
         </div>
       </form>
-      <small>Kontroller plan, utstyr og kilder selv. Ingen ny Tiim-kontroll, evalueringer eller automatikk i denne versjonen.</small>
+      <small>NFF-fagplan brukes sammen med trenerføringer og årsplan. Kontroller plan, utstyr og øvelseskilder selv. Ingen automatikk eller evalueringer.</small>
     </details>
   </aside>;
 }

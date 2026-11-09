@@ -8,7 +8,7 @@ import { sessionAIContext } from "@/lib/session-ai-context";
 import { createSessionAgent } from "@/lib/session-agent";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 320;
 const maxBodyBytes = 256 * 1024;
 // shortcut: per-process throttling; use a shared rate-limit store before multi-instance production deployment.
 const requests = new Map<string, { start: number; count: number }>();
