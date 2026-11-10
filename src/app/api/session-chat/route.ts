@@ -6,6 +6,7 @@ import { DomainError } from "@/lib/domain";
 import { aiConfiguration, aiRequestSchema, chatTextMessages } from "@/lib/session-ai";
 import { sessionAIContext } from "@/lib/session-ai-context";
 import { createSessionAgent } from "@/lib/session-agent";
+import { isSameOrigin } from "@/lib/request-origin";
 
 export const runtime = "nodejs";
 export const maxDuration = 320;
@@ -35,7 +36,7 @@ async function readBody(request: Request) {
 
 export async function POST(request: Request) {
   const fail = (message: string, status: number) => Response.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
-  if (request.headers.get("origin") !== new URL(request.url).origin) return fail("Forespørselen må komme fra appen.", 403);
+  if (!isSameOrigin(request)) return fail("Forespørselen må komme fra appen.", 403);
   let user;
   try { user = await currentUser(); }
   catch (error) {
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       agent: createSessionAgent(context, gateway(config.model)),
       uiMessages: messages,
       abortSignal: request.signal,
-      timeout: 110_000,
+      timeout: 300_000,
       sendReasoning: false,
       headers: { "Cache-Control": "no-store" },
       onError: (error) => {

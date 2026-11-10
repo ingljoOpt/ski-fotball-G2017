@@ -1,0 +1,1 @@
+ALTER TABLE "plan_periods" ADD COLUMN "coach_moments" text DEFAULT '' NOT NULL;

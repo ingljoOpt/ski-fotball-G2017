@@ -6,6 +6,8 @@ import { AppLink, Card, Chip, NativeInput, OptionSelect, SubmitButton, TextAreaI
 import { eventStatusLabels, formatDate, months } from "@/app/planning-components";
 import type { Curriculum } from "@/lib/nff-curriculum";
 import { SessionSkillFields } from "@/app/nff-curriculum-list";
+import { sessionHasEnded } from "@/lib/session-review";
+import { LockOpen } from "lucide-react";
 
 export function AnnualEventFields({ date, event }: { date: string; event?: AnnualEvent }) {
   return <>
@@ -87,29 +89,34 @@ export function AnnualMonth({ details, year, month, basePath, curriculum, sugges
             <AppLink href={`#hendelse-${event.id}`}>Rediger hendelsen →</AppLink>
           </Card>)}
           {training.map((entry) => <Card className="app-card" key={entry.id ?? entry.recurrenceKey}>
-            <div className="row"><strong>Trening · {formatTimeRange(entry.startTime, entry.endTime)}</strong><Chip>{eventStatusLabels[entry.status]}</Chip></div>
+            <form action={entry.virtual ? newTrainingEvent : lockTrainingFocus}>
+            <div className="row"><strong>Trening · {formatTimeRange(entry.startTime, entry.endTime)}</strong><div className="row">
+              <Chip>{eventStatusLabels[entry.status]}</Chip>
+              {!sessionHasEnded(entry) && (entry.virtual || (entry.id && entry.status !== "cancelled" && "planDeletedAt" in entry && !entry.planDeletedAt)) &&
+                <span title="Lås tema"><SubmitButton className="planning-info-button" variant="secondary" aria-label="Lås tema"
+                  name={entry.virtual ? "intent" : undefined} value={entry.virtual ? "lock-focus" : undefined}><LockOpen size={18} aria-hidden="true" /></SubmitButton></span>}
+            </div></div>
             <h5>{entry.title}</h5><p>{entry.theme || "Øktfokus fra månedens tema"} · {entry.durationMinutes} minutter</p>
             <p className="preserve-lines">{entry.objectives}</p>
-            {entry.virtual ? <form action={newTrainingEvent}>{hidden}
+            {entry.virtual ? !sessionHasEnded(entry) && <>{hidden}
               {Object.entries({ date: entry.date, startTime: entry.startTime, endTime: entry.endTime, title: entry.title,
                 recurrenceKey: entry.recurrenceKey ?? "" })
                 .map(([key, value]) => <input type="hidden" name={key} value={value} key={key} />)}
               <SessionSkillFields theme={entry.theme} objectives={entry.objectives}
                 sessionIndex={sessionIndex(entry)}
                 skills={curriculum?.topics.find((topic) => topic.kind === "main" && topic.theme === entry.theme)?.skills ?? []} />
-              <div className="row"><SubmitButton name="intent" value="lock-focus">Lås øktfokus</SubmitButton>
-                <SubmitButton name="intent" value="create" variant="secondary">Planlegg denne treningen</SubmitButton>
+              <div className="row"><SubmitButton name="intent" value="create" variant="secondary">Opprett øktplan</SubmitButton>
                 <SubmitButton name="intent" value="cancel" variant="danger-soft">Avlys denne treningen</SubmitButton></div>
-            </form> : <>
-              {entry.id && entry.status !== "cancelled" && "planDeletedAt" in entry && !entry.planDeletedAt && <form action={lockTrainingFocus}>{hidden}
+            </> : <>
+              {entry.id && !sessionHasEnded(entry) && entry.status !== "cancelled" && "planDeletedAt" in entry && !entry.planDeletedAt && <>{hidden}
                 <input type="hidden" name="eventId" value={entry.id} /><input type="hidden" name="revision" value={entry.revision} />
                 <SessionSkillFields key={`${entry.id}-${entry.revision}`} theme={entry.theme} objectives={entry.objectives} locked={Boolean(parseSkillObjectives(entry.objectives))}
                   sessionIndex={sessionIndex(entry)}
                   skills={curriculum?.topics.find((topic) => topic.kind === "main" && topic.theme === entry.theme)?.skills ?? []} />
-                <SubmitButton>Lås øktfokus</SubmitButton>
-              </form>}
+              </>}
               <AppLink href={`${basePath}/okter/${entry.id}`}>Åpne øktplan →</AppLink>
             </>}
+            </form>
           </Card>)}
         </section>;
       })}

@@ -15,6 +15,7 @@ import { eventStatusLabels, formatDate, PlanningNavigation } from "@/app/plannin
 import { formatTimeRange } from "@/lib/validation";
 import { clubUrl, teamUrl } from "@/lib/slugs";
 import { PlanningPrioritiesEditor } from "@/app/planning-priorities-editor";
+import { AutomaticPlanSettings } from "@/app/automatic-plan-settings";
 
 const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 const roleName = (role: string) => role === "head_coach" ? "Hovedtrener" : "Trener";
@@ -57,14 +58,14 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
             <h3>{upcoming.title}</h3><p>{upcoming.theme || "Tema ikke satt"} · {upcoming.durationMinutes} minutter</p>
             {upcoming.virtual ? <>
               <p>Ingen øktplan er opprettet ennå.</p>
-              <p className="notice">{automatic ? "Automatisk utkast er planlagt fra" : "Ønsket dato for utkast:"} {formatDate(generationDate(upcoming.date, group.generationDaysBefore))}.</p>
-              {failedJob && <p className="notice error">Automatisk utkast kunne ikke opprettes. Opprett planen manuelt, eller vent på neste kjøring før treningen.</p>}
+              <p className="notice">{automatic ? "Automatisk planlegging er planlagt fra" : "Ønsket dato for planlegging:"} {formatDate(generationDate(upcoming.date, group.generationDaysBefore))}.</p>
+              {failedJob && <p className="notice error">Øktplanen kunne ikke opprettes automatisk. Opprett planen manuelt, eller vent på neste kjøring før treningen.</p>}
               <form action={newTrainingEvent}>
                 <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={upcoming.date.slice(0, 4)} />
                 {Object.entries({ date: upcoming.date, startTime: upcoming.startTime, endTime: upcoming.endTime, title: upcoming.title,
                   theme: upcoming.theme, objectives: upcoming.objectives, recurrenceKey: upcoming.recurrenceKey ?? "" })
                   .map(([key, value]) => <input type="hidden" name={key} value={value} key={key} />)}
-                <SubmitButton name="intent" value="create">Opprett plan nå</SubmitButton>
+                <SubmitButton name="intent" value="create">Opprett øktplan</SubmitButton>
               </form>
             </> : <><p>{eventStatusLabels[upcoming.status]}</p><AppLink href={`${basePath}/okter/${upcoming.id}`}>Åpne øktplan →</AppLink></>}
           </> : <><p>Ingen kommende treninger er registrert.</p>
@@ -127,14 +128,13 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
               <input type="hidden" name="groupId" value={groupId} />
               <NativeInput label="Årgang (valgfritt)" name="birthYear" type="number" min={1900} max={2100} step={1} defaultValue={group.birthYear ?? ""} />
               <small>For eksempel 2017. Brukes i alle årsplaner og nye øktforslag. Tidligere øktversjoner endres ikke.</small>
-              <NativeInput label="Dager før trening for nytt utkast" name="generationDaysBefore" type="number" min={0} max={30} required defaultValue={group.generationDaysBefore} />
               <TextAreaInput label="Lagets generelle instrukser" name="generalInstructions" rows={5} maxLength={8000} defaultValue={group.generalInstructions} />
-              <label><input type="checkbox" name="autoDraftEnabled" defaultChecked={group.autoDraftEnabled} /> Automatisk AI-utkast på Vercel</label>
+              <AutomaticPlanSettings enabled={group.autoDraftEnabled} days={group.generationDaysBefore} />
               <small>Lagets instrukser, aktive klubbdokumenter, årsplan og tidligere planer med evalueringer sendes til modellleverandøren ved generering. Ikke legg inn private opplysninger om barn.</small>
               <h3>Prioriteringer for AI-genererte økter</h3>
               <PlanningPrioritiesEditor key={JSON.stringify(group.aiPriorities)} priorities={group.aiPriorities} />
               <SubmitButton>Lagre rammer</SubmitButton>
-            </form> : <><p>Årgang: {group.birthYear ?? "Ikke oppgitt"}.</p><p>Ønsket utkast {group.generationDaysBefore} dager før trening.</p>
+            </form> : <><p>Årgang: {group.birthYear ?? "Ikke oppgitt"}.</p><p>Automatisk planlegging: {group.autoDraftEnabled ? `På, ${group.generationDaysBefore} dager før ny trening` : "Av"}.</p>
               <h3>Lagets generelle instrukser</h3><p className="preserve-lines">{group.generalInstructions || "Ingen instrukser registrert."}</p>
               <h3>Prioriteringer for AI-genererte økter</h3><PlanningPrioritiesEditor priorities={group.aiPriorities} disabled />
             </>}

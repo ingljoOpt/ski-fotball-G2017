@@ -1,8 +1,10 @@
 import { checkSessionPlan, sessionSections, stageLabels, type SessionPlan } from "@/lib/planning";
+import { Pencil, Trash2 } from "lucide-react";
 import { AppLink } from "./ui";
 
-export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, objectives, ageLabel, idPrefix = "plan", showLegacy = false }: {
+export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, objectives, ageLabel, idPrefix = "plan", showLegacy = false, onEdit, onRemove }: {
   plan: SessionPlan; coaches?: { userId: string; email: string }[]; durationMinutes: number; theme?: string; objectives?: string; ageLabel?: string; idPrefix?: string; showLegacy?: boolean;
+  onEdit?: (exerciseIds: string[]) => void; onRemove?: (exerciseIds: string[], label: string) => void;
 }) {
   const check = checkSessionPlan(plan, durationMinutes);
   const sections = sessionSections(plan.exercises);
@@ -31,11 +33,17 @@ export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, ob
       </div>
     </div>
     {sections.map((section) => <section className="session-stage" key={section.id} aria-labelledby={`${idPrefix}-${section.id}`}>
-      <div className="stage-heading"><h2 id={`${idPrefix}-${section.id}`}>{section.title}</h2><span>{section.durationMinutes} min</span></div>
+      <div className="stage-heading"><h2 id={`${idPrefix}-${section.id}`}>{section.title}</h2><div className="session-item-actions"><span>{section.durationMinutes} min</span>
+        {onEdit && <button type="button" title={`Rediger ${section.title}`} aria-label={`Rediger ${section.title}`} onClick={() => onEdit(section.exercises.map(({ exercise }) => exercise.id))}><Pencil size={17} /></button>}
+        {onRemove && <button type="button" title={`Slett ${section.title}`} aria-label={`Slett ${section.title}`} onClick={() => onRemove(section.exercises.map(({ exercise }) => exercise.id), section.title)}><Trash2 size={17} /></button>}
+      </div></div>
       {section.exercises.map(({ exercise, from, index }) => <article className="session-exercise" id={`${idPrefix}-ovelse-${exercise.id}`} key={exercise.id}>
         <header className="exercise-heading">
           <div><small>{index + 1}. {stageLabels[exercise.stage]}</small><h3>{exercise.title}</h3></div>
-          <span className="exercise-duration">{exercise.durationMinutes} min<small>{from}–{from + exercise.durationMinutes} min</small></span>
+          <div className="session-item-actions"><span className="exercise-duration">{exercise.durationMinutes} min<small>{from}–{from + exercise.durationMinutes} min</small></span>
+            {onEdit && <button type="button" title={`Rediger ${exercise.title}`} aria-label={`Rediger ${exercise.title}`} onClick={() => onEdit([exercise.id])}><Pencil size={17} /></button>}
+            {onRemove && <button type="button" title={`Slett ${exercise.title}`} aria-label={`Slett ${exercise.title}`} onClick={() => onRemove([exercise.id], exercise.title)}><Trash2 size={17} /></button>}
+          </div>
         </header>
         <div className="exercise-body">
           <p className="preserve-lines">{exercise.description || "Gjennomføring er ikke beskrevet ennå."}</p>

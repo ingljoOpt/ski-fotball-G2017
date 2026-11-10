@@ -2,6 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { CheckCircle2, CircleAlert, LoaderCircle, RotateCcw, Sparkles, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import type { SessionAgentMessage } from "@/lib/session-agent";
@@ -11,7 +12,7 @@ import { ActionButton, TextAreaInput } from "./ui";
 export function SessionAIChat({ groupId, eventId, revision, draft, saving, needsRecalculation = false, initialDraft = false, onApply }: {
   groupId: string; eventId: string; revision: number; draft: AIDraft; saving: boolean;
   initialDraft?: boolean; needsRecalculation?: boolean;
-  onApply: (proposal: AIProposal) => void;
+  onApply: (proposal: AIProposal, save?: boolean) => void;
 }) {
   const transport = useMemo(() => new DefaultChatTransport<SessionAgentMessage>({
     api: "/api/session-chat",
@@ -34,52 +35,111 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, needs
   const [input, setInput] = useState("");
   const [applied, setApplied] = useState<string[]>([]);
   const [applyError, setApplyError] = useState("");
+  const [initialOpen, setInitialOpen] = useState(initialDraft);
+  const [initialFailure, setInitialFailure] = useState("");
   const log = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
   const initialRequest = useRef(false);
   const initialMessageOffset = useRef<number | null>(null);
+  const initialWasBusy = useRef(false);
   const busy = status === "submitted" || status === "streaming";
-  const apply = useCallback((proposal: AIProposal, id: string) => {
+  const apply = useCallback((proposal: AIProposal, id: string, save = false) => {
     if (!sameAIDraft(proposal.baseDraft, draft)) {
       setApplyError("Økten er endret siden dette forslaget. Be om et nytt forslag for å unngå å overskrive endringene.");
-      return;
+      return false;
     }
     const parsed = aiDraftSchema.safeParse(proposal.draft);
     if (!parsed.success) {
       setApplyError("Forslaget er ugyldig og kan ikke brukes. Be om et nytt forslag.");
-      return;
+      return false;
     }
-    onApply({ ...proposal, draft: parsed.data });
+    onApply({ ...proposal, draft: parsed.data }, save);
     setApplied((current) => [...current, id]);
     setApplyError("");
+    return true;
   }, [draft, onApply]);
-  useEffect(() => { if (log.current) log.current.scrollTop = log.current.scrollHeight; }, [messages, status]);
+  useEffect(() => {
+    if (log.current) log.current.scrollTop = log.current.scrollHeight;
+    if (busy && dialog.current) dialog.current.scrollTop = dialog.current.scrollHeight;
+  }, [messages, status, busy]);
+  useEffect(() => {
+    if (initialOpen && dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, [initialOpen]);
+  const startInitial = useCallback(() => {
+    clearError();
+    setApplyError("");
+    setInitialFailure("");
+    initialWasBusy.current = false;
+    initialMessageOffset.current = messages.length;
+    void sendMessage({ text: "Lag en komplett plan for denne økten. Ta utgangspunkt i oppgitt tema, mål, årsplan og lagets rammer. Hvis tema eller mål mangler, velg en enkel progresjon som passer alderen og forklar forutsetningene. Ikke finn på oppmøte eller utstyr. Treneren skal kontrollere og redigere planen." },
+      { body: { groupId, eventId, revision, draft } });
+  }, [clearError, messages.length, sendMessage, groupId, eventId, revision, draft]);
   useEffect(() => {
     if (!initialDraft || initialRequest.current) return;
-    const key = `klubbokter-initial-draft-${eventId}`;
-    try {
-      if (sessionStorage.getItem(key)) return;
-      sessionStorage.setItem(key, "started");
-    } catch { /* Continue with the in-memory guard when storage is unavailable. */ }
-    initialRequest.current = true;
-    initialMessageOffset.current = messages.length;
-    void sendMessage({ text: "Lag et komplett førsteutkast til denne økten. Ta utgangspunkt i oppgitt tema, mål, årsplan og lagets rammer. Hvis tema eller mål mangler, velg en enkel progresjon som passer alderen og forklar forutsetningene. Ikke finn på oppmøte eller utstyr. Jeg skal kontrollere og redigere forslaget før jeg lagrer." },
-      { body: { groupId, eventId, revision, draft } });
-  }, [initialDraft, groupId, eventId, revision, draft, messages.length, sendMessage]);
+    const timer = window.setTimeout(() => {
+      initialRequest.current = true;
+      startInitial();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [initialDraft, startInitial]);
   useEffect(() => {
     const offset = initialMessageOffset.current;
-    if (!initialDraft || offset === null || messages.length <= offset || busy) return;
+    if (offset === null) return;
+    if (busy) { initialWasBusy.current = true; return; }
+    if (!initialWasBusy.current && status !== "error") return;
     const proposalPart = messages.slice(offset).flatMap((message) => message.parts)
       .find((part) => part.type === "tool-proposeSessionPlan" && part.state === "output-available");
-    if (proposalPart?.type === "tool-proposeSessionPlan" && proposalPart.state === "output-available") {
-      apply(proposalPart.output, proposalPart.toolCallId);
-    }
     initialMessageOffset.current = null;
-  }, [initialDraft, messages, busy, apply]);
+    if (status === "ready" && proposalPart?.type === "tool-proposeSessionPlan" && proposalPart.state === "output-available" && apply(proposalPart.output, proposalPart.toolCallId, true)) {
+      setInitialOpen(false);
+      clearInitialQuery();
+    } else {
+      const unfinished = messages.slice(offset).flatMap((message) => message.parts)
+        .some((part) => part.type === "tool-proposeSessionPlan" && (part.state === "input-streaming" || part.state === "input-available"));
+      setInitialFailure(status === "error" ? "Øktplanen kunne ikke lages." : unfinished ? "Genereringen ble avbrutt før planen var ferdig. Prøv igjen." : "Assistenten leverte ikke en gyldig øktplan.");
+    }
+  }, [messages, busy, status, apply]);
+  function closeInitial() {
+    initialMessageOffset.current = null;
+    if (busy) void stop();
+    setInitialOpen(false);
+    clearInitialQuery();
+  }
   return <aside className="session-ai-sidebar" aria-label="AI-øktassistent">
+    {initialOpen && <dialog ref={dialog} className="ai-draft-dialog" aria-labelledby="ai-draft-title" onCancel={(event) => { event.preventDefault(); closeInitial(); }}>
+      <header className="ai-draft-header">
+        <span className="ai-draft-header-icon"><Sparkles size={19} aria-hidden="true" /></span>
+        <div><h2 id="ai-draft-title">Oppretter øktplan</h2><p>AI-assistenten lager planen.</p></div>
+      </header>
+      <div className="ai-draft-progress" role="log" aria-label="Fremdrift for øktplan">
+        {messages.filter((message) => message.role === "assistant").flatMap((message) => message.parts.map((part, index) => {
+          const key = `${message.id}-${index}`;
+          let text;
+          if (part.type === "tool-readPlanningPriorities") text = part.state === "output-available" ? "Prioriteringer lest." : part.state === "output-error" ? "Prioriteringene kunne ikke leses." : "Leser prioriteringer …";
+          else if (part.type === "tool-readPlanningContext") text = part.state === "output-available" ? "Årsplan og historikk lest." : part.state === "output-error" ? "Planleggingsgrunnlaget kunne ikke leses." : "Leser planleggingsgrunnlaget …";
+          else if (part.type === "tool-readClubDocuments") text = part.state === "output-available" ? part.output.status === "available" ? "Klubbens dokumenter lest." : "Ingen aktive klubbdokumenter funnet." : part.state === "output-error" ? "Klubbens dokumenter kunne ikke leses." : "Leser klubbens dokumenter …";
+          else if (part.type === "tool-findTiimExercises") text = part.state === "output-available" ? "Tiim-søket er fullført." : part.state === "output-error" ? "Tiim-søket kunne ikke fullføres." : "Søker etter aldersriktige øvelser i Tiim …";
+          else if (part.type === "tool-proposeSessionPlan") text = part.state === "output-available" ? "Forslaget er kontrollert." : part.state === "output-error" ? "Forslaget bestod ikke kontrollen." : "Lager og kontrollerer forslaget …";
+          else return null;
+          const state = part.state === "output-available" ? "done" : part.state === "output-error" || (!busy && Boolean(initialFailure)) ? "error" : "working";
+          return <div className={`ai-draft-entry ai-draft-entry-${state}`} key={key}>
+            {state === "done" ? <CheckCircle2 size={16} aria-hidden="true" /> : state === "error" ? <CircleAlert size={16} aria-hidden="true" /> : <LoaderCircle className="ai-draft-spinner" size={16} aria-hidden="true" />}
+            <p>{state === "error" && part.state !== "output-error" ? "Steget ble ikke fullført." : text}</p>
+          </div>;
+        }))}
+      </div>
+      <p className="ai-draft-status" role="status">{busy && <><LoaderCircle className="ai-draft-spinner" size={15} aria-hidden="true" />{status === "submitted" ? "Kontakter øktassistenten …" : "Assistenten arbeider …"}</>}</p>
+      {initialFailure && <p className="notice error" role="alert">{initialFailure} {error?.message} {applyError}</p>}
+      <div className="row">
+        {initialFailure && <ActionButton type="button" onPress={startInitial}><RotateCcw size={15} aria-hidden="true" />Prøv igjen</ActionButton>}
+        <ActionButton type="button" variant="secondary" onPress={closeInitial}>{busy && <Square size={14} aria-hidden="true" />}{busy ? "Stopp og rediger selv" : "Rediger selv"}</ActionButton>
+      </div>
+      <small>Kontroller planen før trening.</small>
+    </dialog>}
     <details open className="ai-chat-panel">
       <summary><h3>AI-øktassistent</h3></summary>
       <p className="muted">{initialDraft
-        ? "Førsteutkastet fylles automatisk inn her. Rediger det eller be assistenten justere; ingenting lagres før du lagrer økten."
+        ? "Planen lagres automatisk når den er ferdig. Kontroller den før trening."
         : "Få et forslag eller juster økten. Forslag endrer ingenting før du velger å bruke dem."}</p>
       <p className="ai-privacy">Øktinnhold, årsplan, klubbens aktive dokumenttekst og inntil fem tidligere planer med evalueringer sendes via Vercel AI Gateway til modellleverandøren. Ikke skriv navn eller private opplysninger om barn. Chatten lagres ikke.</p>
       {needsRecalculation && <div className="notice" role="status">Trenerutvalget er endret siden øvelsene ble tilpasset.
@@ -155,4 +215,10 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, needs
       <small>NFF-fagplan brukes sammen med trenerføringer og årsplan. Kontroller plan, utstyr og øvelseskilder selv.</small>
     </details>
   </aside>;
+}
+
+function clearInitialQuery() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("initialDraft");
+  window.history.replaceState(window.history.state, "", url);
 }

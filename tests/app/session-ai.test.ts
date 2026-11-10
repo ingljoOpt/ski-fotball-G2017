@@ -166,6 +166,33 @@ test("failed Tiim search warns and still permits a proposal without invented sou
   assert.doesNotMatch(data, /"type":"tool-output-error"/);
 });
 
+test("the agent can finish a proposal after a slow Tiim search when given enough time", async () => {
+  const proposal = aiProposal();
+  const context: Awaited<ReturnType<typeof sessionAIContext>> = {
+    draft: { ...aiDraft(), plan: structuredClone(proposal.plan) }, age: { age: 9, url: "", label: "9 år" },
+    annualObjectives: "", periods: [], events: [], history: [], sources: [], limitations: "",
+    curriculum: { topics: [], fetchedAt: "", warnings: [] }, priorities: defaultPlanningPriorities, prioritySources: [], coachInput: "", teamInstructions: "",
+    clubCohortHistory: [], clubGuidelines: [], previousPlan: null, tiimExercises: [],
+  };
+  async function run(timeout: number) {
+    const response = await createAgentUIStreamResponse({
+      agent: createSessionAgent(context, mockSessionModel(proposal), async () => {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return { exercises: [], warnings: [] };
+      }),
+      uiMessages: [{ id: "u", role: "user", parts: [{ type: "text", text: "Lag et forslag" }] }],
+      timeout,
+    });
+    return response.text();
+  }
+  const short = await run(100);
+  assert.match(short, /"type":"abort"/);
+  assert.doesNotMatch(short, /"type":"tool-output-available","toolCallId":"proposal-1"/);
+  const sufficient = await run(2_000);
+  assert.match(sufficient, /"type":"tool-output-available","toolCallId":"proposal-1"/);
+  assert.doesNotMatch(sufficient, /"type":"abort"/);
+});
+
 test("invalid model proposals are streamed as tool errors, never usable plans", async () => {
   const proposal = aiProposal();
   const base = structuredClone(proposal.plan);

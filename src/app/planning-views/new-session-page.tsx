@@ -56,7 +56,7 @@ export default async function NewSession({ params, searchParams }: {
         </fieldset>
         <TextAreaInput label="Innspill til AI-planlegging (valgfritt)" name="coachInput" rows={4} maxLength={8000} />
         <small>Bare treningsinnhold. Ikke oppgi navn eller private opplysninger om barn.</small>
-        <SubmitButton>Opprett øktutkast</SubmitButton>
+        <SubmitButton>Opprett øktplan</SubmitButton>
       </form>
     </Card>
   </ClubTheme>;

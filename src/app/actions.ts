@@ -338,7 +338,7 @@ export async function saveThemePeriod(form: FormData) {
   return run(planningPath(form), async () => {
     await savePlanPeriod(await getDatabase(), user.id, field(form, "groupId"), yearSchema.parse(field(form, "year")), {
       startDate: field(form, "startDate"), endDate: field(form, "endDate"), theme: field(form, "theme"),
-      objectives: field(form, "objectives"), progression: field(form, "progression"), sourceUrl: field(form, "sourceUrl"),
+      objectives: field(form, "objectives"), coachMoments: field(form, "coachMoments"), progression: field(form, "progression"), sourceUrl: field(form, "sourceUrl"),
     }, field(form, "revision"), field(form, "periodId") || undefined, true);
     return `${planningPath(form)}&melding=${encodeURIComponent("Temaperioden er lagret. Eksisterende øktplaner er ikke endret.")}`;
   });
@@ -374,7 +374,7 @@ export async function newTrainingEvent(form: FormData) {
       eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel", singleSession ? field(form, "coachInput") : "",
       singleSession ? form.getAll("coachIds") : undefined);
     if (field(form, "intent") === "lock-focus") return `${planningPath(form)}&melding=${encodeURIComponent("Øktfokuset er låst. Åpne øktplanen for å planlegge øvelsene.")}`;
-    return `${groupPath(form)}/okter/${eventId}${singleSession ? "?initialDraft=1" : ""}`;
+    return `${groupPath(form)}/okter/${eventId}${singleSession || field(form, "intent") === "create" ? "?initialDraft=1" : ""}`;
   });
 }
 
@@ -383,7 +383,7 @@ export async function lockTrainingFocus(form: FormData) {
   return run(planningPath(form), async () => {
     await saveSessionFocus(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"), field(form, "revision"),
       { theme: field(form, "theme"), objectives: field(form, "objectives") });
-    return `${planningPath(form)}&melding=${encodeURIComponent("Øktfokuset er låst i en ny kladdversjon. Eksisterende øvelser er beholdt.")}`;
+    return `${planningPath(form)}&melding=${encodeURIComponent("Øktfokuset er låst. Eksisterende øvelser er beholdt.")}`;
   });
 }
 
@@ -416,8 +416,8 @@ export async function saveTrainingPlan(_previous: { error: string } | null, form
       throw error;
     }
     await saveSessionPlan(await getDatabase(), user.id, field(form, "groupId"), field(form, "eventId"),
-      eventFields(form), plan, field(form, "revision"), field(form, "intent") === "approve" ? "planned" : "draft",
-      field(form, "origin") === "ai" ? "ai" : "manual");
+      eventFields(form), plan, field(form, "revision"), "planned",
+      field(form, "origin") === "ai" ? "ai" : "manual", false);
   } catch (error) {
     if (error instanceof ZodError) return { error: error.issues.map((issue) => issue.message).join(" ") };
     if (error instanceof DomainError) return { error: error.message };

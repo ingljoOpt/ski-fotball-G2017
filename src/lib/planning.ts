@@ -36,6 +36,7 @@ export const periodSchema = z.object({
   startDate: dateSchema, endDate: dateSchema,
   theme: z.string().trim().min(2).max(150),
   objectives: text.min(1, "Oppgi minst ett øvingsmål."),
+  coachMoments: text.optional(),
   progression: text, sourceUrl: sourceUrlSchema,
 }).refine((value) => value.endDate >= value.startDate && value.startDate.slice(0, 4) === value.endDate.slice(0, 4),
   "Perioden må ligge innenfor ett kalenderår, med sluttdato etter eller lik startdato.");

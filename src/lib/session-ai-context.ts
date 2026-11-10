@@ -55,7 +55,7 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
   const age = nffAgeSource(year, annual.group.birthYear);
   const periods = periodsOnDate(annual.periods, draft.event.date);
   const curriculum = relevantCurriculum(await curriculumReader(age.age), [draft.event.theme, draft.event.objectives,
-    annual.plan?.objectives ?? "", ...periods.flatMap((period) => [period.theme, period.objectives])]);
+    annual.plan?.objectives ?? "", ...periods.flatMap((period) => [period.theme, period.objectives, period.coachMoments ?? ""])]);
   const evaluations = history.length ? await db.select({ eventId: sessionReviews.eventId, review: sessionReviews.review,
     version: sessionVersions.version, plan: sessionVersions.plan })
     .from(sessionReviews).innerJoin(sessionVersions, eq(sessionVersions.id, sessionReviews.versionId))
@@ -104,8 +104,8 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
     age,
     curriculum,
     annualObjectives: annual.plan?.objectives ?? "",
-    periods: periods.map(({ startDate, endDate, theme, objectives, progression, sourceUrl }) => ({
-      startDate, endDate, theme, objectives, progression, sourceUrl,
+    periods: periods.map(({ startDate, endDate, theme, objectives, coachMoments, progression, sourceUrl }) => ({
+      startDate, endDate, theme, objectives, coachMoments, progression, sourceUrl,
     })),
     events: eventsDuring(annual.events, draft.event.date).map(({ title, kind, startDate, endDate, description }) => ({ title, kind, startDate, endDate, description })),
     history: historicalPlans,

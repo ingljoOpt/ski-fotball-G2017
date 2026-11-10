@@ -7,7 +7,7 @@ import { NavigationLinks } from "./navigation";
 import { SelectedMonthInput } from "./annual-wheel";
 
 export const months = ["Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember"];
-export const eventStatusLabels = { scheduled: "Fast trening · ingen kladd", no_plan: "Ingen aktiv øktplan", draft: "Utkast", planned: "Planlagt", cancelled: "Avlyst" };
+export const eventStatusLabels = { scheduled: "Fast trening · ingen øktplan", no_plan: "Ingen aktiv øktplan", draft: "Øktplan", planned: "Øktplan", cancelled: "Avlyst" };
 
 export async function planningSelection(searchParams: SearchParams) {
   const search = await searchParams;

@@ -6,6 +6,10 @@ import { saveTrainingPlan } from "./actions";
 import { minutesBetween, timeRangeSchema } from "@/lib/validation";
 import { ActionButton, NativeInput, OptionSelect, SubmitButton, TextAreaInput, TextInput } from "./ui";
 import { SessionAIChat } from "./session-ai-chat";
+import { SessionPlanView } from "./session-plan-view";
+import { sameAIDraft } from "@/lib/session-ai";
+import { sessionHasEnded } from "@/lib/session-review";
+import { useRouter } from "next/navigation";
 
 const exerciseTexts = [
   ["objectives", "Målsetting"], ["organization", "Organisering, grupper, bane og rotasjon"],
@@ -19,20 +23,39 @@ const resourceFields = [
 ] as const;
 const countValue = (value: string) => value === "" ? null : Number(value);
 
-export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, initialPlan, coaches, initialDraft = false }: {
-  groupId: string; eventId: string; revision: number; initialEvent: EventInput; initialPlan: SessionPlan; coaches: { userId: string; email: string }[]; initialDraft?: boolean;
+export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, initialPlan, coaches, ageLabel, initialDraft = false }: {
+  groupId: string; eventId: string; revision: number; initialEvent: EventInput; initialPlan: SessionPlan; coaches: { userId: string; email: string }[]; ageLabel?: string; initialDraft?: boolean;
 }) {
   const [event, setEvent] = useState(initialEvent);
   const [plan, setPlan] = useState(initialPlan);
   const [origin, setOrigin] = useState<"manual" | "ai">("manual");
   const [state, action, pending] = useActionState(saveTrainingPlan, null);
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const saveGenerated = useRef(false);
   const aiDraft = useMemo(() => ({ event, plan }), [event, plan]);
-  const applyAIProposal = useCallback(({ draft }: { draft: { event: EventInput; plan: SessionPlan } }) => {
+  const applyAIProposal = useCallback(({ draft }: { draft: { event: EventInput; plan: SessionPlan } }, save = false) => {
+    saveGenerated.current = save;
     setEvent(draft.event);
     setPlan({ ...draft.plan, ...(draft.plan.coachIds ? { coachIdsForExercises: draft.plan.coachIds } : {}) });
     setOrigin("ai");
   }, []);
+  useEffect(() => {
+    if (!saveGenerated.current) return;
+    saveGenerated.current = false;
+    formRef.current?.requestSubmit();
+  }, [event, plan]);
+  useEffect(() => {
+    if (!state?.error) return;
+    const editor = document.getElementById("rediger-okt");
+    if (editor instanceof HTMLDetailsElement) editor.open = true;
+  }, [state]);
+  useEffect(() => {
+    const refreshIfEnded = () => { if (sessionHasEnded(initialEvent)) router.refresh(); };
+    const timer = window.setInterval(refreshIfEnded, 30_000);
+    document.addEventListener("visibilitychange", refreshIfEnded);
+    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", refreshIfEnded); };
+  }, [initialEvent, router]);
   useEffect(() => {
     const form = formRef.current;
     // Server Action responses reset forms, including React Aria's controlled fields on validation errors.
@@ -67,11 +90,33 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
       return { ...current, exercises };
     });
   }
-  return <div className="session-editor-layout"><form ref={formRef} action={action} className="session-editor">
+  function edit(exerciseIds: string[]) {
+    const editor = document.getElementById("rediger-okt");
+    if (editor instanceof HTMLDetailsElement) editor.open = true;
+    const targets = exerciseIds.map((id) => document.getElementById(`rediger-${id}`));
+    targets.forEach((target) => { if (target instanceof HTMLDetailsElement) target.open = true; });
+    (targets[0] ?? editor)?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+  function remove(exerciseIds: string[], label: string) {
+    if (!window.confirm(`Slette ${label}?`)) return;
+    saveGenerated.current = !changed;
+    setPlan((current) => ({ ...current, exercises: current.exercises.filter((exercise) => !exerciseIds.includes(exercise.id)) }));
+    const editor = document.getElementById("rediger-okt");
+    if (changed && editor instanceof HTMLDetailsElement) editor.open = true;
+  }
+  const changed = !sameAIDraft(aiDraft, { event: initialEvent, plan: initialPlan });
+  return <>
+    <SessionPlanView plan={plan} coaches={coaches} durationMinutes={event.durationMinutes} theme={event.theme} objectives={event.objectives}
+      ageLabel={ageLabel} onEdit={pending ? undefined : edit} onRemove={pending ? undefined : remove} />
+    {changed && <p className="notice" role="status">Endringene er ikke lagret. Lagre planen for å beholde dem.</p>}
+    {pending && <p className="notice" role="status">Lagrer øktplanen …</p>}
+    <div className="session-administration"><details id="rediger-okt" open={!initialPlan.exercises.length} className="plan-editor-details">
+    <summary><h2>Rediger øktplanen</h2></summary>
+    <div className="session-editor-layout"><form ref={formRef} action={action} className="session-editor" noValidate>
     <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="eventId" value={eventId} />
     <input type="hidden" name="revision" value={revision} /><input type="hidden" name="plan" value={JSON.stringify(plan)} />
     <input type="hidden" name="origin" value={origin} />
-    {origin === "ai" && <p className="notice">AI-forslaget er tatt inn i skjemaet. Kontroller endringene og lagre som utkast eller godkjenn eksplisitt.</p>}
+    {origin === "ai" && <p className="notice">Kontroller AI-planen før trening.</p>}
     {state?.error && <p className="notice error" role="alert">{state.error}</p>}
     <h3>Øktens rammer</h3>
     <TextInput label="Økttittel" name="title" isRequired minLength={2} maxLength={150} value={event.title} onChange={(value) => setEvent({ ...event, title: value })} />
@@ -102,7 +147,7 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
     <TextAreaInput label="Trenerroller og øktansvar" rows={3} maxLength={8000} value={plan.coachRoles} onChange={(e) => setPlan({ ...plan, coachRoles: e.target.value })} />
     <h3>Øvelsesbygger</h3>
     <p>Legg til øvelser i ønsket rekkefølge. Oppgi tiden inkludert forklaring, pauser og bytter. Hvert kort er en sekvensiell blokk; alle samtidige flater inne i blokken telles samlet.</p>
-    {plan.exercises.map((exercise, index) => <details open className="exercise-detail" key={exercise.id}>
+    {plan.exercises.map((exercise, index) => <details id={`rediger-${exercise.id}`} className="exercise-detail" key={exercise.id}>
       <summary>{index + 1}. {exercise.title} · {exercise.durationMinutes} min</summary>
       <div className="row">
         <ActionButton type="button" variant="secondary" size="sm" isDisabled={index === 0} onPress={() => moveExercise(index, -1)}>Flytt opp</ActionButton>
@@ -133,13 +178,13 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
     <TextAreaInput label="Alternativer ved færre spillere, trenere, baller eller endrede forhold" rows={3} maxLength={8000} value={plan.alternatives} onChange={(e) => setPlan({ ...plan, alternatives: e.target.value })} />
     <TextAreaInput label="Gjenbruk, variasjon og neste progresjon" rows={3} maxLength={8000} value={plan.progression} onChange={(e) => setPlan({ ...plan, progression: e.target.value })} />
     <div className="notice" role="status">Tidsplan: {checks.totalMinutes} av {event.durationMinutes} minutter · {checks.warnings.length} uavklarte kontrollpunkter.</div>
-    {checks.warnings.length > 0 && <details><summary>Vis kontrollpunkter før godkjenning</summary><ul>{checks.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}
+    {checks.warnings.length > 0 && <details><summary>Vis kontrollpunkter</summary><ul>{checks.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}
     <div className="row">
-      <SubmitButton name="intent" value="draft" isDisabled={pending}>Lagre som utkast</SubmitButton>
-      <SubmitButton name="intent" value="approve" variant="secondary" isDisabled={pending}>Godkjenn som planlagt</SubmitButton>
+      <SubmitButton isDisabled={pending}>Lagre øktplan</SubmitButton>
     </div>
-    <small>Hver lagring lager en ny, uforanderlig planversjon. Utkast kan være ufullstendige. Godkjenning krever utfylte rammer og tallkontroll, men er ingen garanti for praktisk gjennomførbarhet.</small>
+    <small>Hver lagring bevarer den tidligere planen. Kontroller uavklarte punkter før trening.</small>
   </form><SessionAIChat groupId={groupId} eventId={eventId} revision={revision} draft={aiDraft} saving={pending} needsRecalculation={needsRecalculation}
     initialDraft={initialDraft}
-    onApply={applyAIProposal} /></div>;
+    onApply={applyAIProposal} /></div></details></div>
+  </>;
 }

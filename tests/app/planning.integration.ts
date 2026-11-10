@@ -24,6 +24,7 @@ test("calendar, annual themes and immutable session plans", async (t) => {
   let connection = await connectLocalDatabase(directory);
   const { db } = connection;
   try {
+    t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-01-01T00:00:00Z") });
     const [admin, head, coach, outsider] = await db.insert(users).values(
       ["admin", "head", "coach", "outsider"].map((role) => ({ email: `${role}@example.invalid` })),
     ).returning();
@@ -91,7 +92,7 @@ test("calendar, annual themes and immutable session plans", async (t) => {
     });
 
     await t.test("confirming a first period creates the annual plan atomically and preserves revision protection", async () => {
-      const input = { ...periodInput, startDate: "2028-01-01", endDate: "2028-03-31" };
+      const input = { ...periodInput, startDate: "2028-01-01", endDate: "2028-03-31", coachMoments: "Øve på formasjon før cupen" };
       await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2028, input, 0), /Lagre årsplanen/);
       await assert.rejects(savePlanPeriod(db, outsider.id, group.id, 2028, input, 0, undefined, true), DomainError);
       await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2028, input, 9, undefined, true), /endret/);
@@ -100,6 +101,7 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       const annual = await annualPlanning(db, head.id, group.id, 2028);
       assert.equal(annual.plan?.objectives, "");
       assert.equal(annual.periods.length, 1);
+      assert.equal(annual.periods[0].coachMoments, input.coachMoments);
       assert.equal((await annualPlanHistory(db, head.id, group.id, 2028)).length, 2);
       await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2028, input, 0, undefined, true), /endret/);
       await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2028, input, annual.plan!.revision, undefined, true), /overlappe/);
@@ -118,11 +120,29 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.deepEqual(unlocked.periods.map(({ startDate, endDate }) => ({ startDate, endDate })).sort((first, second) => first.startDate.localeCompare(second.startDate)),
         [{ startDate: "2028-01-01", endDate: "2028-01-31" }, { startDate: "2028-03-01", endDate: "2028-03-31" }]);
       assert.ok(unlocked.periods.every((item) => item.theme === period.theme && item.objectives === period.objectives));
+      assert.ok(unlocked.periods.every((item) => item.coachMoments === "Øve på formasjon før cupen"));
       assert.equal((await db.select().from(sessionVersions)).length, versionCount);
       assert.ok((await annualPlanHistory(db, head.id, group.id, 2028)).some((item) => item.beforeSnapshot?.endDate === "2028-03-31"));
       const january = unlocked.periods.find((item) => item.startDate === "2028-01-01")!;
       await unlockPlanMonth(db, head.id, group.id, january.id, 1, unlocked.plan!.revision);
       assert.equal((await annualPlanning(db, head.id, group.id, 2028)).periods.length, 1);
+    });
+
+    await t.test("coach moments are revision-protected and historical snapshots stay unchanged", async () => {
+      const input = { ...periodInput, startDate: "2035-11-01", endDate: "2035-11-30", coachMoments: "Formasjon før cupen" };
+      await savePlanPeriod(db, coach.id, group.id, 2035, input, 0, undefined, true);
+      const annual = await annualPlanning(db, coach.id, group.id, 2035);
+      const period = annual.periods[0];
+      const id = await createTrainingEvent(db, coach.id, group.id, { ...eventInput, date: "2035-11-04" });
+      await assert.rejects(savePlanPeriod(db, outsider.id, group.id, 2035, { ...input, coachMoments: "Uautorisert" }, annual.plan!.revision, period.id), DomainError);
+      await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2035, { ...input, coachMoments: "Endret" }, 0, period.id), /endret/);
+      await savePlanPeriod(db, coach.id, group.id, 2035, { ...input, coachMoments: "Ny øvelse" }, annual.plan!.revision, period.id);
+      const updated = await annualPlanning(db, coach.id, group.id, 2035);
+      assert.equal(updated.periods[0].objectives, input.objectives);
+      assert.equal(updated.periods[0].coachMoments, "Ny øvelse");
+      assert.equal((await trainingEventDetails(db, coach.id, group.id, id)).versions[0].planningContext.periods[0].coachMoments, input.coachMoments);
+      assert.ok((await annualPlanHistory(db, coach.id, group.id, 2035)).some((entry) => entry.beforeSnapshot?.coachMoments === input.coachMoments && entry.afterSnapshot?.coachMoments === "Ny øvelse"));
+      await assert.rejects(savePlanPeriod(db, coach.id, group.id, 2035, { ...input, coachMoments: "x".repeat(8001) }, updated.plan!.revision, period.id));
     });
 
     await t.test("recurring calendar is virtual, includes both same-day slots and year themes", async () => {
@@ -134,7 +154,7 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(calendar.entries.find((event) => event.startTime === "18:00")?.durationMinutes, 60);
       assert.equal(calendar.entries.find((event) => event.startTime === "19:30")?.durationMinutes, 90);
       assert.equal(calendar.entries.find((event) => event.startTime === "19:30")?.endTime, "21:00");
-      assert.equal((await db.select().from(trainingEvents)).length, 0);
+      assert.equal((await db.select().from(trainingEvents)).filter((event) => event.date.startsWith("2026-")).length, 0);
       await assert.rejects(groupCalendar(db, coach.id, otherGroup.id, 2026), DomainError);
     });
 
@@ -191,9 +211,10 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       const aiEventId = await createTrainingEvent(db, coach.id, group.id, aiInput);
       await saveSessionPlan(db, coach.id, group.id, aiEventId, aiInput, completePlan(), 1, "draft", "ai");
       const aiHistory = await sessionHistory(db, head.id, group.id, aiEventId);
-      assert.equal(aiHistory[0].actorType, "ai");
-      assert.equal(aiHistory[0].actorEmail, coach.email);
-      assert.equal(Object.hasOwn(aiHistory[0], "actorId"), false, "private actor ids are not exposed in the history view model");
+      const aiEntry = aiHistory.find((entry) => entry.actorType === "ai");
+      assert.equal(aiEntry?.actorEmail, coach.email);
+      assert.ok(aiEntry);
+      assert.equal(Object.hasOwn(aiEntry, "actorId"), false, "private actor ids are not exposed in the history view model");
     });
 
     await t.test("calendar drafts inherit the actual slot and edits derive duration without changing the schedule", async () => {
@@ -231,8 +252,8 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(saved.versions.length, 2);
       assert.equal(saved.versions[1].plan.exercises.length, 0);
       assert.equal(saved.versions[0].plan.exercises[0].title, "Lokalt smålagsspill");
-      const approval = savedHistory.find((entry) => entry.action === "status_changed");
-      assert.equal(approval?.beforeSnapshot?.event && (approval.beforeSnapshot.event as { status: string }).status, "draft");
+      const approval = savedHistory.find((entry) => entry.action === "updated");
+      assert.equal(approval?.beforeSnapshot?.event && (approval.beforeSnapshot.event as { status: string }).status, "planned");
       assert.equal(approval?.afterSnapshot?.event && (approval.afterSnapshot.event as { status: string }).status, "planned");
       assert.equal(approval?.actorEmail, coach.email);
       await assert.rejects(saveSessionPlan(db, coach.id, group.id, eventId, eventInput, completePlan(), 1, "draft"), /endret av en annen/);
@@ -246,6 +267,18 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(revised.versions[0].eventSnapshot.theme, "Endret tema");
       assert.ok(revisedHistory.some((entry) => entry.beforeSnapshot?.event && (entry.beforeSnapshot.event as { theme: string }).theme === "Pasning"
         && entry.afterSnapshot?.event && (entry.afterSnapshot.event as { theme: string }).theme === "Endret tema"));
+    });
+
+    await t.test("plans can be saved with unresolved resources without a draft status", async () => {
+      const input = { ...eventInput, date: "2090-10-10" };
+      const id = await createTrainingEvent(db, coach.id, group.id, input);
+      await saveSessionPlan(db, coach.id, group.id, id, input, emptySessionPlan(), 1, "planned", "ai", false);
+      const saved = await trainingEventDetails(db, coach.id, group.id, id);
+      assert.equal(saved.event.status, "planned");
+      assert.equal(saved.versions[0].eventSnapshot.status, "planned");
+      assert.equal(saved.versions[0].plan.availableBalls, null);
+      assert.equal(saved.versions[0].origin, "ai");
+      await assert.rejects(saveSessionPlan(db, coach.id, group.id, id, input, emptySessionPlan(), 1, "planned", "manual", false), /endret av en annen/);
     });
 
     await t.test("approval does not require session inventory and preserves historical equipment", async () => {
@@ -322,7 +355,7 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(history.filter((entry) => entry.action === "status_changed").length, 2);
       const reopened = history.find((entry) => entry.action === "status_changed" && entry.beforeSnapshot?.cancelled === true);
       assert.equal(reopened?.afterSnapshot?.cancelled, false);
-      assert.equal((reopened?.beforeSnapshot?.event as { status: string } | undefined)?.status, "draft");
+      assert.equal((reopened?.beforeSnapshot?.event as { status: string } | undefined)?.status, "planned");
       assert.equal(reopened?.actorType, "user");
     });
 

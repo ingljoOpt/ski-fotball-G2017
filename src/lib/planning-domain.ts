@@ -4,6 +4,7 @@ import type { Database } from "../db/index.ts";
 import { annualEvents, annualPlans, clubs, generationJobs, groupMembers, groups, planPeriods, planningHistory, sessionVersions, trainingEvents, trainingTimes, users } from "../db/schema.ts";
 import { DomainError, getGroupAccess } from "./domain.ts";
 import { idSchema, minutesBetween } from "./validation.ts";
+import { sessionHasEnded } from "./session-review.ts";
 import {
   annualPlanSchema, checkSessionPlan, datesInYear, emptySessionPlan, eventSchema, NFF_SOURCE, nffAgeSource,
   periodSchema, periodsOnDate, sessionPlanSchema, slotKey, weekdayFor, yearSchema,
@@ -158,11 +159,11 @@ export async function savePlanPeriod(
       action: existing ? "updated" : "created", actorType: "user", actorId: userId,
       beforeSnapshot: existing ? {
         startDate: existing.startDate, endDate: existing.endDate, theme: existing.theme,
-        objectives: existing.objectives, progression: existing.progression, sourceUrl: existing.sourceUrl,
+        objectives: existing.objectives, coachMoments: existing.coachMoments, progression: existing.progression, sourceUrl: existing.sourceUrl,
       } : null,
       afterSnapshot: {
         startDate: period.startDate, endDate: period.endDate, theme: period.theme,
-        objectives: period.objectives, progression: period.progression, sourceUrl: period.sourceUrl,
+        objectives: period.objectives, coachMoments: period.coachMoments, progression: period.progression, sourceUrl: period.sourceUrl,
       },
     });
   });
@@ -183,7 +184,7 @@ export async function removePlanPeriod(db: Database, userId: string, groupId: st
       action: "deleted", actorType: "user", actorId: userId,
       beforeSnapshot: {
         startDate: period.startDate, endDate: period.endDate, theme: period.theme,
-        objectives: period.objectives, progression: period.progression, sourceUrl: period.sourceUrl,
+        objectives: period.objectives, coachMoments: period.coachMoments, progression: period.progression, sourceUrl: period.sourceUrl,
       },
       afterSnapshot: null,
     });
@@ -204,7 +205,7 @@ export async function unlockPlanMonth(db: Database, userId: string, groupId: str
     const end = `${prefix}-${new Date(Date.UTC(plan.year, month, 0)).getUTCDate()}`;
     if (period.endDate < start || period.startDate > end) throw new DomainError("Temaet er ikke låst i denne måneden.");
     const snapshot = { startDate: period.startDate, endDate: period.endDate, theme: period.theme,
-      objectives: period.objectives, progression: period.progression, sourceUrl: period.sourceUrl };
+      objectives: period.objectives, coachMoments: period.coachMoments, progression: period.progression, sourceUrl: period.sourceUrl };
     const remaining = [];
     if (period.startDate < start) remaining.push({ ...snapshot, endDate: new Date(Date.UTC(plan.year, month - 1, 0)).toISOString().slice(0, 10) });
     if (period.endDate > end) remaining.push({ ...snapshot, startDate: new Date(Date.UTC(plan.year, month, 1)).toISOString().slice(0, 10) });
@@ -311,7 +312,7 @@ export async function createTrainingEvent(
     ));
     if (conflict) throw new DomainError("Det finnes allerede en økt på dette tidspunktet. Åpne den fra årsplanen.");
     const [event] = await tx.insert(trainingEvents).values({
-      ...data, coachInput: trainerInput, clubId: group.clubId, groupId, recurrenceKey: effectiveKey, status: "draft", cancelledAt: cancelled ? new Date() : null,
+      ...data, coachInput: trainerInput, clubId: group.clubId, groupId, recurrenceKey: effectiveKey, status: "planned", cancelledAt: cancelled ? new Date() : null,
     }).returning();
     const members = await sessionCoaches(tx, groupId);
     const coachIds = selectedCoachIds === undefined ? members.map((member) => member.userId) : z.array(idSchema).max(500).parse(selectedCoachIds);
@@ -372,9 +373,9 @@ export async function saveScheduledSessionPlan(db: Database, userId: string, gro
       await tx.update(generationJobs).set({ status: "completed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
       return false;
     }
-    const [event] = await tx.insert(trainingEvents).values({ ...data, clubId: group.clubId, groupId, recurrenceKey: key, status: "draft" }).returning();
+    const [event] = await tx.insert(trainingEvents).values({ ...data, clubId: group.clubId, groupId, recurrenceKey: key, status: "planned" }).returning();
     await tx.insert(sessionVersions).values({ clubId: group.clubId, groupId, eventId: event.id, version: 1, createdBy: null, origin: "ai",
-      eventSnapshot: { ...data, status: "draft" }, plan, planningContext: await planningSnapshot(tx, userId, groupId, data.date) });
+      eventSnapshot: { ...data, status: "planned" }, plan, planningContext: await planningSnapshot(tx, userId, groupId, data.date) });
     await writeHistory(tx, { clubId: group.clubId, groupId, planYear: Number(data.date.slice(0, 4)), entityType: "session", entityId: event.id,
       action: "created", actorType: "system", actorId: null, beforeSnapshot: null, afterSnapshot: sessionSnapshot(event, plan) });
     await tx.update(generationJobs).set({ status: "completed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
@@ -409,7 +410,7 @@ export async function sessionHistory(db: Database, userId: string, groupId: stri
 
 export async function saveSessionPlan(
   db: Database, userId: string, groupId: string, eventId: string,
-  input: unknown, planInput: unknown, revision: unknown, status: "draft" | "planned", origin: "manual" | "ai" = "manual",
+  input: unknown, planInput: unknown, revision: unknown, status: "draft" | "planned", origin: "manual" | "ai" = "manual", requireComplete = true,
 ) {
   idSchema.parse(eventId);
   const data = eventSchema.parse(input);
@@ -417,7 +418,7 @@ export async function saveSessionPlan(
   delete plan.coachAttendanceConfirmed;
   z.enum(["draft", "planned"]).parse(status);
   z.enum(["manual", "ai"]).parse(origin);
-  if (status === "planned") {
+  if (status === "planned" && requireComplete) {
     const { warnings } = checkSessionPlan(plan, data.durationMinutes);
     if (!data.theme || !data.objectives) warnings.unshift("Tema og øvingsmål må fylles inn.");
     if (warnings.length) throw new DomainError(`Økten kan ikke godkjennes ennå: ${warnings.join(" ")}`);
@@ -427,6 +428,7 @@ export async function saveSessionPlan(
     const [event] = await tx.select().from(trainingEvents).where(and(eq(trainingEvents.id, eventId), eq(trainingEvents.groupId, groupId)));
     if (!event) throw new DomainError("Økten finnes ikke for dette laget.");
     assertRevision(event.revision, revision);
+    if (sessionHasEnded(event)) throw new DomainError("Avsluttede økter kan ikke endres.");
     if (event.cancelledAt) throw new DomainError("Angre avlysningen før du redigerer øktplanen.");
     const [conflict] = await tx.select().from(trainingEvents).where(and(
       eq(trainingEvents.groupId, groupId), eq(trainingEvents.date, data.date), eq(trainingEvents.startTime, data.startTime),
@@ -467,7 +469,7 @@ export async function saveSessionFocus(db: Database, userId: string, groupId: st
   const focus = z.object({ theme: z.string().trim().min(2).max(150), objectives: z.string().trim().min(1).max(8000) }).parse(input);
   const details = await trainingEventDetails(db, userId, groupId, eventId);
   if (details.event.planDeletedAt) throw new DomainError("Opprett en øktplan før du låser øktfokuset.");
-  await saveSessionPlan(db, userId, groupId, eventId, { ...details.event, ...focus }, details.versions[0].plan, revision, "draft");
+  await saveSessionPlan(db, userId, groupId, eventId, { ...details.event, ...focus }, details.versions[0].plan, revision, "planned", "manual", false);
 }
 
 export async function deleteSessionPlan(db: Database, userId: string, groupId: string, eventId: string, revision: unknown) {
@@ -477,12 +479,13 @@ export async function deleteSessionPlan(db: Database, userId: string, groupId: s
     const [event] = await tx.select().from(trainingEvents).where(and(eq(trainingEvents.id, eventId), eq(trainingEvents.groupId, groupId)));
     if (!event) throw new DomainError("Økten finnes ikke for dette laget.");
     assertRevision(event.revision, revision);
+    if (sessionHasEnded(event)) throw new DomainError("Avsluttede økter kan ikke endres.");
     if (event.planDeletedAt) throw new DomainError("Øktplanen er allerede slettet.");
     const [latest] = await tx.select().from(sessionVersions).where(eq(sessionVersions.eventId, eventId))
       .orderBy(desc(sessionVersions.version)).limit(1);
     if (!latest) throw new DomainError("Økten har ingen øktplan å slette.");
     await tx.update(trainingEvents).set({
-      theme: "", objectives: "", status: "draft", planDeletedAt: new Date(), revision: event.revision + 1,
+      theme: "", objectives: "", status: "planned", planDeletedAt: new Date(), revision: event.revision + 1,
     }).where(eq(trainingEvents.id, eventId));
     await writeHistory(tx, {
       clubId: event.clubId, groupId, planYear: Number(event.date.slice(0, 4)), entityType: "session", entityId: eventId,
@@ -502,6 +505,7 @@ export async function setTrainingCancellation(
     const [event] = await tx.select().from(trainingEvents).where(and(eq(trainingEvents.id, eventId), eq(trainingEvents.groupId, groupId)));
     if (!event) throw new DomainError("Økten finnes ikke for dette laget.");
     assertRevision(event.revision, revision);
+    if (sessionHasEnded(event)) throw new DomainError("Avsluttede økter kan ikke endres.");
     if (Boolean(event.cancelledAt) === cancelled) return;
     const [latest] = await tx.select().from(sessionVersions).where(eq(sessionVersions.eventId, eventId))
       .orderBy(desc(sessionVersions.version)).limit(1);

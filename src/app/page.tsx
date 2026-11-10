@@ -24,7 +24,7 @@ export default function Home() {
       </section>
       <section aria-label="Løsningens retning" className="grid">
         <Card className="app-card"><span className="eyebrow">01 · Organisering</span><h2>Klubben som ramme</h2><p>Opprett klubber og lag, inviter hovedtrener og la lagene organisere seg selv.</p></Card>
-        <Card className="app-card"><span className="eyebrow">02 · Treningsrytme</span><h2>Lagets egne tider</h2><p>Registrer ukedager, klokkeslett, øktlengde og ønsket tidspunkt for nye utkast.</p></Card>
+        <Card className="app-card"><span className="eyebrow">02 · Treningsrytme</span><h2>Lagets egne tider</h2><p>Registrer ukedager, klokkeslett, øktlengde og ønsket tidspunkt for nye øktplaner.</p></Card>
         <Card className="app-card"><span className="eyebrow">03 · Øktassistent</span><h2>Planer som lærer</h2><p className="muted">Få AI-forslag i øktredigeringen og vurder øktene i etterkant. Offentlig deling kommer i et senere steg.</p></Card>
       </section>
     </>

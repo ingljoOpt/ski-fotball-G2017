@@ -45,7 +45,8 @@ test("scheduled generation is opt-in, idempotent, retryable and never overwrites
     const [version] = await db.select().from(sessionVersions).where(eq(sessionVersions.eventId, event.id));
     const [history] = await db.select().from(planningHistory).where(eq(planningHistory.entityId, event.id));
     assert.equal(event.date, "2026-11-11");
-    assert.equal(event.status, "draft");
+    assert.equal(event.status, "planned");
+    assert.equal(version.eventSnapshot.status, "planned");
     assert.equal(version.origin, "ai");
     assert.equal(version.createdBy, null);
     assert.deepEqual(version.plan.coachIds, [head.id]);

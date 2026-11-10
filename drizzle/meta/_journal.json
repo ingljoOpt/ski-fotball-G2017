@@ -113,6 +113,13 @@
       "when": 1794297263820,
       "tag": "0015_motionless_hercules",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794307941212,
+      "tag": "0016_lethal_vivisector",
+      "breakpoints": true
     }
   ]
 }

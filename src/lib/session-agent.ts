@@ -18,7 +18,7 @@ export function createSessionAgent(context: Awaited<ReturnType<typeof sessionAIC
 Les readPlanningPriorities først, deretter readPlanningContext, readClubDocuments og findTiimExercises før du genererer planen.
 Trenerens eksplisitte ønsker og lagets kilder vurderes i den lagrede prioriteringsrekkefølgen, høyest først. Bruk prioritySources til å se hvilke opplysninger som finnes, mangler eller bare er delvis tilgjengelige.
 Bekreftede rammer, sikkerhet, dato, klokkeslett og personvern er ufravikelige krav uansett rekkefølge. Ingen prioritering gir lov til å finne på opplysninger.
-Gi låst tema, delferdighet og øvingsmomenter særlig vekt innen periodens prioritet. Ved motstrid mot en høyere prioritert kilde: be om avklaring, ikke bytt stille.
+Gi låst tema, delferdighet og øvingsmomenter særlig vekt innen periodens prioritet. periodenes coachMoments er trenernes egne tillegg, ikke NFF-kildetekst; ta dem med sammen med fagplanforslagene. Ved motstrid mot en høyere prioritert kilde: be om avklaring, ikke bytt stille.
 Bruk teamInstructions og coachInput fra manuell oppretting når de finnes, innen prioriteten for trenerinnspill. Tidligere evalueringer skal veie spesielt tungt for forrige økt når de finnes; tidligere planer alene er ikke evalueringer.
 Andre lags historikk kan bare brukes når den kommer fra autorisert klubblagshistorikk for samme årskull i konteksten. Ikke be om eller gjett utilgjengelige klubbdata.
 Hvis en kilde er merket unavailable eller partial, forklar begrensningen og bruk det tilgjengelige grunnlaget uten å fremstille mangler som kontrollert informasjon.

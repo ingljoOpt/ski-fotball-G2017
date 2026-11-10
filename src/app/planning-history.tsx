@@ -14,7 +14,7 @@ const actionLabels = { created: "Opprettet", updated: "Endret", deleted: "Slette
 const entityLabels = { session: "Økt", annual_plan: "Årsplan", plan_period: "Temaperiode" };
 const fieldLabels: Record<string, string> = {
   date: "Dato", startTime: "Fra", endTime: "Til", durationMinutes: "Varighet", title: "Tittel",
-  theme: "Tema", objectives: "Mål og føringer", status: "Status", introduction: "Introduksjon",
+  theme: "Tema", objectives: "Mål og føringer", coachMoments: "Trenernes øvingsmomenter", status: "Status", introduction: "Introduksjon",
   expectedPlayers: "Forventet antall spillere", confirmedCoaches: "Planlagte trenere",
   coachIds: "Trenerutvalg", coachIdsForExercises: "Trenergrunnlag for øvelser", coachAttendanceConfirmed: "Treneroppmøte bekreftet",
   availableBalls: "Tilgjengelige baller", availableSmallGoals: "Små mål", availableLargeGoals: "Store mål",
@@ -26,7 +26,7 @@ const fieldLabels: Record<string, string> = {
   coaches: "Trenere", balls: "Baller", reserveBalls: "Reserveballer", smallGoals: "Små mål", largeGoals: "Store mål",
   year: "Planår", startDate: "Fra dato", endDate: "Til dato", schemaVersion: "Skjemaversjon",
 };
-const statusLabels: Record<string, string> = { draft: "Utkast", planned: "Planlagt", cancelled: "Avlyst" };
+const statusLabels: Record<string, string> = { draft: "Øktplan", planned: "Øktplan", cancelled: "Avlyst" };
 
 function flatten(value: unknown, path = "", result: Record<string, unknown> = {}) {
   if ((value === null || value === undefined) && !path) return result;

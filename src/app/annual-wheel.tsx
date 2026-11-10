@@ -8,7 +8,7 @@ import { themePeriodContent } from "@/lib/planning";
 import type { CurriculumTopic } from "@/lib/nff-curriculum";
 import { selectCurriculumTopic, PlanningFocusContext, SkillSuggestions } from "@/app/nff-curriculum-list";
 import { PlanningMonthTarget, PlanningWheelTarget } from "@/app/planning-dnd";
-import { Chip, SubmitButton } from "@/app/ui";
+import { Chip, SubmitButton, TextAreaInput } from "@/app/ui";
 import { saveThemePeriod } from "@/app/actions";
 import { formatDate } from "@/app/planning-components";
 
@@ -125,6 +125,18 @@ export function AnnualWheel({ year, months, periods, initialMonth, monthContent,
             <small>{formatDate(period.startDate)}–{formatDate(period.endDate)}</small>
             <p className="preserve-lines">{period.objectives}</p>
             <SkillSuggestions skills={curriculumTopics.find((topic) => topic.theme === period.theme)?.skills ?? []} />
+            {period.coachMoments && <div><strong>Trenernes ekstra øvingsmomenter</strong><p className="preserve-lines">{period.coachMoments}</p></div>}
+            {groupId && <details className="annual-period-editor"><summary>Rediger ekstra øvingsmomenter</summary>
+              <form action={saveThemePeriod}>
+                <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={year} />
+                <input type="hidden" name="month" value={index + 1} /><input type="hidden" name="revision" value={revision} />
+                <input type="hidden" name="periodId" value={period.id} />
+                {(["startDate", "endDate", "theme", "objectives", "progression", "sourceUrl"] as const).map((field) =>
+                  <input key={field} type="hidden" name={field} value={period[field]} />)}
+                <TextAreaInput label="Trenernes ekstra øvingsmomenter" name="coachMoments" rows={3} maxLength={8000} defaultValue={period.coachMoments ?? ""} />
+                <SubmitButton>Lagre øvingsmomenter</SubmitButton>
+              </form>
+            </details>}
           </article>) : proposal ? <article className="annual-proposed-period">
             <div className="row"><h3>{proposal.theme}</h3><div className="row"><Chip>Forslag</Chip>
               {groupId ? <form action={saveThemePeriod}>

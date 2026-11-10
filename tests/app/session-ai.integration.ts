@@ -24,11 +24,12 @@ const sessionAIContext: typeof buildSessionAIContext = (db, userId, groupId, eve
     return { topics: [], fetchedAt: "2026-11-08T12:00:00Z", warnings: ["Fiktiv NFF-kilde"] };
   });
 
-test("AI context scopes and bounds historical plans, follows unsaved date and never saves automatically", async () => {
+test("AI context scopes and bounds historical plans, follows unsaved date and never saves automatically", async (testContext) => {
   const directory = await mkdtemp(join(tmpdir(), "session-ai-"));
   await migrateLocalDatabase(directory);
   const connection = await connectLocalDatabase(directory);
   try {
+    testContext.mock.timers.enable({ apis: ["Date"], now: new Date("2024-01-01T00:00:00Z") });
     const { db } = connection;
     const [admin, head, coach, outsider] = await db.insert(users).values(
       ["ai-admin", "ai-head", "ai-coach", "ai-outsider"].map((name) => ({ email: `${name}@example.invalid` })),
@@ -48,7 +49,7 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     await saveAnnualPlan(db, head.id, group.id, { year: 2026, objectives: "Bli spillbar" }, 0);
     await saveAnnualPlan(db, head.id, group.id, { year: 2027, objectives: "Neste års retning" }, 0);
     await savePlanPeriod(db, head.id, group.id, 2026, {
-      startDate: "2026-11-01", endDate: "2026-11-30", theme: "Pasning", objectives: "Se opp", progression: "Fra par til spill",
+      startDate: "2026-11-01", endDate: "2026-11-30", theme: "Pasning", objectives: "Se opp", coachMoments: "Øve på formasjon før cupen", progression: "Fra par til spill",
       sourceUrl: "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball",
     }, 1);
     await saveAnnualEvent(db, head.id, group.id, { title: "Cupdag", kind: "cup", startDate: aiEvent.date, endDate: aiEvent.date, description: "Kortere belastning" });
@@ -68,6 +69,7 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     assert.deepEqual(context.history.map((item) => item.date), ["2026-11-06", "2026-11-05", "2026-11-04", "2026-11-03", "2026-11-02"]);
     assert.equal(context.age.age, 9);
     assert.equal(context.periods[0].theme, "Pasning");
+    assert.equal(context.periods[0].coachMoments, "Øve på formasjon før cupen");
     assert.equal(context.periods[0].sourceUrl, "https://tiim.no/artikkel/fagplan-8-9-ar-femmerfotball");
     assert.equal(context.periods[0].progression, "Fra par til spill");
     assert.equal(context.events[0].title, "Cupdag");
@@ -87,6 +89,7 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     assert.deepEqual(context.curriculum.warnings, ["Fiktiv NFF-kilde"]);
     const scheduled = await scheduledSessionAIContext(db, coach.id, group.id, draft, async () => ({ topics: [], fetchedAt: "", warnings: [] }));
     assert.equal(scheduled.teamInstructions, "Del på fire småmål.");
+    assert.equal(scheduled.periods[0].coachMoments, "Øve på formasjon før cupen");
     assert.deepEqual(scheduled.history.map((item) => item.date), context.history.map((item) => item.date));
     assert.equal((await db.select().from(sessionVersions)).length, before);
     await assert.rejects(scheduledSessionAIContext(db, outsider.id, group.id, draft), DomainError);

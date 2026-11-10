@@ -41,6 +41,7 @@ export const planPeriods = pgTable("plan_periods", {
   endDate: date("end_date").notNull(),
   theme: text("theme").notNull(),
   objectives: text("objectives").notNull(),
+  coachMoments: text("coach_moments").notNull().default(""),
   progression: text("progression").notNull().default(""),
   sourceUrl: text("source_url").notNull().default(""),
 }, (table) => [

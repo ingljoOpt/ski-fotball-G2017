@@ -183,6 +183,7 @@ export function ThemePeriodFields({ year, month = 1, period, topics, initialTopi
     }}><option value="">Eget hovedtema</option>{topics.filter((item) => item.kind === "main").map((item) => <option key={item.id} value={item.id}>{item.theme}</option>)}</select></label>
     {topic ? <input type="hidden" name="theme" value={theme} /> : <TextInput label="Eget hovedtema" name="theme" isRequired maxLength={150} value={theme} onChange={setTheme} />}
     <TextAreaInput label="Øvingsmål" name="objectives" required rows={4} maxLength={8000} value={objectives} onChange={(event) => setObjectives(event.target.value)} />
+    <TextAreaInput label="Trenernes ekstra øvingsmomenter" name="coachMoments" rows={3} maxLength={8000} defaultValue={period?.coachMoments ?? ""} />
     {topic && <details><summary>Delferdigheter og øvingsmomenter</summary>
       {topic.skills.map((skill) => <div key={skill.id}><strong>{skill.title}</strong><ul>{skill.moments.map((moment, index) => <li key={index}>{moment}</li>)}</ul></div>)}
     </details>}
