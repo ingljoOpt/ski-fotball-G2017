@@ -77,10 +77,16 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     assert.equal(context.coachInput, "Behold kjent smålagsspill og juster banestørrelsen.");
     assert.equal(context.prioritySources.find((source) => source.id === "club_guidelines")?.status, "unavailable");
     assert.equal(context.prioritySources.find((source) => source.id === "previous_evaluations")?.status, "partial");
+    await assert.rejects(updateGroupSettings(db, coach.id, group.id, { generationDaysBefore: 3, generalInstructions: "Uautorisert" }), DomainError);
+    await assert.rejects(updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 3, generalInstructions: "x".repeat(8001) }));
+    await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 3, generalInstructions: "  Del på fire småmål.  " });
+    await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2 });
+    await updateGroupSettings(db, outsider.id, otherTeam.id, { generationDaysBefore: 3, generalInstructions: "OTHER TENANT INSTRUCTIONS" });
     assert.equal(context.previousPlan?.date, "2026-11-06");
     assert.equal(context.curriculum.fetchedAt, "2026-11-08T12:00:00Z");
     assert.deepEqual(context.curriculum.warnings, ["Fiktiv NFF-kilde"]);
     const scheduled = await scheduledSessionAIContext(db, coach.id, group.id, draft, async () => ({ topics: [], fetchedAt: "", warnings: [] }));
+    assert.equal(scheduled.teamInstructions, "Del på fire småmål.");
     assert.deepEqual(scheduled.history.map((item) => item.date), context.history.map((item) => item.date));
     assert.equal((await db.select().from(sessionVersions)).length, before);
     await assert.rejects(scheduledSessionAIContext(db, outsider.id, group.id, draft), DomainError);
@@ -96,6 +102,8 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     await assert.rejects(getClubDocument(db, outsider.id, club.id, docs[0].id), DomainError);
     await assert.rejects(archiveClubDocument(db, coach.id, club.id, docs[0].id), DomainError);
     const withDocuments = await sessionAIContext(db, coach.id, group.id, id, 1, draft);
+    assert.equal(withDocuments.teamInstructions, "Del på fire småmål.");
+    assert.doesNotMatch(JSON.stringify(withDocuments), /OTHER TENANT INSTRUCTIONS/);
     assert.equal(withDocuments.prioritySources.find((source) => source.id === "club_guidelines")?.status, "available");
     assert.match(JSON.stringify(withDocuments.clubGuidelines), /Spillglede/);
     assert.doesNotMatch(JSON.stringify(withDocuments), /HEMMELIG ANNEN KLUBB/);

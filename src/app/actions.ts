@@ -201,6 +201,7 @@ export async function saveGroupSettings(form: FormData) {
       generationDaysBefore: field(form, "generationDaysBefore"),
       birthYear: field(form, "birthYear"),
       autoDraftEnabled: form.has("autoDraftEnabled"),
+      ...(form.has("generalInstructions") ? { generalInstructions: field(form, "generalInstructions") } : {}),
       ...(form.has("aiPriorities") ? { aiPriorities: JSON.parse(field(form, "aiPriorities")) } : {}),
     });
     return `${groupPath(form)}/innstillinger?melding=${encodeURIComponent("Innstillingene er lagret.")}`;
@@ -370,7 +371,8 @@ export async function newTrainingEvent(form: FormData) {
       throw new DomainError("Velg et hovedtema og øvingsmål før du låser øktfokuset.");
     }
     const eventId = await createTrainingEvent(await getDatabase(), user.id, field(form, "groupId"),
-      eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel", singleSession ? field(form, "coachInput") : "");
+      eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel", singleSession ? field(form, "coachInput") : "",
+      singleSession ? form.getAll("coachIds") : undefined);
     if (field(form, "intent") === "lock-focus") return `${planningPath(form)}&melding=${encodeURIComponent("Øktfokuset er låst. Åpne øktplanen for å planlegge øvelsene.")}`;
     return `${groupPath(form)}/okter/${eventId}${singleSession ? "?initialDraft=1" : ""}`;
   });

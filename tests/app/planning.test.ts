@@ -1,13 +1,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  annualPlanSchema, checkSessionPlan, dateSchema, datesInYear, emptySessionPlan, eventSchema, nffAgeSource,
+  annualPlanSchema, checkSessionPlan, coachSelectionChanged, dateSchema, datesInYear, emptySessionPlan, eventSchema, nffAgeSource,
   generationDate, osloToday, periodSchema, sessionPlanSchema, sessionSections, sourceUrlSchema, weekdayFor,
   skillProgression, objectivesForSkill, parseSkillObjectives, selectedMomentIndices, annualThemeSuggestions, themePeriodContent, skillForSession, planningThemeDrop,
 } from "../../src/lib/planning.ts";
 import { completePlan } from "./planning-fixtures.ts";
 import { birthYearSchema, formatTimeRange, settingsSchema, timeRangeSchema } from "../../src/lib/validation.ts";
 import { defaultPlanningPriorities, planningPrioritiesSchema } from "../../src/lib/planning-priorities.ts";
+
+test("exercise recalculation tracks changed coach selections independent of order", () => {
+  const first = crypto.randomUUID(), second = crypto.randomUUID();
+  const plan = { ...completePlan(), coachIds: [first, second], coachIdsForExercises: [second, first] };
+  assert.equal(coachSelectionChanged(plan), false);
+  assert.equal(coachSelectionChanged({ ...plan, coachIds: [first] }), true);
+  assert.equal(coachSelectionChanged({ ...plan, coachIds: [] }), true);
+  assert.equal(coachSelectionChanged({ ...plan, coachIds: [first], exercises: [] }), false);
+  assert.equal(coachSelectionChanged({ ...plan, coachIdsForExercises: undefined }), false);
+});
 
 test("AI priorities preserve a complete user order and reject duplicates, omissions and unknown sources", () => {
   const reversed = [...defaultPlanningPriorities].reverse();
@@ -197,7 +207,7 @@ test("drafts preserve unknown equipment and never produce success-shaped resourc
   const check = checkSessionPlan(draft, 60);
   assert.deepEqual(check.peak, { balls: null, smallGoals: null, largeGoals: null, coaches: null });
   assert.ok(check.warnings.some((warning) => warning.includes("ukjent")));
-  assert.ok(check.warnings.some((warning) => warning.includes("bekreftet")));
+  assert.ok(!check.warnings.some((warning) => warning.includes("utstyr er ikke bekreftet")));
   assert.ok(check.warnings.some((warning) => warning.includes("0 minutter")));
   assert.ok(check.warnings.length > 0);
 });
@@ -209,7 +219,8 @@ test("session checks measure exact time, all concurrent groups, reserves and pea
   plan.exercises.push({ ...plan.exercises[0], id: "00000000-0000-4000-8000-000000000002", durationMinutes: 10, balls: 3, reserveBalls: 1 });
   assert.equal(checkSessionPlan(plan, 70).peak.balls, 5, "sequential blocks use peak, not sum");
   plan.exercises[0].balls = 5;
-  assert.ok(checkSessionPlan(plan, 70).warnings.some((warning) => warning.includes("trenger 6, tilgjengelig 5")));
+  assert.equal(checkSessionPlan(plan, 70).peak.balls, 6);
+  assert.ok(!checkSessionPlan(plan, 70).warnings.some((warning) => warning.includes("tilgjengelig 5")));
   plan.exercises[0].assignedPlayers = 6;
   assert.ok(checkSessionPlan(plan, 70).warnings.some((warning) => warning.includes("spillerfordelingen")));
   plan.exercises[0].balls = null;

@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Database } from "../db/index.ts";
 import { generationJobs, groupMembers, groups, trainingTimes } from "../db/schema.ts";
 import { emptySessionPlan, eventSchema, generationDate, osloToday, weekdayFor } from "./planning.ts";
-import { groupCalendar, saveScheduledSessionPlan } from "./planning-domain.ts";
+import { groupCalendar, saveScheduledSessionPlan, sessionCoaches } from "./planning-domain.ts";
 import { scheduledSessionAIContext } from "./session-ai-context.ts";
 import { aiConfiguration, aiDraftSchema, type AIProposal } from "./session-ai.ts";
 import { createSessionAgent } from "./session-agent.ts";
@@ -77,7 +77,8 @@ export async function runScheduledDrafts(db: Database, now = new Date(), generat
         setWhere: or(eq(generationJobs.status, "failed"), and(eq(generationJobs.status, "running"), lte(generationJobs.leaseUntil, claimedAt))) }).returning();
     if (!job) { skipped++; return; }
     try {
-      const draft = { event: candidate.event, plan: emptySessionPlan() };
+      const coachIds = (await sessionCoaches(db, candidate.group.id)).map((member) => member.userId);
+      const draft = { event: candidate.event, plan: { ...emptySessionPlan(), coachIds, confirmedCoaches: coachIds.length } };
       const context = await scheduledSessionAIContext(db, candidate.userId, candidate.group.id, draft);
       const proposal = await generate(context, AbortSignal.timeout(180_000));
       if (await saveScheduledSessionPlan(db, candidate.userId, candidate.group.id, candidate.timeId, job.id, leaseToken, draft, proposal,

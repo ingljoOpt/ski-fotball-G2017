@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { checkSessionPlan, stageLabels, type EventInput, type Exercise, type SessionPlan } from "@/lib/planning";
+import { checkSessionPlan, coachSelectionChanged, stageLabels, type EventInput, type Exercise, type SessionPlan } from "@/lib/planning";
 import { saveTrainingPlan } from "./actions";
 import { minutesBetween, timeRangeSchema } from "@/lib/validation";
 import { ActionButton, NativeInput, OptionSelect, SubmitButton, TextAreaInput, TextInput } from "./ui";
@@ -19,8 +19,8 @@ const resourceFields = [
 ] as const;
 const countValue = (value: string) => value === "" ? null : Number(value);
 
-export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, initialPlan, initialDraft = false }: {
-  groupId: string; eventId: string; revision: number; initialEvent: EventInput; initialPlan: SessionPlan; initialDraft?: boolean;
+export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, initialPlan, coaches, initialDraft = false }: {
+  groupId: string; eventId: string; revision: number; initialEvent: EventInput; initialPlan: SessionPlan; coaches: { userId: string; email: string }[]; initialDraft?: boolean;
 }) {
   const [event, setEvent] = useState(initialEvent);
   const [plan, setPlan] = useState(initialPlan);
@@ -30,7 +30,7 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
   const aiDraft = useMemo(() => ({ event, plan }), [event, plan]);
   const applyAIProposal = useCallback(({ draft }: { draft: { event: EventInput; plan: SessionPlan } }) => {
     setEvent(draft.event);
-    setPlan(draft.plan);
+    setPlan({ ...draft.plan, ...(draft.plan.coachIds ? { coachIdsForExercises: draft.plan.coachIds } : {}) });
     setOrigin("ai");
   }, []);
   useEffect(() => {
@@ -41,6 +41,7 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
     return () => form?.removeEventListener("reset", preserveDraft, true);
   }, []);
   const checks = checkSessionPlan(plan, event.durationMinutes);
+  const needsRecalculation = coachSelectionChanged(plan);
   const validTimeRange = timeRangeSchema.safeParse(event).success;
   function changeTime(field: "startTime" | "endTime", value: string) {
     setEvent((current) => {
@@ -85,17 +86,19 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
     <TextInput label="Hovedtema" name="theme" maxLength={150} value={event.theme} onChange={(value) => setEvent({ ...event, theme: value })} />
     <TextAreaInput label="Øktens øvingsmål" name="objectives" rows={3} maxLength={8000} value={event.objectives} onChange={(e) => setEvent({ ...event, objectives: e.target.value })} />
     <TextAreaInput label="Introduksjon og rød tråd" rows={3} maxLength={8000} value={plan.introduction} onChange={(e) => setPlan({ ...plan, introduction: e.target.value })} />
-    <div className="form-grid">
-      {([
-        ["expectedPlayers", "Forventede spillere"], ["confirmedCoaches", "Bekreftede trenere"],
-        ["availableBalls", "Tilgjengelige baller"], ["availableSmallGoals", "Tilgjengelige småmål"], ["availableLargeGoals", "Tilgjengelige store mål"],
-      ] as const).map(([key, label]) => <NativeInput key={key} label={label} type="number" min={0} max={500} value={plan[key] ?? ""}
-        onChange={(e) => setPlan({ ...plan, [key]: countValue(e.target.value) })} />)}
-    </div>
-    <OptionSelect label="Er utstyrsbeholdningen bekreftet?" value={plan.equipmentConfirmed ? "yes" : "no"}
-      onChange={(value) => setPlan({ ...plan, equipmentConfirmed: value === "yes" })}
-      options={[{ id: "no", label: "Nei – må avklares" }, { id: "yes", label: "Ja – antall er kontrollert" }]} />
-    <TextAreaInput label="Forutsetninger og forhold som må sjekkes" rows={3} maxLength={8000} value={plan.assumptions} onChange={(e) => setPlan({ ...plan, assumptions: e.target.value })} />
+    <fieldset className="coach-selection"><legend>Planlagte trenere</legend>
+      {plan.coachIds === undefined && <p className="muted">Eldre plan uten navngitte trenere. Velg deltakere for å erstatte det tidligere antallet.</p>}
+      {[...coaches, ...(plan.coachIds ?? []).filter((id) => !coaches.some((coach) => coach.userId === id)).map((userId) => ({ userId, email: "Tidligere lagmedlem" }))].map((coach) =>
+        <label key={coach.userId}><input type="checkbox" checked={plan.coachIds?.includes(coach.userId) ?? false} onChange={(event) => {
+          const coachIds = event.target.checked ? [...(plan.coachIds ?? []), coach.userId] : (plan.coachIds ?? []).filter((id) => id !== coach.userId);
+          setPlan({ ...plan, coachIds, confirmedCoaches: coachIds.length,
+            ...(plan.exercises.length ? { coachIdsForExercises: plan.coachIdsForExercises ?? plan.coachIds ?? [] } : {}) });
+        }} /> {coach.email}</label>)}
+      <small>Utvalget er en planforutsetning, ikke dokumentasjon på faktisk oppmøte.</small>
+      {needsRecalculation && <p className="notice">Trenerutvalget er endret. Øktassistenten kan beregne øvelsene på nytt.</p>}
+    </fieldset>
+    <NativeInput label="Forventede spillere" type="number" min={0} max={500} value={plan.expectedPlayers ?? ""}
+      onChange={(e) => setPlan({ ...plan, expectedPlayers: countValue(e.target.value) })} />
     <TextAreaInput label="Trenerroller og øktansvar" rows={3} maxLength={8000} value={plan.coachRoles} onChange={(e) => setPlan({ ...plan, coachRoles: e.target.value })} />
     <h3>Øvelsesbygger</h3>
     <p>Legg til øvelser i ønsket rekkefølge. Oppgi tiden inkludert forklaring, pauser og bytter. Hvert kort er en sekvensiell blokk; alle samtidige flater inne i blokken telles samlet.</p>
@@ -136,7 +139,7 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
       <SubmitButton name="intent" value="approve" variant="secondary" isDisabled={pending}>Godkjenn som planlagt</SubmitButton>
     </div>
     <small>Hver lagring lager en ny, uforanderlig planversjon. Utkast kan være ufullstendige. Godkjenning krever utfylte rammer og tallkontroll, men er ingen garanti for praktisk gjennomførbarhet.</small>
-  </form><SessionAIChat groupId={groupId} eventId={eventId} revision={revision} draft={aiDraft} saving={pending}
+  </form><SessionAIChat groupId={groupId} eventId={eventId} revision={revision} draft={aiDraft} saving={pending} needsRecalculation={needsRecalculation}
     initialDraft={initialDraft}
     onApply={applyAIProposal} /></div>;
 }

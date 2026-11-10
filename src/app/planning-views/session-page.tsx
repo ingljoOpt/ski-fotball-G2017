@@ -13,7 +13,7 @@ import { SessionPlanEditor } from "@/app/session-plan-editor";
 import { SessionPlanView } from "@/app/session-plan-view";
 import { SessionToolbar } from "@/app/session-toolbar";
 import { PlanningHistory } from "@/app/planning-history";
-import { emptySessionPlan, nffAgeSource } from "@/lib/planning";
+import { coachSelectionChanged, emptySessionPlan, nffAgeSource } from "@/lib/planning";
 import { formatTimeRange } from "@/lib/validation";
 import { teamUrl } from "@/lib/slugs";
 import { listSessionReviews } from "@/lib/session-review-domain";
@@ -59,7 +59,7 @@ export default async function TrainingSession({ params, searchParams }: {
         dateStyle: "short", timeStyle: "short", timeZone: "Europe/Oslo",
       }).format(latest.createdAt)}` : "Ingen aktiv øktplan"}</small>
     </header>
-    {latest ? <SessionPlanView plan={latest.plan} durationMinutes={event.durationMinutes} theme={event.theme} objectives={event.objectives}
+    {latest ? <SessionPlanView plan={latest.plan} coaches={details.coaches} durationMinutes={event.durationMinutes} theme={event.theme} objectives={event.objectives}
       ageLabel={context.birthYear === null ? "Årskull ikke oppgitt" : nffAgeSource(context.year, context.birthYear).label} />
       : <p className="notice">Ingen aktiv øktplan. Tidligere versjoner er bevart i revisjonshistorikken.</p>}
     <section className="session-administration" aria-label="Evaluering av økten">
@@ -87,10 +87,10 @@ export default async function TrainingSession({ params, searchParams }: {
     </section>
     <div className="session-administration">
         {event.status !== "cancelled" ? <Card className="app-card">
-          <details id="rediger-okt" open={!latest || latest.plan.exercises.length === 0} className="plan-editor-details">
+          <details id="rediger-okt" open={!latest || latest.plan.exercises.length === 0 || coachSelectionChanged(latest.plan)} className="plan-editor-details">
             <summary><h2>Rediger øktplanen</h2></summary>
             <SessionPlanEditor key={event.revision} groupId={groupId} eventId={eventId} revision={event.revision} initialEvent={event}
-              initialPlan={latest?.plan ?? emptySessionPlan()} initialDraft={query.initialDraft === "1"} />
+              coaches={details.coaches} initialPlan={latest?.plan ?? { ...emptySessionPlan(), coachIds: latestVersion.plan.coachIds, confirmedCoaches: latestVersion.plan.confirmedCoaches }} initialDraft={query.initialDraft === "1"} />
           </details>
         </Card> : <p className="notice">Økten er avlyst. Planen beholdes. Angre avlysningen for å redigere øktplanen.</p>}
     </div>
@@ -104,7 +104,7 @@ export default async function TrainingSession({ params, searchParams }: {
             <p>{formatDate(version.eventSnapshot.date)} kl. {formatTimeRange(version.eventSnapshot.startTime, version.eventSnapshot.endTime)} · {version.eventSnapshot.theme || "Tema ikke satt"} · {eventStatusLabels[version.eventSnapshot.status]}</p>
             <p className="preserve-lines">{version.eventSnapshot.objectives}</p>
             <p>Årsplankontekst: {version.planningContext.periods.map((period) => period.theme).join(", ") || "Ingen temaperiode"}</p>
-            <SessionPlanView plan={version.plan} durationMinutes={version.eventSnapshot.durationMinutes} idPrefix={`versjon-${version.id}`} />
+            <SessionPlanView plan={version.plan} coaches={details.coaches} durationMinutes={version.eventSnapshot.durationMinutes} idPrefix={`versjon-${version.id}`} showLegacy />
           </details>)}
         </details></Card>
       </section>

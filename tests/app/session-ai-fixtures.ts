@@ -6,7 +6,7 @@ import { completePlan } from "./planning-fixtures.ts";
 export const aiEvent = { date: "2026-11-06", startTime: "18:00", endTime: "19:00", durationMinutes: 60,
   title: "Planøkt", theme: "Pasning", objectives: "Se før pasning" };
 export function aiDraft(): AIDraft { return { event: { ...aiEvent }, plan: emptySessionPlan() }; }
-export function aiProposal(): AIProposalInput {
+export function aiProposal(): AIProposalInput & { plan: AIDraft["plan"] } {
   return { title: "Pasning og bevegelse", theme: "Pasning", objectives: "Se opp og bli spillbar", plan: completePlan() };
 }
 type StreamResult = Awaited<ReturnType<MockLanguageModelV4["doStream"]>>;

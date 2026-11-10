@@ -84,7 +84,8 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
       ? { status: "available", contextFields: ["clubGuidelines"], reason: "Aktive klubbdokumenter med uttrukket tekst." }
       : { status: "unavailable", reason: "Klubbens retningslinjer og sportsplan er ikke registrert i appen." },
     period_focus: { status: periods.length ? "available" : "partial", contextFields: ["periods", "annualObjectives", "curriculum"], reason: periods.length ? "Periodene er lagret og låst av trener." : "Ingen låst temaperiode på øktdatoen." },
-    coach_input: { status: input ? "available" : "unavailable", data: input, reason: input ? "Innspill registrert ved manuell oppretting." : "Ingen særskilte trenerinnspill registrert ved oppretting." },
+    coach_input: { status: input || annual.group.generalInstructions ? "available" : "unavailable", data: input, contextFields: ["coachInput", "teamInstructions"],
+      reason: input || annual.group.generalInstructions ? "Lagets generelle instrukser og eventuelle innspill ved manuell oppretting." : "Ingen laginstrukser eller særskilte trenerinnspill registrert." },
     previous_evaluations: { status: historicalPlans.length ? historicalPlans.every((item) => item.evaluations.length) ? "available" : "partial" : "unavailable",
       contextFields: ["history", "previousPlan"], reason: evaluations.length ? "Trenerregistrerte evalueringer fra samme lag; manglende evaluering er ikke dokumentert gjennomføring." : "Tidligere planer kan finnes, men ingen evalueringer er registrert for disse øktene." },
     club_cohort_history: { status: cohortPlans.length ? "partial" : "unavailable", contextFields: ["clubCohortHistory"], reason: "Bare tidligere års planer for samme dokumenterte årskull og lag brukeren har tilgang til. Evalueringer fra andre lag tas ikke med." },
@@ -94,6 +95,7 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
     priorities,
     prioritySources: priorities.map((id) => ({ id, label: priorityLabels[id], ...sourceData[id] })),
     coachInput: input,
+    teamInstructions: annual.group.generalInstructions,
     clubGuidelines: guidelines,
     clubCohortHistory: cohortPlans,
     previousPlan: historicalPlans.length ? historicalPlans[0] : null,

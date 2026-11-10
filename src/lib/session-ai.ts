@@ -14,12 +14,17 @@ export const aiRequestSchema = z.object({
   })).min(1).max(40),
 });
 const aiCount = z.number().int().min(0).max(500).nullable();
-const aiPlanSchema = sessionPlanSchema.safeExtend({
-  expectedPlayers: aiCount, confirmedCoaches: aiCount, availableBalls: aiCount, availableSmallGoals: aiCount, availableLargeGoals: aiCount,
+const aiPlanSchema = z.object(sessionPlanSchema.shape).omit({ coachIds: true, coachIdsForExercises: true, coachAttendanceConfirmed: true,
+  availableBalls: true, availableSmallGoals: true, availableLargeGoals: true, equipmentConfirmed: true, assumptions: true }).extend({
+  expectedPlayers: aiCount, confirmedCoaches: aiCount,
   exercises: z.array(exerciseSchema.extend({
     simultaneousGroups: aiCount, assignedPlayers: aiCount, coaches: aiCount, balls: aiCount,
     reserveBalls: aiCount, smallGoals: aiCount, largeGoals: aiCount,
   })).max(30),
+}).superRefine((value, context) => {
+  if (new Set(value.exercises.map((exercise) => exercise.id)).size !== value.exercises.length) {
+    context.addIssue({ code: "custom", path: ["exercises"], message: "Øvelsene må ha unike ID-er." });
+  }
 });
 export const aiProposalInputSchema = z.object({
   title: z.string().trim().min(2).max(150), theme: z.string().trim().min(1).max(150),
@@ -54,7 +59,7 @@ export function prepareAIProposal(input: unknown, base: AIDraft, sources: {
   sourceUrl: string; sourceAge: string; sourceCheckedOn: string;
 }[]): AIProposal {
   const proposal = aiProposalInputSchema.parse(input);
-  const facts = ["expectedPlayers", "confirmedCoaches", "availableBalls", "availableSmallGoals", "availableLargeGoals", "equipmentConfirmed"] as const;
+  const facts = ["expectedPlayers", "confirmedCoaches"] as const;
   for (const key of facts) {
     if (proposal.plan[key] !== base.plan[key]) throw new Error(`Ikke endre bekreftede rammer eller finn på antall: ${key}. Be treneren endre rammene i skjemaet.`);
   }
@@ -69,17 +74,19 @@ export function prepareAIProposal(input: unknown, base: AIDraft, sources: {
       exercise.sourceCheckedOn = source.sourceCheckedOn;
     }
   }
-  const checks = checkSessionPlan(proposal.plan, base.event.durationMinutes);
+  const plan = sessionPlanSchema.parse({ ...proposal.plan, availableBalls: base.plan.availableBalls, availableSmallGoals: base.plan.availableSmallGoals,
+    availableLargeGoals: base.plan.availableLargeGoals, equipmentConfirmed: base.plan.equipmentConfirmed, assumptions: base.plan.assumptions,
+    ...(base.plan.coachIds ? { coachIds: base.plan.coachIds } : {}),
+    ...(base.plan.coachIdsForExercises ? { coachIdsForExercises: base.plan.coachIdsForExercises } : {}),
+    ...(base.plan.coachAttendanceConfirmed !== undefined ? { coachAttendanceConfirmed: base.plan.coachAttendanceConfirmed } : {}) });
+  const checks = checkSessionPlan(plan, base.event.durationMinutes);
   if (checks.totalMinutes !== base.event.durationMinutes) throw new Error(`Øvelsene må summere til ${base.event.durationMinutes} minutter, inkludert bytter og forklaringer.`);
   if (proposal.plan.exercises.some((exercise) =>
     (exercise.coaches !== null && base.plan.confirmedCoaches !== null && exercise.coaches > base.plan.confirmedCoaches) ||
-    (exercise.assignedPlayers !== null && base.plan.expectedPlayers !== null && exercise.assignedPlayers > base.plan.expectedPlayers) ||
-    (exercise.smallGoals !== null && base.plan.availableSmallGoals !== null && exercise.smallGoals > base.plan.availableSmallGoals) ||
-    (exercise.largeGoals !== null && base.plan.availableLargeGoals !== null && exercise.largeGoals > base.plan.availableLargeGoals) ||
-    (base.plan.availableBalls !== null && (exercise.balls ?? 0) + (exercise.reserveBalls ?? 0) > base.plan.availableBalls)
-  )) throw new Error("Forslaget bruker flere spillere, trenere eller mer utstyr enn oppgitt. Regn på samlet behov for alle samtidige grupper.");
+    (exercise.assignedPlayers !== null && base.plan.expectedPlayers !== null && exercise.assignedPlayers > base.plan.expectedPlayers)
+  )) throw new Error("Forslaget bruker flere spillere eller trenere enn oppgitt. Regn på samlet behov for alle samtidige grupper.");
   return {
-    draft: { event: { ...base.event, title: proposal.title, theme: proposal.theme, objectives: proposal.objectives }, plan: proposal.plan },
+    draft: { event: { ...base.event, title: proposal.title, theme: proposal.theme, objectives: proposal.objectives }, plan },
     baseDraft: aiDraftSchema.parse(base), warnings: checks.warnings,
   };
 }

@@ -15,7 +15,8 @@ const entityLabels = { session: "Økt", annual_plan: "Årsplan", plan_period: "T
 const fieldLabels: Record<string, string> = {
   date: "Dato", startTime: "Fra", endTime: "Til", durationMinutes: "Varighet", title: "Tittel",
   theme: "Tema", objectives: "Mål og føringer", status: "Status", introduction: "Introduksjon",
-  expectedPlayers: "Forventet antall spillere", confirmedCoaches: "Bekreftede trenere",
+  expectedPlayers: "Forventet antall spillere", confirmedCoaches: "Planlagte trenere",
+  coachIds: "Trenerutvalg", coachIdsForExercises: "Trenergrunnlag for øvelser", coachAttendanceConfirmed: "Treneroppmøte bekreftet",
   availableBalls: "Tilgjengelige baller", availableSmallGoals: "Små mål", availableLargeGoals: "Store mål",
   equipmentConfirmed: "Utstyr bekreftet", assumptions: "Forutsetninger", coachRoles: "Trenerroller",
   alternatives: "Alternativer", progression: "Progresjon", exercises: "Øvelser", organization: "Organisering",

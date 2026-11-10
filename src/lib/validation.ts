@@ -11,6 +11,7 @@ export const settingsSchema = z.object({
   generationDaysBefore: z.coerce.number().int().min(0).max(30),
   autoDraftEnabled: z.boolean().optional(),
   birthYear: birthYearSchema.optional(),
+  generalInstructions: z.string().trim().max(8000).optional(),
   aiPriorities: planningPrioritiesSchema.optional(),
 });
 export const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Oppgi klokkeslett som TT:MM.");

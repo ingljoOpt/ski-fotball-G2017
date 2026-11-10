@@ -225,6 +225,7 @@ export const groups = pgTable("groups", {
   legacyDurationMinutes: integer("duration_minutes").notNull().default(60),
   generationDaysBefore: integer("generation_days_before").notNull().default(3),
   autoDraftEnabled: boolean("auto_draft_enabled").notNull().default(false),
+  generalInstructions: text("general_instructions").notNull().default(""),
   aiPriorities: jsonb("ai_priorities").$type<PlanningPriority[]>().notNull().default(defaultPlanningPriorities),
   createdAt: createdAt(),
 }, (table) => [

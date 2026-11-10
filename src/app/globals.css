@@ -71,6 +71,10 @@ small { color: var(--muted); }
 .review-rating { border: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
 .review-rating legend { margin-bottom: .35rem; }
 .review-rating label { display: inline-flex; align-items: center; gap: .25rem; }
+.coach-selection { border: 0; padding: 0; min-width: 0; display: grid; gap: .5rem; }
+.coach-selection legend { font-weight: 600; margin-bottom: .5rem; }
+.coach-selection label { display: flex; align-items: baseline; gap: .5rem; overflow-wrap: anywhere; min-width: 0; }
+.coach-selection input { flex: none; }
 .profile-preview > .club-logo { margin-bottom: .5rem; }
 .markdown-toolbar { display: flex; gap: .5rem; flex-wrap: wrap; }
 .markdown-content { overflow-wrap: anywhere; min-width: 0; }

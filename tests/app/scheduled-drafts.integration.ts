@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { connectLocalDatabase } from "../../src/db/local.ts";
 import { generationJobs, planningHistory, sessionVersions, trainingEvents, users } from "../../src/db/schema.ts";
 import { migrateLocalDatabase } from "../../scripts/migrate.ts";
-import { acceptInvitation, addTrainingTime, createClub, createGroup, updateGroupSettings } from "../../src/lib/domain.ts";
+import { acceptInvitation, addTrainingTime, createClub, createGroup, inviteCoach, updateGroupSettings } from "../../src/lib/domain.ts";
 import { createTrainingEvent } from "../../src/lib/planning-domain.ts";
 import { prepareAIProposal } from "../../src/lib/session-ai.ts";
 import { runScheduledDrafts } from "../../src/lib/scheduled-drafts.ts";
@@ -48,6 +48,8 @@ test("scheduled generation is opt-in, idempotent, retryable and never overwrites
     assert.equal(event.status, "draft");
     assert.equal(version.origin, "ai");
     assert.equal(version.createdBy, null);
+    assert.deepEqual(version.plan.coachIds, [head.id]);
+    assert.equal(version.plan.coachAttendanceConfirmed, undefined);
     assert.equal(history.actorType, "system");
     assert.equal(history.actorId, null);
 
@@ -106,6 +108,17 @@ test("scheduled generation is opt-in, idempotent, retryable and never overwrites
       return proposal;
     });
     assert.equal(late.created, 0);
+    assert.equal((await db.select().from(trainingEvents)).length, 4);
+
+    const [newCoach] = await db.insert(users).values({ email: "new-coach@example.invalid" }).returning();
+    const membershipChanged = await runScheduledDrafts(db, new Date("2026-12-14T05:00:00Z"), async (context, signal) => {
+      const proposal = await generate(context, signal);
+      const invitation = await inviteCoach(db, head.id, group.id, newCoach.email);
+      await acceptInvitation(db, newCoach.id, invitation.token);
+      return proposal;
+    });
+    assert.equal(membershipChanged.created, 0);
+    assert.equal(membershipChanged.skipped, 1);
     assert.equal((await db.select().from(trainingEvents)).length, 4);
   } finally {
     await connection.close();

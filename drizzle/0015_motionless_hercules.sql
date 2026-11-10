@@ -1,0 +1,1 @@
+ALTER TABLE "groups" ADD COLUMN "general_instructions" text DEFAULT '' NOT NULL;

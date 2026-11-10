@@ -44,6 +44,11 @@ function assertRevision(actual: number, expected: unknown) {
   if (actual !== revisionSchema.parse(expected)) throw new DomainError("Planen er endret av en annen trener. Last siden på nytt før du lagrer.");
 }
 
+export async function sessionCoaches(db: Database, groupId: string) {
+  return db.select({ userId: users.id, email: users.email }).from(groupMembers)
+    .innerJoin(users, eq(users.id, groupMembers.userId)).where(eq(groupMembers.groupId, groupId)).orderBy(asc(users.email));
+}
+
 export async function annualPlanning(db: Database, userId: string, groupId: string, year: number) {
   const access = await getGroupAccess(db, userId, groupId);
   yearSchema.parse(year);
@@ -278,7 +283,7 @@ export async function groupSessions(db: Database, userId: string, groupId: strin
 }
 
 export async function createTrainingEvent(
-  db: Database, userId: string, groupId: string, input: unknown, recurrenceKey: string | null = null, cancelled = false, coachInput = "",
+  db: Database, userId: string, groupId: string, input: unknown, recurrenceKey: string | null = null, cancelled = false, coachInput = "", selectedCoachIds?: unknown,
 ) {
   let data = eventSchema.parse(input);
   const trainerInput = z.string().trim().max(8000).parse(coachInput);
@@ -308,7 +313,12 @@ export async function createTrainingEvent(
     const [event] = await tx.insert(trainingEvents).values({
       ...data, coachInput: trainerInput, clubId: group.clubId, groupId, recurrenceKey: effectiveKey, status: "draft", cancelledAt: cancelled ? new Date() : null,
     }).returning();
-    const plan = emptySessionPlan();
+    const members = await sessionCoaches(tx, groupId);
+    const coachIds = selectedCoachIds === undefined ? members.map((member) => member.userId) : z.array(idSchema).max(500).parse(selectedCoachIds);
+    if (new Set(coachIds).size !== coachIds.length || coachIds.some((id) => !members.some((member) => member.userId === id))) {
+      throw new DomainError("Velg bare trenere som er medlemmer av laget.");
+    }
+    const plan = { ...emptySessionPlan(), coachIds, confirmedCoaches: coachIds.length };
     await tx.insert(sessionVersions).values({
       clubId: group.clubId, groupId, eventId: event.id, version: 1, createdBy: userId, origin: "manual",
       eventSnapshot: { ...data, status: event.status }, plan, planningContext: await planningSnapshot(tx, userId, groupId, data.date),
@@ -328,7 +338,8 @@ export async function saveScheduledSessionPlan(db: Database, userId: string, gro
   const plan = sessionPlanSchema.parse(proposal.draft.plan);
   const today = osloToday(now);
   const localTime = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Oslo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
-  if (!sameAIDraft(initial, proposal.baseDraft) || data.date !== initial.event.date || data.startTime !== initial.event.startTime ||
+  if (!sameAIDraft(initial, proposal.baseDraft) || JSON.stringify(plan.coachIds) !== JSON.stringify(initial.plan.coachIds) ||
+    plan.coachAttendanceConfirmed !== initial.plan.coachAttendanceConfirmed || data.date !== initial.event.date || data.startTime !== initial.event.startTime ||
     data.endTime !== initial.event.endTime || checkSessionPlan(plan, data.durationMinutes).totalMinutes !== data.durationMinutes ||
     (["expectedPlayers", "confirmedCoaches", "availableBalls", "availableSmallGoals", "availableLargeGoals", "equipmentConfirmed"] as const)
       .some((key) => plan[key] !== initial.plan[key])) throw new DomainError("AI-utkastet samsvarer ikke med treningens rammer.");
@@ -340,6 +351,11 @@ export async function saveScheduledSessionPlan(db: Database, userId: string, gro
     if (!job || job.date !== data.date || job.startTime !== data.startTime) return false;
     const [head] = await tx.select({ userId: groupMembers.userId }).from(groupMembers).where(and(
       eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId), eq(groupMembers.role, "head_coach")));
+    const currentCoachIds = (await sessionCoaches(tx, groupId)).map((member) => member.userId).sort();
+    if (initial.plan.coachIds && JSON.stringify([...initial.plan.coachIds].sort()) !== JSON.stringify(currentCoachIds)) {
+      await tx.update(generationJobs).set({ status: "failed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
+      return false;
+    }
     const [time] = await tx.select().from(trainingTimes).where(and(eq(trainingTimes.id, timeId), eq(trainingTimes.groupId, groupId))).for("update");
     const eligible = group.autoDraftEnabled && head && time?.enabled && time.weekday === weekdayFor(data.date) &&
       time.startTime === data.startTime && time.endTime === data.endTime && data.date >= today &&
@@ -371,13 +387,14 @@ export async function trainingEventDetails(db: Database, userId: string, groupId
   idSchema.parse(eventId);
   const [event] = await db.select().from(trainingEvents).where(and(eq(trainingEvents.id, eventId), eq(trainingEvents.groupId, groupId)));
   if (!event) throw new DomainError("Økten finnes ikke for dette laget.");
-  const [versions, [club], context] = await Promise.all([
+  const [versions, [club], context, coaches] = await Promise.all([
     db.select().from(sessionVersions).where(and(eq(sessionVersions.eventId, event.id), eq(sessionVersions.groupId, groupId))).orderBy(desc(sessionVersions.version)),
     db.select().from(clubs).where(eq(clubs.id, access.group.clubId)),
     planningSnapshot(db, userId, groupId, event.date),
+    sessionCoaches(db, groupId),
   ]);
   if (!versions[0]) throw new DomainError("Økten mangler en planversjon. Kontakt administrator.");
-  return { ...access, club, event: { ...event, status: displayEventStatus(event) }, versions, context };
+  return { ...access, club, event: { ...event, status: displayEventStatus(event) }, versions, context, coaches };
 }
 
 export async function sessionHistory(db: Database, userId: string, groupId: string, eventId: string) {
@@ -397,6 +414,7 @@ export async function saveSessionPlan(
   idSchema.parse(eventId);
   const data = eventSchema.parse(input);
   const plan = sessionPlanSchema.parse(planInput);
+  delete plan.coachAttendanceConfirmed;
   z.enum(["draft", "planned"]).parse(status);
   z.enum(["manual", "ai"]).parse(origin);
   if (status === "planned") {
@@ -425,6 +443,11 @@ export async function saveSessionPlan(
     const [latest] = await tx.select().from(sessionVersions)
       .where(eq(sessionVersions.eventId, eventId)).orderBy(desc(sessionVersions.version)).limit(1);
     if (!latest) throw new DomainError("Økten mangler en planversjon. Kontakt administrator.");
+    if (plan.coachIds) {
+      const members = await sessionCoaches(tx, groupId);
+      const allowed = new Set([...members.map((member) => member.userId), ...(latest.plan.coachIds ?? [])]);
+      if (plan.coachIds.some((id) => !allowed.has(id))) throw new DomainError("Velg bare trenere som er medlemmer av laget.");
+    }
     await tx.insert(sessionVersions).values({
       clubId: event.clubId, groupId, eventId, version: latest.version + 1, createdBy: userId, origin,
       eventSnapshot: { ...data, status }, plan, planningContext: await planningSnapshot(tx, userId, groupId, data.date),

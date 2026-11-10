@@ -85,11 +85,17 @@ export const sessionPlanSchema = z.object({
   schemaVersion: z.literal(1),
   introduction: text,
   expectedPlayers: optionalCount, confirmedCoaches: optionalCount,
+  coachIds: z.array(z.uuid()).max(500).optional(),
+  coachIdsForExercises: z.array(z.uuid()).max(500).optional(),
+  coachAttendanceConfirmed: z.boolean().optional(),
   availableBalls: optionalCount, availableSmallGoals: optionalCount, availableLargeGoals: optionalCount,
   equipmentConfirmed: z.boolean(),
   assumptions: text, coachRoles: text, alternatives: text, progression: text,
   exercises: z.array(exerciseSchema).max(30),
 }).superRefine((value, context) => {
+  if (value.coachIds && (new Set(value.coachIds).size !== value.coachIds.length || value.confirmedCoaches !== value.coachIds.length)) {
+    context.addIssue({ code: "custom", path: ["coachIds"], message: "Trenerlisten må ha unike medlemmer og stemme med antallet trenere." });
+  }
   if (new Set(value.exercises.map((exercise) => exercise.id)).size !== value.exercises.length) {
     context.addIssue({ code: "custom", path: ["exercises"], message: "Øvelsene må ha unike ID-er." });
   }
@@ -104,6 +110,11 @@ export type PlanningSnapshot = {
   events?: AnnualEventInput[];
   periods: Period[];
 };
+
+export function coachSelectionChanged(plan: SessionPlan) {
+  return plan.exercises.length > 0 && plan.coachIdsForExercises !== undefined &&
+    JSON.stringify([...(plan.coachIds ?? [])].sort()) !== JSON.stringify([...plan.coachIdsForExercises].sort());
+}
 
 export function emptySessionPlan(): SessionPlan {
   return {
@@ -229,8 +240,7 @@ export function checkSessionPlan(plan: SessionPlan, durationMinutes: number) {
   if (!plan.exercises.length) warnings.push("Økten mangler øvelser.");
   if (totalMinutes !== durationMinutes) warnings.push(`Tidsplanen er ${totalMinutes} minutter, men økten varer ${durationMinutes}. Ta med forklaring, pauser og bytter.`);
   if (!plan.expectedPlayers) warnings.push("Forventet spillerantall er ikke oppgitt.");
-  if (!plan.confirmedCoaches) warnings.push("Bekreftet treneroppmøte er ikke oppgitt.");
-  if (!plan.equipmentConfirmed) warnings.push("Tilgjengelig utstyr er ikke bekreftet.");
+  if (!plan.confirmedCoaches) warnings.push("Ingen trenere er valgt for økten.");
   if (!plan.coachRoles) warnings.push("Trenerroller er ikke beskrevet.");
   if (!plan.alternatives) warnings.push("Alternativer ved endret oppmøte, utstyr eller forhold mangler.");
   const peak = { balls: 0, smallGoals: 0, largeGoals: 0, coaches: 0 };
@@ -250,15 +260,8 @@ export function checkSessionPlan(plan: SessionPlan, durationMinutes: number) {
     peak.largeGoals = Math.max(peak.largeGoals, exercise.largeGoals ?? 0);
     peak.coaches = Math.max(peak.coaches, exercise.coaches ?? 0);
   }
-  for (const [label, required, available] of [
-    ["Baller inkludert reserve", peak.balls, plan.availableBalls],
-    ["Småmål", peak.smallGoals, plan.availableSmallGoals],
-    ["Store mål", peak.largeGoals, plan.availableLargeGoals],
-    ["Trenere", peak.coaches, plan.confirmedCoaches],
-  ] as const) {
-    if (available === null) warnings.push(`${label}: tilgjengelig antall er ukjent.`);
-    else if (required > available) warnings.push(`${label}: trenger ${required}, tilgjengelig ${available}.`);
-  }
+  if (plan.confirmedCoaches === null) warnings.push("Trenere: tilgjengelig antall er ukjent.");
+  else if (peak.coaches > plan.confirmedCoaches) warnings.push(`Trenere: trenger ${peak.coaches}, tilgjengelig ${plan.confirmedCoaches}.`);
   const hasExercises = plan.exercises.length > 0;
   return { warnings, totalMinutes, peak: {
     balls: hasExercises && plan.exercises.every((exercise) => exercise.balls !== null && exercise.reserveBalls !== null) ? peak.balls : null,

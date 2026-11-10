@@ -8,9 +8,9 @@ import type { SessionAgentMessage } from "@/lib/session-agent";
 import { aiDraftSchema, sameAIDraft, type AIDraft, type AIProposal } from "@/lib/session-ai";
 import { ActionButton, TextAreaInput } from "./ui";
 
-export function SessionAIChat({ groupId, eventId, revision, draft, saving, initialDraft = false, onApply }: {
+export function SessionAIChat({ groupId, eventId, revision, draft, saving, needsRecalculation = false, initialDraft = false, onApply }: {
   groupId: string; eventId: string; revision: number; draft: AIDraft; saving: boolean;
-  initialDraft?: boolean;
+  initialDraft?: boolean; needsRecalculation?: boolean;
   onApply: (proposal: AIProposal) => void;
 }) {
   const transport = useMemo(() => new DefaultChatTransport<SessionAgentMessage>({
@@ -82,6 +82,13 @@ export function SessionAIChat({ groupId, eventId, revision, draft, saving, initi
         ? "Førsteutkastet fylles automatisk inn her. Rediger det eller be assistenten justere; ingenting lagres før du lagrer økten."
         : "Få et forslag eller juster økten. Forslag endrer ingenting før du velger å bruke dem."}</p>
       <p className="ai-privacy">Øktinnhold, årsplan, klubbens aktive dokumenttekst og inntil fem tidligere planer med evalueringer sendes via Vercel AI Gateway til modellleverandøren. Ikke skriv navn eller private opplysninger om barn. Chatten lagres ikke.</p>
+      {needsRecalculation && <div className="notice" role="status">Trenerutvalget er endret siden øvelsene ble tilpasset.
+        <ActionButton type="button" variant="secondary" isDisabled={busy || saving} onPress={() => {
+          clearError();
+          void sendMessage({ text: "Tilpass øvelsene og alle samtidige grupper til det oppdaterte antallet planlagte trenere. Behold tema og øvingsmål, og foreslå bare nødvendige endringer. Regn på samlet trenerbehov og forklar endringene." },
+            { body: { groupId, eventId, revision, draft } });
+        }}>Beregn øvelsene på nytt</ActionButton>
+      </div>}
       <div ref={log} className="ai-messages" role="log" aria-label="Samtale med øktassistenten">
         {!messages.length && <p>For eksempel: «Lag en økt med pasning og bevegelse» eller «Tilpass organiseringen til rammene i skjemaet».</p>}
         {messages.map((message) => <article className={`ai-message ai-message-${message.role}`} key={message.id}>

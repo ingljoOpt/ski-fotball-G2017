@@ -1,8 +1,8 @@
 import { checkSessionPlan, sessionSections, stageLabels, type SessionPlan } from "@/lib/planning";
 import { AppLink } from "./ui";
 
-export function SessionPlanView({ plan, durationMinutes, theme, objectives, ageLabel, idPrefix = "plan" }: {
-  plan: SessionPlan; durationMinutes: number; theme?: string; objectives?: string; ageLabel?: string; idPrefix?: string;
+export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, objectives, ageLabel, idPrefix = "plan", showLegacy = false }: {
+  plan: SessionPlan; coaches?: { userId: string; email: string }[]; durationMinutes: number; theme?: string; objectives?: string; ageLabel?: string; idPrefix?: string; showLegacy?: boolean;
 }) {
   const check = checkSessionPlan(plan, durationMinutes);
   const sections = sessionSections(plan.exercises);
@@ -13,8 +13,8 @@ export function SessionPlanView({ plan, durationMinutes, theme, objectives, ageL
         {theme !== undefined && <div><dt>Tema</dt><dd>{theme || "Ikke satt"}</dd></div>}
         {ageLabel && <div><dt>Alder</dt><dd>{ageLabel}</dd></div>}
         <div><dt>Varighet</dt><dd>{durationMinutes} min<small>Øvelser: {check.totalMinutes} min</small></dd></div>
-        <div><dt>Spillere / trenere</dt><dd>{plan.expectedPlayers ?? "Uavklart"} / {plan.confirmedCoaches ?? "Uavklart"}<small>Forventet / bekreftet</small></dd></div>
-        <div><dt>Utstyr bekreftet</dt><dd>{plan.equipmentConfirmed ? "Ja" : "Nei"}</dd></div>
+        <div><dt>Spillere / trenere</dt><dd>{plan.expectedPlayers ?? "Uavklart"} / {plan.confirmedCoaches ?? "Uavklart"}<small>Forventet / planlagt</small></dd></div>
+        {plan.coachIds && <div><dt>Planlagte trenere</dt><dd>{plan.coachIds.length ? plan.coachIds.map((id) => coaches.find((coach) => coach.userId === id)?.email ?? "Tidligere lagmedlem").join(", ") : "Ingen valgt"}</dd></div>}
       </dl>
       <div className="session-outline">
         {objectives !== undefined && <section><h2>Øvingsmål</h2><p className="preserve-lines">{objectives || "Ikke satt."}</p></section>}
@@ -66,16 +66,21 @@ export function SessionPlanView({ plan, durationMinutes, theme, objectives, ageL
     </section>)}
     <div className="session-coach-notes">
       {[
-        ["Trenerroller", plan.coachRoles], ["Forutsetninger som må sjekkes", plan.assumptions],
+        ["Trenerroller", plan.coachRoles],
         ["Alternativer ved endringer", plan.alternatives], ["Gjenbruk og progresjon", plan.progression],
       ].filter(([, value]) => value).map(([label, value]) => <section key={label}><h2>{label}</h2><p className="preserve-lines">{value}</p></section>)}
       <section><h2>Ressurskontroll</h2>
         <p>Største samtidige behov: {check.peak.balls ?? "Uavklart"} baller inkludert reserve · {check.peak.smallGoals ?? "Uavklart"} småmål · {check.peak.largeGoals ?? "Uavklart"} store mål · {check.peak.coaches ?? "Uavklart"} trenere.</p>
-        <p className="muted">Tallene er toppbehov mellom sekvensielle blokker, ikke en sum gjennom økten.</p>
+        <p className="muted">Tallene er toppbehov mellom sekvensielle blokker, ikke en sum gjennom økten. Treneren må kontrollere tilgjengelig utstyr mot klubbens og lagets instrukser.</p>
         {check.warnings.length > 0 ? <details className="notice error"><summary>{check.warnings.length} uavklarte kontrollpunkter</summary>
           <ul>{check.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
         </details> : <p className="notice">Tallkontroll uten avvik. Trener må fortsatt kontrollere sikkerhet, kilder og om organiseringen fungerer i praksis.</p>}
       </section>
+      {showLegacy && (plan.assumptions || plan.equipmentConfirmed || plan.availableBalls !== null || plan.availableSmallGoals !== null || plan.availableLargeGoals !== null) && <section>
+        <h2>Tidligere registrerte rammer</h2>
+        <p>Baller: {plan.availableBalls ?? "Uavklart"} · småmål: {plan.availableSmallGoals ?? "Uavklart"} · store mål: {plan.availableLargeGoals ?? "Uavklart"} · utstyr bekreftet: {plan.equipmentConfirmed ? "Ja" : "Nei"}.</p>
+        {plan.assumptions && <p className="preserve-lines">{plan.assumptions}</p>}
+      </section>}
     </div>
   </div>;
 }

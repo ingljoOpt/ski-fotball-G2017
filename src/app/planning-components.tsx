@@ -24,7 +24,6 @@ export function PlanningNavigation({ basePath, year }: { basePath: string; year:
     { href: `${basePath}/brukere`, label: "Brukere" },
     { href: `${basePath}/innstillinger`, label: "Innstillinger" },
     { href: `${basePath}/ovelser`, label: "Egne øvelser" },
-    { href: `${basePath.slice(0, basePath.lastIndexOf("/"))}/lag/sportsplan`, label: "Sportsplan" },
   ]} />;
 }
 export function YearPicker({ year, month }: { year: number; month?: number }) {

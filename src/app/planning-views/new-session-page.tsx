@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { getDatabase } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { DomainError } from "@/lib/domain";
-import { annualPlanning } from "@/lib/planning-domain";
+import { annualPlanning, sessionCoaches } from "@/lib/planning-domain";
 import { newTrainingEvent } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubTheme } from "@/app/club-theme";
@@ -18,7 +18,12 @@ export default async function NewSession({ params, searchParams }: {
   const { groupId } = await params;
   const { year, month } = await planningSelection(searchParams);
   let details;
-  try { details = await annualPlanning(await getDatabase(), user.id, groupId, year); }
+  let coaches;
+  try {
+    const db = await getDatabase();
+    details = await annualPlanning(db, user.id, groupId, year);
+    coaches = await sessionCoaches(db, groupId);
+  }
   catch (error) {
     if (error instanceof DomainError || error instanceof ZodError) notFound();
     throw error;
@@ -45,6 +50,10 @@ export default async function NewSession({ params, searchParams }: {
         <small>Tidsrom: 15–240 minutter. Tidligere til-tid betyr neste dag.</small>
         <TextInput label="Tema (valgfritt)" name="theme" maxLength={150} />
         <TextAreaInput label="Øvingsmål (valgfritt)" name="objectives" rows={3} maxLength={8000} />
+        <fieldset className="coach-selection"><legend>Planlagte trenere</legend>
+          {coaches.map((coach) => <label key={coach.userId}><input type="checkbox" name="coachIds" value={coach.userId} defaultChecked /> {coach.email}</label>)}
+          <small>Utvalget er en planforutsetning, ikke bekreftet oppmøte.</small>
+        </fieldset>
         <TextAreaInput label="Innspill til AI-planlegging (valgfritt)" name="coachInput" rows={4} maxLength={8000} />
         <small>Bare treningsinnhold. Ikke oppgi navn eller private opplysninger om barn.</small>
         <SubmitButton>Opprett øktutkast</SubmitButton>

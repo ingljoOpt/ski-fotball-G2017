@@ -1,4 +1,4 @@
-import { AppLink, Card, MemberSelect, NativeInput, SubmitButton, TextInput, WeekdaySelect } from "@/app/ui";
+import { AppLink, Card, MemberSelect, NativeInput, SubmitButton, TextAreaInput, TextInput, WeekdaySelect } from "@/app/ui";
 import { notFound } from "next/navigation";
 import { ZodError } from "zod";
 import { getDatabase } from "@/db";
@@ -128,12 +128,14 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
               <NativeInput label="Årgang (valgfritt)" name="birthYear" type="number" min={1900} max={2100} step={1} defaultValue={group.birthYear ?? ""} />
               <small>For eksempel 2017. Brukes i alle årsplaner og nye øktforslag. Tidligere øktversjoner endres ikke.</small>
               <NativeInput label="Dager før trening for nytt utkast" name="generationDaysBefore" type="number" min={0} max={30} required defaultValue={group.generationDaysBefore} />
+              <TextAreaInput label="Lagets generelle instrukser" name="generalInstructions" rows={5} maxLength={8000} defaultValue={group.generalInstructions} />
               <label><input type="checkbox" name="autoDraftEnabled" defaultChecked={group.autoDraftEnabled} /> Automatisk AI-utkast på Vercel</label>
-              <small>Aktive klubbdokumenter, årsplan og tidligere planer med evalueringer sendes til modellleverandøren ved generering. Ikke legg inn private opplysninger om barn.</small>
+              <small>Lagets instrukser, aktive klubbdokumenter, årsplan og tidligere planer med evalueringer sendes til modellleverandøren ved generering. Ikke legg inn private opplysninger om barn.</small>
               <h3>Prioriteringer for AI-genererte økter</h3>
               <PlanningPrioritiesEditor key={JSON.stringify(group.aiPriorities)} priorities={group.aiPriorities} />
               <SubmitButton>Lagre rammer</SubmitButton>
             </form> : <><p>Årgang: {group.birthYear ?? "Ikke oppgitt"}.</p><p>Ønsket utkast {group.generationDaysBefore} dager før trening.</p>
+              <h3>Lagets generelle instrukser</h3><p className="preserve-lines">{group.generalInstructions || "Ingen instrukser registrert."}</p>
               <h3>Prioriteringer for AI-genererte økter</h3><PlanningPrioritiesEditor priorities={group.aiPriorities} disabled />
             </>}
             <p className="muted">Årgang settes av hovedtrener eller klubbadministrator. Øktlengden beregnes fra fra- og til-tidspunktet for hver trening. Ingen felles standardvarighet.</p>

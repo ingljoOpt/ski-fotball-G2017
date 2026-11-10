@@ -248,6 +248,20 @@ test("calendar, annual themes and immutable session plans", async (t) => {
         && entry.afterSnapshot?.event && (entry.afterSnapshot.event as { theme: string }).theme === "Endret tema"));
     });
 
+    await t.test("approval does not require session inventory and preserves historical equipment", async () => {
+      const input = { ...eventInput, date: "2029-01-03" };
+      const id = await createTrainingEvent(db, head.id, group.id, input);
+      const legacy = { ...completePlan(), assumptions: "Tidligere forutsetning" };
+      await saveSessionPlan(db, head.id, group.id, id, input, legacy, 1, "draft");
+      const withoutInventory = { ...legacy, availableBalls: null, availableSmallGoals: null, availableLargeGoals: null, equipmentConfirmed: false, assumptions: "" };
+      await saveSessionPlan(db, head.id, group.id, id, input, withoutInventory, 2, "planned");
+      const details = await trainingEventDetails(db, head.id, group.id, id);
+      assert.equal(details.event.status, "planned");
+      assert.equal(details.versions[0].plan.availableBalls, null);
+      assert.equal(details.versions[1].plan.availableBalls, legacy.availableBalls);
+      assert.equal(details.versions[1].plan.assumptions, legacy.assumptions);
+    });
+
     await t.test("annual plan changes do not retroactively alter session snapshots", async () => {
       const annual = await annualPlanning(db, coach.id, group.id, 2026);
       await savePlanPeriod(db, coach.id, group.id, 2026, { ...periodInput, theme: "Vending" }, annual.plan!.revision, annual.periods[0].id);
@@ -342,6 +356,34 @@ test("calendar, annual themes and immutable session plans", async (t) => {
       assert.equal(details.versions.length, 3, "a new plan starts a new revision without deleting prior versions");
       history = await sessionHistory(db, head.id, group.id, id);
       assert.ok(history.some((entry) => entry.action === "deleted"));
+    });
+
+    await t.test("session coach participants are scoped, versioned and editable", async () => {
+      const input = { ...eventInput, date: "2028-04-04" };
+      const id = await createTrainingEvent(db, head.id, group.id, input);
+      let details = await trainingEventDetails(db, head.id, group.id, id);
+      assert.deepEqual(new Set(details.versions[0].plan.coachIds), new Set([head.id, coach.id]));
+      assert.equal(details.versions[0].plan.confirmedCoaches, 2);
+      const selected = { ...completePlan(), coachIds: [head.id], confirmedCoaches: 1, coachAttendanceConfirmed: false,
+        coachIdsForExercises: [head.id, coach.id] };
+      await assert.rejects(saveSessionPlan(db, outsider.id, group.id, id, input, selected, 1, "draft"), DomainError);
+      await assert.rejects(saveSessionPlan(db, head.id, group.id, id, input, { ...selected, coachIds: [outsider.id] }, 1, "draft"), /medlemmer/);
+      await assert.rejects(saveSessionPlan(db, head.id, group.id, id, input, { ...selected, confirmedCoaches: 2 }, 1, "draft"));
+      await assert.rejects(saveSessionPlan(db, head.id, group.id, id, input, selected, 1, "planned"), /Trenere: trenger 2, tilgjengelig 1/);
+      await saveSessionPlan(db, head.id, group.id, id, input, selected, 1, "draft");
+      await assert.rejects(saveSessionPlan(db, coach.id, group.id, id, input, selected, 1, "draft"), /endret/);
+      details = await trainingEventDetails(db, coach.id, group.id, id);
+      assert.deepEqual(details.versions[0].plan.coachIds, [head.id]);
+      assert.deepEqual(new Set(details.versions[1].plan.coachIds), new Set([head.id, coach.id]));
+      const readded = { ...selected, coachIds: [head.id, coach.id], confirmedCoaches: 2 };
+      await saveSessionPlan(db, coach.id, group.id, id, input, readded, 2, "planned");
+      const approved = await trainingEventDetails(db, head.id, group.id, id);
+      assert.deepEqual(approved.versions[0].plan.coachIds, [head.id, coach.id]);
+      assert.equal(approved.event.status, "planned");
+      assert.equal(approved.versions[0].plan.coachAttendanceConfirmed, undefined);
+      const selectedId = await createTrainingEvent(db, head.id, group.id, { ...input, date: "2028-04-05" }, null, false, "", []);
+      assert.deepEqual((await trainingEventDetails(db, head.id, group.id, selectedId)).versions[0].plan.coachIds, []);
+      await assert.rejects(createTrainingEvent(db, head.id, group.id, { ...input, date: "2028-04-06" }, null, false, "", [outsider.id]), /medlemmer/);
     });
 
     await t.test("session access and composite foreign keys isolate tenant writes and version history", async () => {
