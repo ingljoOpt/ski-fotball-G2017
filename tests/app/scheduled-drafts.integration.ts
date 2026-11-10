@@ -7,8 +7,9 @@ import { eq } from "drizzle-orm";
 import { connectLocalDatabase } from "../../src/db/local.ts";
 import { generationJobs, planningHistory, sessionVersions, trainingEvents, users } from "../../src/db/schema.ts";
 import { migrateLocalDatabase } from "../../scripts/migrate.ts";
-import { acceptInvitation, addTrainingTime, createClub, createGroup, inviteCoach, updateGroupSettings } from "../../src/lib/domain.ts";
-import { createTrainingEvent } from "../../src/lib/planning-domain.ts";
+import { acceptInvitation, addTrainingTime, createClub, createGroup, DomainError, groupDetails, inviteCoach, updateGroupSettings, updateTrainingTime, updateTrainingTimeCounts } from "../../src/lib/domain.ts";
+import { createTrainingEvent, groupCalendar, saveSessionPlan, trainingEventDetails } from "../../src/lib/planning-domain.ts";
+import { datesInYear, weekdayFor } from "../../src/lib/planning.ts";
 import { prepareAIProposal } from "../../src/lib/session-ai.ts";
 import { runScheduledDrafts } from "../../src/lib/scheduled-drafts.ts";
 import { completePlan } from "./planning-fixtures.ts";
@@ -121,6 +122,111 @@ test("scheduled generation is opt-in, idempotent, retryable and never overwrites
     assert.equal(membershipChanged.created, 0);
     assert.equal(membershipChanged.skipped, 1);
     assert.equal((await db.select().from(trainingEvents)).length, 4);
+  } finally {
+    await connection.close();
+    await rm(directory, { recursive: true });
+  }
+});
+
+test("attendance expectations inherit, remain snapshots and reach automatic planning", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "session-counts-"));
+  await migrateLocalDatabase(directory);
+  const connection = await connectLocalDatabase(directory);
+  try {
+    const { db } = connection;
+    const [admin, head, outsider] = await db.insert(users).values(
+      ["admin-count", "head-count", "outsider-count"].map((name) => ({ email: `${name}@example.invalid` })),
+    ).returning();
+    const club = await createClub(db, admin.id, "Antall klubb");
+    const { group, token } = await createGroup(db, admin.id, club.id, "Antall lag", head.email, 2017);
+    await acceptInvitation(db, head.id, token);
+    await addTrainingTime(db, head.id, group.id, { weekday: 3, startTime: "18:00", endTime: "19:00" });
+    const time = (await groupDetails(db, head.id, group.id)).times[0];
+    await assert.rejects(updateGroupSettings(db, outsider.id, group.id, { generationDaysBefore: 2, playerCount: 20 }), DomainError);
+    await assert.rejects(updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2, playerCount: 501 }));
+    await assert.rejects(updateTrainingTimeCounts(db, outsider.id, group.id, time.id, { expectedPlayers: 1, expectedCoaches: 1 }), DomainError);
+    await assert.rejects(updateTrainingTimeCounts(db, head.id, group.id, time.id, { expectedPlayers: -1, expectedCoaches: 1 }));
+    const differentiation = { enabled: true, levels: [{ players: 4, groups: 1 }, { players: 6, groups: 0 }, { players: 12, groups: 3 }] };
+    await assert.rejects(updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2, playerCount: 21, differentiation }), DomainError);
+    await assert.rejects(updateGroupSettings(db, outsider.id, group.id, { generationDaysBefore: 2, playerCount: 22, differentiation }), DomainError);
+    const withoutGroups = { ...differentiation, levels: differentiation.levels.map((level) => ({ ...level, groups: 0 })) };
+    await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2, playerCount: 22, differentiation: withoutGroups });
+    assert.deepEqual((await groupDetails(db, head.id, group.id)).group.differentiation, withoutGroups);
+    await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2, autoDraftEnabled: true, playerCount: 22, coachCount: 4, differentiation });
+    assert.deepEqual((await groupDetails(db, head.id, group.id)).group.differentiation, differentiation);
+    const wednesdays = datesInYear(2099).filter((date) => weekdayFor(date) === 3);
+    const event = { date: wednesdays[0], startTime: "18:00", endTime: "19:00", title: "Trening", theme: "", objectives: "" };
+    const inherited = await createTrainingEvent(db, head.id, group.id, event);
+    let details = await trainingEventDetails(db, head.id, group.id, inherited);
+    assert.equal(details.versions[0].plan.expectedPlayers, 22);
+    assert.equal(details.versions[0].plan.confirmedCoaches, 4);
+    assert.equal(details.versions[0].plan.coachIds, undefined);
+    await updateTrainingTimeCounts(db, head.id, group.id, time.id, { expectedPlayers: 17, expectedCoaches: 0 });
+    const overridden = await createTrainingEvent(db, head.id, group.id, { ...event, date: wednesdays[1] });
+    details = await trainingEventDetails(db, head.id, group.id, overridden);
+    assert.equal(details.versions[0].plan.expectedPlayers, 17);
+    assert.equal(details.versions[0].plan.confirmedCoaches, 0);
+    await saveSessionPlan(db, head.id, group.id, overridden, details.event,
+      { ...details.versions[0].plan, expectedPlayers: 12, confirmedCoaches: 2 }, details.event.revision, "planned", "manual", false);
+    const edited = await trainingEventDetails(db, head.id, group.id, overridden);
+    assert.equal(edited.versions[0].plan.expectedPlayers, 12);
+    assert.equal(edited.versions[0].plan.confirmedCoaches, 2);
+    assert.equal(edited.versions[1].plan.confirmedCoaches, 0);
+    const single = await createTrainingEvent(db, head.id, group.id, { ...event, date: wednesdays[2] }, null, false, "", undefined,
+      { expectedPlayers: "0", expectedCoaches: "3" });
+    const singlePlan = (await trainingEventDetails(db, head.id, group.id, single)).versions[0].plan;
+    assert.equal(singlePlan.expectedPlayers, 0);
+    assert.equal(singlePlan.confirmedCoaches, 3);
+    const now = new Date("2026-11-09T05:00:00Z");
+    const generate: Parameters<typeof runScheduledDrafts>[2] = async (context) => {
+      assert.equal(context.draft.plan.expectedPlayers, 17);
+      assert.equal(context.draft.plan.confirmedCoaches, 0);
+      assert.equal(context.differentiation?.teamPlayers, 22);
+      assert.equal(context.differentiation?.sessionPlayers, 17);
+      assert.deepEqual(context.differentiation?.settings.levels.map((level) => level.players), [4, 6, 12]);
+      const sample = completePlan().exercises[0];
+      const plan = { ...context.draft.plan, exercises: [{ ...sample, simultaneousGroups: null, assignedPlayers: null, coaches: null,
+        balls: null, reserveBalls: null, smallGoals: null, largeGoals: null }] };
+      return prepareAIProposal({ title: "AI-utkast", theme: "Pasning", objectives: "Se opp", plan }, context.draft, []);
+    };
+    const stale = await runScheduledDrafts(db, now, async (context, signal) => {
+      const proposal = await generate(context, signal);
+      await updateTrainingTimeCounts(db, head.id, group.id, time.id, { expectedPlayers: "", expectedCoaches: "" });
+      return proposal;
+    });
+    assert.equal(stale.created, 0);
+    assert.equal(stale.skipped, 1);
+    assert.equal((await trainingEventDetails(db, head.id, group.id, inherited)).versions[0].plan.expectedPlayers, 22);
+    const result = await runScheduledDrafts(db, now, async (context) => {
+      assert.equal(context.draft.plan.expectedPlayers, 22);
+      assert.equal(context.draft.plan.confirmedCoaches, 4);
+      const sample = completePlan().exercises[0];
+      return prepareAIProposal({ title: "AI-utkast", theme: "Pasning", objectives: "Se opp", plan: { ...context.draft.plan,
+        exercises: [{ ...sample, simultaneousGroups: null, assignedPlayers: null, coaches: null, balls: null, reserveBalls: null, smallGoals: null, largeGoals: null }] } }, context.draft, []);
+    });
+    assert.equal(result.created, 1);
+    const automatic = (await db.select().from(trainingEvents)).find((item) => item.date === "2026-11-11")!;
+    const generated = (await trainingEventDetails(db, head.id, group.id, automatic.id)).versions[0].plan;
+    assert.equal(generated.expectedPlayers, 22);
+    assert.equal(generated.confirmedCoaches, 4);
+    const changed = await runScheduledDrafts(db, new Date("2026-11-16T05:00:00Z"), async (context) => {
+      assert.equal(context.differentiation?.settings.enabled, true);
+      const sample = completePlan().exercises[0];
+      const proposal = prepareAIProposal({ title: "AI-utkast", theme: "Pasning", objectives: "Se opp", plan: { ...context.draft.plan,
+        exercises: [{ ...sample, simultaneousGroups: null, assignedPlayers: null, coaches: null, balls: null, reserveBalls: null, smallGoals: null, largeGoals: null }] } }, context.draft, []);
+      await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2, differentiation: { ...differentiation, enabled: false } });
+      return proposal;
+    });
+    assert.equal(changed.created, 0);
+    assert.equal(changed.skipped, 1);
+    await updateTrainingTime(db, head.id, group.id, time.id, { weekday: 4, startTime: "17:00", endTime: "18:30", expectedPlayers: 12, expectedCoaches: 2 });
+    const calendar = await groupCalendar(db, head.id, group.id, 2026);
+    assert.ok(calendar.entries.some((item) => item.date === "2026-11-19" && item.startTime === "17:00" && item.virtual));
+    assert.ok(!calendar.entries.some((item) => item.date === "2026-11-18" && item.startTime === "18:00" && item.virtual));
+    const saved = await trainingEventDetails(db, head.id, group.id, automatic.id);
+    assert.equal(saved.event.startTime, "18:00");
+    assert.equal(saved.versions[0].plan.expectedPlayers, 22);
+    assert.equal(saved.versions[0].plan.confirmedCoaches, 4);
   } finally {
     await connection.close();
     await rm(directory, { recursive: true });

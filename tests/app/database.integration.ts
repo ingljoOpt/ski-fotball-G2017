@@ -15,7 +15,7 @@ import {
   listClubs, listClubGroups, removeMember, removeTrainingTime,
   revokeSession, updateGroupSettings, userForSession, acceptClubInvitation,
   cancelClubInvitation, clubAdministration, inviteClubAdmin, removeClubAdmin, transferHeadCoach,
-  resetClubBranding, updateClubBranding,
+  resetClubBranding, updateClubBranding, updateTrainingTime,
 } from "../../src/lib/domain.ts";
 import { migrateLocalDatabase } from "../../scripts/migrate.ts";
 
@@ -93,6 +93,15 @@ test("PGlite: migrations, login, invitations and tenant authorization", async (t
         assert.deepEqual(details.times.map((time) => time.endTime), ["19:15", "12:30"]);
         assert.equal(details.group.generationDaysBefore, 4);
         assert.equal(details.times.length, 2);
+        const changed = { weekday: 4, startTime: "17:00", endTime: "18:30", expectedPlayers: 18, expectedCoaches: 0 };
+        await assert.rejects(updateTrainingTime(tx, outsider.id, firstGroup.group.id, details.times[0].id, changed), DomainError);
+        await assert.rejects(updateTrainingTime(tx, head.id, firstGroup.group.id, details.times[0].id, { ...changed, endTime: "17:05" }));
+        await assert.rejects(updateTrainingTime(tx, head.id, firstGroup.group.id, details.times[0].id, { ...changed, weekday: 7, startTime: "11:00", endTime: "12:00" }), DomainError);
+        await updateTrainingTime(tx, head.id, firstGroup.group.id, details.times[0].id, changed);
+        const updated = (await groupDetails(tx, head.id, firstGroup.group.id)).times.find((time) => time.id === details.times[0].id)!;
+        assert.deepEqual([updated.weekday, updated.startTime, updated.endTime, updated.expectedPlayers, updated.expectedCoaches], [4, "17:00", "18:30", 18, 0]);
+        await updateTrainingTime(tx, head.id, firstGroup.group.id, updated.id, { ...changed, expectedPlayers: "", expectedCoaches: "" });
+        assert.equal((await groupDetails(tx, head.id, firstGroup.group.id)).times.find((time) => time.id === updated.id)!.expectedPlayers, null);
         await assert.rejects(removeTrainingTime(tx, outsider.id, firstGroup.group.id, details.times[0].id), DomainError);
         await removeTrainingTime(tx, admin.id, firstGroup.group.id, details.times[0].id);
         assert.equal((await groupDetails(tx, head.id, firstGroup.group.id)).times.length, 1);

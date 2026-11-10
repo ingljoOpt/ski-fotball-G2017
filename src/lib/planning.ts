@@ -125,6 +125,13 @@ export function emptySessionPlan(): SessionPlan {
   };
 }
 
+export function expectedSessionPlan(group: { playerCount: number | null; coachCount: number | null },
+  time: { expectedPlayers: number | null; expectedCoaches: number | null } | undefined, coachIds: string[]): SessionPlan {
+  const expectedCoaches = time?.expectedCoaches ?? group.coachCount;
+  return { ...emptySessionPlan(), expectedPlayers: time?.expectedPlayers ?? group.playerCount,
+    confirmedCoaches: expectedCoaches ?? coachIds.length, ...(expectedCoaches === null ? { coachIds } : {}) };
+}
+
 export function nffAgeSource(year: number, birthYear: number | null) {
   if (birthYear === null) return { age: null, url: NFF_SOURCE, label: "Velg årskull for aldersriktig fagplan" };
   const age = year - birthYear;

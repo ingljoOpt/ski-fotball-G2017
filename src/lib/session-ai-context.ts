@@ -96,6 +96,12 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
     prioritySources: priorities.map((id) => ({ id, label: priorityLabels[id], ...sourceData[id] })),
     coachInput: input,
     teamInstructions: annual.group.generalInstructions,
+    differentiation: annual.group.differentiation.enabled ? {
+      settings: annual.group.differentiation,
+      teamPlayers: annual.group.differentiation.levels.reduce((sum, level) => sum + level.players, 0),
+      sessionPlayers: draft.plan.expectedPlayers,
+      sessionCoaches: draft.plan.confirmedCoaches,
+    } : null,
     clubGuidelines: guidelines,
     clubCohortHistory: cohortPlans,
     previousPlan: historicalPlans.length ? historicalPlans[0] : null,

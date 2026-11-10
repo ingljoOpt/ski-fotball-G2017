@@ -131,8 +131,15 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
     <TextInput label="Hovedtema" name="theme" maxLength={150} value={event.theme} onChange={(value) => setEvent({ ...event, theme: value })} />
     <TextAreaInput label="Øktens øvingsmål" name="objectives" rows={3} maxLength={8000} value={event.objectives} onChange={(e) => setEvent({ ...event, objectives: e.target.value })} />
     <TextAreaInput label="Introduksjon og rød tråd" rows={3} maxLength={8000} value={plan.introduction} onChange={(e) => setPlan({ ...plan, introduction: e.target.value })} />
-    <fieldset className="coach-selection"><legend>Planlagte trenere</legend>
-      {plan.coachIds === undefined && <p className="muted">Eldre plan uten navngitte trenere. Velg deltakere for å erstatte det tidligere antallet.</p>}
+    <div className="form-grid">
+      <NativeInput label="Forventet antall spillere" type="number" min={0} max={500} step={1} value={plan.expectedPlayers ?? ""}
+        onChange={(e) => setPlan({ ...plan, expectedPlayers: countValue(e.target.value) })} />
+      <NativeInput label="Forventet antall trenere" type="number" min={0} max={500} step={1} value={plan.confirmedCoaches ?? ""}
+        onChange={(e) => setPlan({ ...plan, confirmedCoaches: countValue(e.target.value), coachIds: undefined, coachAttendanceConfirmed: false,
+          ...(plan.exercises.length && plan.coachIds ? { coachIdsForExercises: plan.coachIdsForExercises ?? plan.coachIds } : {}) })} />
+    </div>
+    <fieldset className="coach-selection"><legend>Planlagte trenere (valgfritt)</legend>
+      {plan.coachIds === undefined && <p className="muted">Ingen trenere er valgt ved navn. Velg trenere for å bruke antallet i utvalget.</p>}
       {[...coaches, ...(plan.coachIds ?? []).filter((id) => !coaches.some((coach) => coach.userId === id)).map((userId) => ({ userId, email: "Tidligere lagmedlem" }))].map((coach) =>
         <label key={coach.userId}><input type="checkbox" checked={plan.coachIds?.includes(coach.userId) ?? false} onChange={(event) => {
           const coachIds = event.target.checked ? [...(plan.coachIds ?? []), coach.userId] : (plan.coachIds ?? []).filter((id) => id !== coach.userId);
@@ -142,8 +149,6 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
       <small>Utvalget er en planforutsetning, ikke dokumentasjon på faktisk oppmøte.</small>
       {needsRecalculation && <p className="notice">Trenerutvalget er endret. Øktassistenten kan beregne øvelsene på nytt.</p>}
     </fieldset>
-    <NativeInput label="Forventede spillere" type="number" min={0} max={500} value={plan.expectedPlayers ?? ""}
-      onChange={(e) => setPlan({ ...plan, expectedPlayers: countValue(e.target.value) })} />
     <TextAreaInput label="Trenerroller og øktansvar" rows={3} maxLength={8000} value={plan.coachRoles} onChange={(e) => setPlan({ ...plan, coachRoles: e.target.value })} />
     <h3>Øvelsesbygger</h3>
     <p>Legg til øvelser i ønsket rekkefølge. Oppgi tiden inkludert forklaring, pauser og bytter. Hvert kort er en sekvensiell blokk; alle samtidige flater inne i blokken telles samlet.</p>

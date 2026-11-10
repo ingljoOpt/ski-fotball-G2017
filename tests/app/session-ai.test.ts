@@ -100,6 +100,8 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
   proposal.plan.exercises[0].sourceCheckedOn = "2000-01-01";
   const context: Awaited<ReturnType<typeof sessionAIContext>> = {
     draft: { ...aiDraft(), plan: structuredClone(proposal.plan) },
+    differentiation: { settings: { enabled: true, levels: [{ players: 4, groups: 1 }, { players: 6, groups: 0 }, { players: 12, groups: 3 }] },
+      teamPlayers: 22, sessionPlayers: 18, sessionCoaches: 2 },
     age: { age: 9, url: "https://www.fotball.no/barn-og-ungdom/barn_8-9/", label: "9 år i 2026" },
     annualObjectives: "Pasning og bevegelse", periods: [], events: [], history: [], sources: [], limitations: "Fiktive testdata",
     curriculum: { topics: [], fetchedAt: "2026-11-08T12:00:00Z", warnings: ["Fagplan fra NFF"] },
@@ -125,6 +127,9 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
   assert.doesNotMatch(data, /"type":"error"/);
   const chunks = data.split("\n").filter((line) => line.startsWith("data: ") && line !== "data: [DONE]")
     .map((line) => JSON.parse(line.slice(6)));
+  const planningContext = chunks.find((chunk) => chunk.type === "tool-output-available" && chunk.toolCallId === "context-1").output;
+  assert.deepEqual(planningContext.differentiation, { levels: [{ players: 4 }, { players: 6 }, { players: 12 }],
+    teamPlayers: 22, sessionPlayers: 18, sessionCoaches: 2 });
   const suggested = chunks.find((chunk) => chunk.type === "tool-output-available" && chunk.toolCallId === "proposal-1").output;
   assert.equal(suggested.draft.plan.exercises[0].sourceAge, "8-9 år");
   assert.equal(suggested.draft.plan.exercises[0].sourceCheckedOn, "2026-11-09");
@@ -136,6 +141,9 @@ test("ToolLoopAgent streams scoped context, a validated proposal and text throug
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktive testdata/);
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fagplan fra NFF/);
   assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktive laginstrukser/);
+  assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /differentiation/);
+  assert.match(JSON.stringify(model.doStreamCalls[2].prompt), /sessionPlayers/);
+  assert.match(JSON.stringify(model.doStreamCalls[0].prompt), /ikke anta hvem eller hvor mange fra hvert nivå/);
   assert.doesNotMatch(JSON.stringify(model.doStreamCalls[2].prompt), /availableBalls|availableSmallGoals|availableLargeGoals|equipmentConfirmed|assumptions/);
   assert.doesNotMatch(JSON.stringify(model.doStreamCalls[2].prompt), /Fiktiv sportsplan om spillglede/);
   assert.match(JSON.stringify(model.doStreamCalls[3].prompt), /Fiktiv sportsplan om spillglede/);
@@ -152,6 +160,7 @@ test("failed Tiim search warns and still permits a proposal without invented sou
   const proposal = aiProposal();
   const context: Awaited<ReturnType<typeof sessionAIContext>> = {
     draft: { ...aiDraft(), plan: structuredClone(proposal.plan) }, age: { age: 9, url: "", label: "9 år" },
+    differentiation: null,
     annualObjectives: "", periods: [], events: [], history: [], sources: [], limitations: "",
     curriculum: { topics: [], fetchedAt: "", warnings: [] }, priorities: defaultPlanningPriorities, prioritySources: [], coachInput: "", teamInstructions: "",
     clubCohortHistory: [], clubGuidelines: [], previousPlan: null, tiimExercises: [],
@@ -170,6 +179,7 @@ test("the agent can finish a proposal after a slow Tiim search when given enough
   const proposal = aiProposal();
   const context: Awaited<ReturnType<typeof sessionAIContext>> = {
     draft: { ...aiDraft(), plan: structuredClone(proposal.plan) }, age: { age: 9, url: "", label: "9 år" },
+    differentiation: null,
     annualObjectives: "", periods: [], events: [], history: [], sources: [], limitations: "",
     curriculum: { topics: [], fetchedAt: "", warnings: [] }, priorities: defaultPlanningPriorities, prioritySources: [], coachInput: "", teamInstructions: "",
     clubCohortHistory: [], clubGuidelines: [], previousPlan: null, tiimExercises: [],
@@ -199,6 +209,7 @@ test("invalid model proposals are streamed as tool errors, never usable plans", 
   proposal.plan.exercises[0].coaches = 50;
   const context: Awaited<ReturnType<typeof sessionAIContext>> = {
     draft: { ...aiDraft(), plan: base }, age: { age: null, url: "", label: "Ukjent" },
+    differentiation: null,
     annualObjectives: "", periods: [], events: [], history: [], sources: [], limitations: "Fiktive testdata",
     curriculum: { topics: [], fetchedAt: "", warnings: [] },
     priorities: defaultPlanningPriorities, prioritySources: [], coachInput: "", teamInstructions: "",

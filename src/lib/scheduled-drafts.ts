@@ -4,7 +4,7 @@ import { and, eq, lte, or } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db/index.ts";
 import { generationJobs, groupMembers, groups, trainingTimes } from "../db/schema.ts";
-import { emptySessionPlan, eventSchema, generationDate, osloToday, weekdayFor } from "./planning.ts";
+import { expectedSessionPlan, eventSchema, generationDate, osloToday, weekdayFor } from "./planning.ts";
 import { groupCalendar, saveScheduledSessionPlan, sessionCoaches } from "./planning-domain.ts";
 import { scheduledSessionAIContext } from "./session-ai-context.ts";
 import { aiConfiguration, aiDraftSchema, type AIProposal } from "./session-ai.ts";
@@ -46,7 +46,7 @@ export async function runScheduledDrafts(db: Database, now = new Date(), generat
   const teams = await db.select({ group: groups, userId: groupMembers.userId }).from(groups)
     .leftJoin(groupMembers, and(eq(groupMembers.groupId, groups.id), eq(groupMembers.role, "head_coach")))
     .where(eq(groups.autoDraftEnabled, true));
-  const candidates: { group: typeof groups.$inferSelect; userId: string; timeId: string; event: ReturnType<typeof eventSchema.parse> }[] = [];
+  const candidates: { group: typeof groups.$inferSelect; userId: string; time: typeof trainingTimes.$inferSelect; event: ReturnType<typeof eventSchema.parse> }[] = [];
   let failed = 0;
   for (const { group, userId } of teams) {
     if (!userId) { failed++; continue; }
@@ -58,7 +58,7 @@ export async function runScheduledDrafts(db: Database, now = new Date(), generat
           if (!event.virtual || event.date < today || event.date > lastDate ||
             (event.date === today && event.startTime <= localTime) || generationDate(event.date, group.generationDaysBefore) > today) continue;
           const time = times.find((item) => item.startTime === event.startTime && item.endTime === event.endTime && item.weekday === weekdayFor(event.date));
-          if (time) candidates.push({ group, userId, timeId: time.id, event: eventSchema.parse(event) });
+          if (time) candidates.push({ group, userId, time, event: eventSchema.parse(event) });
         }
       }
     } catch { failed++; }
@@ -78,11 +78,11 @@ export async function runScheduledDrafts(db: Database, now = new Date(), generat
     if (!job) { skipped++; return; }
     try {
       const coachIds = (await sessionCoaches(db, candidate.group.id)).map((member) => member.userId);
-      const draft = { event: candidate.event, plan: { ...emptySessionPlan(), coachIds, confirmedCoaches: coachIds.length } };
+      const draft = { event: candidate.event, plan: expectedSessionPlan(candidate.group, candidate.time, coachIds) };
       const context = await scheduledSessionAIContext(db, candidate.userId, candidate.group.id, draft);
       const proposal = await generate(context, AbortSignal.timeout(180_000));
-      if (await saveScheduledSessionPlan(db, candidate.userId, candidate.group.id, candidate.timeId, job.id, leaseToken, draft, proposal,
-        new Date(now.getTime() + Date.now() - startedAt))) created++;
+      if (await saveScheduledSessionPlan(db, candidate.userId, candidate.group.id, candidate.time.id, job.id, leaseToken, draft, proposal,
+        new Date(now.getTime() + Date.now() - startedAt), context.differentiation?.settings ?? null)) created++;
       else skipped++;
     } catch {
       failed++;

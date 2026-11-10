@@ -50,10 +50,11 @@ export default async function NewSession({ params, searchParams }: {
         <small>Tidsrom: 15–240 minutter. Tidligere til-tid betyr neste dag.</small>
         <TextInput label="Tema (valgfritt)" name="theme" maxLength={150} />
         <TextAreaInput label="Øvingsmål (valgfritt)" name="objectives" rows={3} maxLength={8000} />
-        <fieldset className="coach-selection"><legend>Planlagte trenere</legend>
-          {coaches.map((coach) => <label key={coach.userId}><input type="checkbox" name="coachIds" value={coach.userId} defaultChecked /> {coach.email}</label>)}
-          <small>Utvalget er en planforutsetning, ikke bekreftet oppmøte.</small>
-        </fieldset>
+        <div className="form-grid">
+          <NativeInput label="Forventet antall spillere" name="expectedPlayers" type="number" min={0} max={500} step={1} defaultValue={details.group.playerCount ?? ""} />
+          <NativeInput label="Forventet antall trenere" name="expectedCoaches" type="number" min={0} max={500} step={1} defaultValue={details.group.coachCount ?? coaches.length} />
+        </div>
+        <small>Antallene er planforutsetninger, ikke bekreftet oppmøte.</small>
         <TextAreaInput label="Innspill til AI-planlegging (valgfritt)" name="coachInput" rows={4} maxLength={8000} />
         <small>Bare treningsinnhold. Ikke oppgi navn eller private opplysninger om barn.</small>
         <SubmitButton>Opprett øktplan</SubmitButton>

@@ -7,6 +7,7 @@ import type { PlanningSnapshot, SessionPlan } from "../lib/planning.ts";
 import type { SessionReview } from "../lib/session-review.ts";
 import { DEFAULT_ACCENT, DEFAULT_PRIMARY } from "../lib/branding.ts";
 import { defaultPlanningPriorities, type PlanningPriority } from "../lib/planning-priorities.ts";
+import { defaultDifferentiation, type Differentiation } from "../lib/differentiation.ts";
 
 export const groupRole = pgEnum("group_role", ["head_coach", "coach"]);
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
@@ -222,6 +223,9 @@ export const groups = pgTable("groups", {
   name: text("name").notNull(),
   slug: text("slug").notNull(),
   birthYear: integer("birth_year"),
+  playerCount: integer("player_count"),
+  coachCount: integer("coach_count"),
+  differentiation: jsonb("differentiation").$type<Differentiation>().notNull().default(defaultDifferentiation),
   // Retained only to migrate existing weekly times without discarding the old duration.
   legacyDurationMinutes: integer("duration_minutes").notNull().default(60),
   generationDaysBefore: integer("generation_days_before").notNull().default(3),
@@ -275,6 +279,8 @@ export const trainingTimes = pgTable("training_times", {
   weekday: integer("weekday").notNull(),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
+  expectedPlayers: integer("expected_players"),
+  expectedCoaches: integer("expected_coaches"),
   timezone: text("timezone").notNull().default("Europe/Oslo"),
   enabled: boolean("enabled").notNull().default(true),
 }, (table) => [

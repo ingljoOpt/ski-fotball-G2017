@@ -10,7 +10,7 @@ import { localConfig } from "@/lib/config";
 import {
   acceptInvitation, addTrainingTime, consumeLoginLink, createClub, createGroup,
   createLoginLink, DomainError, inviteCoach, removeMember, removeTrainingTime,
-  revokeSession, updateGroupSettings, acceptClubInvitation, cancelClubInvitation,
+  revokeSession, updateGroupSettings, updateTrainingTime, acceptClubInvitation, cancelClubInvitation,
   inviteClubAdmin, removeClubAdmin, transferHeadCoach,
   updateClubBranding, resetClubBranding,
 } from "@/lib/domain";
@@ -200,6 +200,14 @@ export async function saveGroupSettings(form: FormData) {
     await updateGroupSettings(await getDatabase(), user.id, field(form, "groupId"), {
       generationDaysBefore: field(form, "generationDaysBefore"),
       birthYear: field(form, "birthYear"),
+      playerCount: field(form, "playerCount"), coachCount: field(form, "coachCount"),
+      differentiation: {
+        enabled: form.has("differentiationEnabled"),
+        levels: [1, 2, 3].map((level) => ({
+          players: field(form, `level${level}Players`).trim() === "" ? null : Number(field(form, `level${level}Players`)),
+          groups: field(form, `level${level}Groups`).trim() === "" ? null : Number(field(form, `level${level}Groups`)),
+        })),
+      },
       autoDraftEnabled: form.has("autoDraftEnabled"),
       ...(form.has("generalInstructions") ? { generalInstructions: field(form, "generalInstructions") } : {}),
       ...(form.has("aiPriorities") ? { aiPriorities: JSON.parse(field(form, "aiPriorities")) } : {}),
@@ -208,11 +216,23 @@ export async function saveGroupSettings(form: FormData) {
   });
 }
 
+export async function saveTrainingTime(form: FormData) {
+  const user = await requireUser();
+  return run(`${groupPath(form)}/innstillinger`, async () => {
+    await updateTrainingTime(await getDatabase(), user.id, field(form, "groupId"), field(form, "timeId"), {
+      weekday: field(form, "weekday"), startTime: field(form, "startTime"), endTime: field(form, "endTime"),
+      expectedPlayers: field(form, "expectedPlayers"), expectedCoaches: field(form, "expectedCoaches"),
+    });
+    return `${groupPath(form)}/innstillinger?melding=${encodeURIComponent("Treningstiden er lagret.")}`;
+  });
+}
+
 export async function newTrainingTime(form: FormData) {
   const user = await requireUser();
   return run(`${groupPath(form)}/innstillinger`, async () => {
     await addTrainingTime(await getDatabase(), user.id, field(form, "groupId"), {
       weekday: field(form, "weekday"), startTime: field(form, "startTime"), endTime: field(form, "endTime"),
+      expectedPlayers: field(form, "expectedPlayers"), expectedCoaches: field(form, "expectedCoaches"),
     });
     return `${groupPath(form)}/innstillinger`;
   });
@@ -372,7 +392,7 @@ export async function newTrainingEvent(form: FormData) {
     }
     const eventId = await createTrainingEvent(await getDatabase(), user.id, field(form, "groupId"),
       eventFields(form), field(form, "recurrenceKey") || null, field(form, "intent") === "cancel", singleSession ? field(form, "coachInput") : "",
-      singleSession ? form.getAll("coachIds") : undefined);
+      undefined, singleSession ? { expectedPlayers: field(form, "expectedPlayers"), expectedCoaches: field(form, "expectedCoaches") } : undefined);
     if (field(form, "intent") === "lock-focus") return `${planningPath(form)}&melding=${encodeURIComponent("Øktfokuset er låst. Åpne øktplanen for å planlegge øvelsene.")}`;
     return `${groupPath(form)}/okter/${eventId}${singleSession || field(form, "intent") === "create" ? "?initialDraft=1" : ""}`;
   });

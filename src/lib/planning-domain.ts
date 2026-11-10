@@ -3,14 +3,15 @@ import { z } from "zod";
 import type { Database } from "../db/index.ts";
 import { annualEvents, annualPlans, clubs, generationJobs, groupMembers, groups, planPeriods, planningHistory, sessionVersions, trainingEvents, trainingTimes, users } from "../db/schema.ts";
 import { DomainError, getGroupAccess } from "./domain.ts";
-import { idSchema, minutesBetween } from "./validation.ts";
+import { idSchema, minutesBetween, optionalCountSchema } from "./validation.ts";
 import { sessionHasEnded } from "./session-review.ts";
 import {
-  annualPlanSchema, checkSessionPlan, datesInYear, emptySessionPlan, eventSchema, NFF_SOURCE, nffAgeSource,
+  annualPlanSchema, checkSessionPlan, datesInYear, emptySessionPlan, expectedSessionPlan, eventSchema, NFF_SOURCE, nffAgeSource,
   periodSchema, periodsOnDate, sessionPlanSchema, slotKey, weekdayFor, yearSchema,
   annualEventSchema, eventsDuring, generationDate, osloToday, type PlanningSnapshot,
 } from "./planning.ts";
 import { sameAIDraft, type AIDraft, type AIProposal } from "./session-ai.ts";
+import type { Differentiation } from "./differentiation.ts";
 
 const revisionSchema = z.coerce.number().int().min(0);
 async function lockGroup(db: Database, userId: string, groupId: string) {
@@ -284,10 +285,11 @@ export async function groupSessions(db: Database, userId: string, groupId: strin
 }
 
 export async function createTrainingEvent(
-  db: Database, userId: string, groupId: string, input: unknown, recurrenceKey: string | null = null, cancelled = false, coachInput = "", selectedCoachIds?: unknown,
+  db: Database, userId: string, groupId: string, input: unknown, recurrenceKey: string | null = null, cancelled = false, coachInput = "", selectedCoachIds?: unknown, countInput?: unknown,
 ) {
   let data = eventSchema.parse(input);
   const trainerInput = z.string().trim().max(8000).parse(coachInput);
+  const counts = countInput === undefined ? undefined : z.object({ expectedPlayers: optionalCountSchema, expectedCoaches: optionalCountSchema }).parse(countInput);
   return db.transaction(async (tx) => {
     const { group } = await lockGroup(tx, userId, groupId);
     const times = await tx.select().from(trainingTimes).where(and(eq(trainingTimes.groupId, groupId), eq(trainingTimes.enabled, true)));
@@ -319,7 +321,9 @@ export async function createTrainingEvent(
     if (new Set(coachIds).size !== coachIds.length || coachIds.some((id) => !members.some((member) => member.userId === id))) {
       throw new DomainError("Velg bare trenere som er medlemmer av laget.");
     }
-    const plan = { ...emptySessionPlan(), coachIds, confirmedCoaches: coachIds.length };
+    const defaults = expectedSessionPlan(group, recurringTime, coachIds);
+    const plan = counts ? { ...defaults, coachIds: undefined, expectedPlayers: counts.expectedPlayers, confirmedCoaches: counts.expectedCoaches }
+      : selectedCoachIds === undefined ? defaults : { ...defaults, coachIds, confirmedCoaches: coachIds.length };
     await tx.insert(sessionVersions).values({
       clubId: group.clubId, groupId, eventId: event.id, version: 1, createdBy: userId, origin: "manual",
       eventSnapshot: { ...data, status: event.status }, plan, planningContext: await planningSnapshot(tx, userId, groupId, data.date),
@@ -334,7 +338,7 @@ export async function createTrainingEvent(
 }
 
 export async function saveScheduledSessionPlan(db: Database, userId: string, groupId: string, timeId: string,
-  jobId: string, leaseToken: string, initial: AIDraft, proposal: AIProposal, now: Date) {
+  jobId: string, leaseToken: string, initial: AIDraft, proposal: AIProposal, now: Date, differentiation: Differentiation | null) {
   const data = eventSchema.parse(proposal.draft.event);
   const plan = sessionPlanSchema.parse(proposal.draft.plan);
   const today = osloToday(now);
@@ -358,9 +362,13 @@ export async function saveScheduledSessionPlan(db: Database, userId: string, gro
       return false;
     }
     const [time] = await tx.select().from(trainingTimes).where(and(eq(trainingTimes.id, timeId), eq(trainingTimes.groupId, groupId))).for("update");
+    const currentDefaults = expectedSessionPlan(group, time, currentCoachIds);
     const eligible = group.autoDraftEnabled && head && time?.enabled && time.weekday === weekdayFor(data.date) &&
       time.startTime === data.startTime && time.endTime === data.endTime && data.date >= today &&
-      (data.date !== today || data.startTime > localTime) && generationDate(data.date, group.generationDaysBefore) <= today;
+      (data.date !== today || data.startTime > localTime) && generationDate(data.date, group.generationDaysBefore) <= today &&
+      initial.plan.expectedPlayers === currentDefaults.expectedPlayers && initial.plan.confirmedCoaches === currentDefaults.confirmedCoaches &&
+      JSON.stringify(group.differentiation.enabled ? group.differentiation : null) === JSON.stringify(differentiation) &&
+      (initial.plan.coachIds === undefined) === (currentDefaults.coachIds === undefined);
     if (!eligible) {
       await tx.update(generationJobs).set({ status: "failed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
       return false;

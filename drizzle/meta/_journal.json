@@ -120,6 +120,20 @@
       "when": 1794307941212,
       "tag": "0016_lethal_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794310486024,
+      "tag": "0017_fixed_orphan",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794316077557,
+      "tag": "0018_thin_joystick",
+      "breakpoints": true
     }
   ]
 }

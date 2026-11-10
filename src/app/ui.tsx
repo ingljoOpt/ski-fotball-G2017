@@ -47,10 +47,16 @@ export function OptionSelect({ label, options, ...props }: ComponentProps<typeof
     )}</ListBox></Select.Popover>
   </Select>;
 }
-const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
+export const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 
-export function WeekdaySelect() {
-  return <Select name="weekday" defaultValue="1" isRequired className="app-field">
+export function WeekdaySelect({ defaultValue = "1", native = false }: { defaultValue?: string; native?: boolean }) {
+  const id = useId();
+  if (native) return <div className="app-field"><Label htmlFor={id}>Ukedag</Label>
+    <select id={id} name="weekday" defaultValue={defaultValue} required>{weekdays.map((day, index) =>
+      <option value={String(index + 1)} key={day}>{day}</option>,
+    )}</select>
+  </div>;
+  return <Select name="weekday" defaultValue={defaultValue} isRequired className="app-field">
     <Label>Ukedag</Label>
     <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
     <Select.Popover><ListBox>{weekdays.map((day, index) =>

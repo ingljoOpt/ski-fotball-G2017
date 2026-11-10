@@ -5,7 +5,8 @@ import {
   annualPlans, authSessions, clubAdmins, clubInvitations, clubs, groupMembers, groups,
   invitations, loginLinks, trainingTimes, users,
 } from "../db/schema.ts";
-import { birthYearSchema, emailSchema, idSchema, nameSchema, safeReturnPath, settingsSchema, tokenSchema, trainingTimeSchema } from "./validation.ts";
+import { birthYearSchema, emailSchema, idSchema, nameSchema, optionalCountSchema, safeReturnPath, settingsSchema, tokenSchema, trainingTimeSchema } from "./validation.ts";
+import { z } from "zod";
 import { brandingSchema, DEFAULT_ACCENT, DEFAULT_PRIMARY } from "./branding.ts";
 import { normalizeLogo } from "./logo.ts";
 import { reservedClubSlugs, reservedTeamSlugs, slugBase, slugSchema, teamUrl } from "./slugs.ts";
@@ -352,17 +353,42 @@ export async function updateGroupSettings(db: Database, userId: string, groupId:
   const settings = settingsSchema.parse(input);
   await db.transaction(async (tx) => {
     await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("update");
-    await requireGroupManager(tx, userId, groupId);
+    const { group } = await requireGroupManager(tx, userId, groupId);
+    const differentiation = settings.differentiation ?? group.differentiation;
+    const playerCount = settings.playerCount === undefined ? group.playerCount : settings.playerCount;
+    if (differentiation.enabled && (playerCount === null || differentiation.levels.reduce((sum, level) => sum + level.players, 0) !== playerCount)) {
+      throw new DomainError("Summen av spillere på nivå 1, 2 og 3 må være lik antall spillere på laget.");
+    }
     await tx.update(groups).set(settings).where(eq(groups.id, groupId));
   });
 }
 
 export async function addTrainingTime(db: Database, userId: string, groupId: string, input: unknown) {
-  const { group } = await requireGroupManager(db, userId, groupId);
   const time = trainingTimeSchema.parse(input);
-  const [created] = await db.insert(trainingTimes).values({ clubId: group.clubId, groupId, ...time })
-    .onConflictDoNothing({ target: [trainingTimes.groupId, trainingTimes.weekday, trainingTimes.startTime] }).returning();
-  if (!created) throw new DomainError("Denne treningstiden er allerede registrert.");
+  await db.transaction(async (tx) => {
+    await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("update");
+    const { group } = await requireGroupManager(tx, userId, groupId);
+    const [created] = await tx.insert(trainingTimes).values({ clubId: group.clubId, groupId, ...time })
+      .onConflictDoNothing({ target: [trainingTimes.groupId, trainingTimes.weekday, trainingTimes.startTime] }).returning();
+    if (!created) throw new DomainError("Denne treningstiden er allerede registrert.");
+  });
+}
+
+export async function updateTrainingTime(db: Database, userId: string, groupId: string, timeId: string, input: unknown) {
+  idSchema.parse(timeId);
+  const time = trainingTimeSchema.parse(input);
+  await db.transaction(async (tx) => {
+    await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("update");
+    await requireGroupManager(tx, userId, groupId);
+    const [duplicate] = await tx.select({ id: trainingTimes.id }).from(trainingTimes).where(and(
+      eq(trainingTimes.groupId, groupId), eq(trainingTimes.weekday, time.weekday), eq(trainingTimes.startTime, time.startTime),
+    ));
+    if (duplicate && duplicate.id !== timeId) throw new DomainError("Denne treningstiden er allerede registrert.");
+    const [updated] = await tx.update(trainingTimes).set(time).where(and(
+      eq(trainingTimes.groupId, groupId), eq(trainingTimes.id, timeId),
+    )).returning();
+    if (!updated) throw new DomainError("Treningstiden finnes ikke for dette laget.");
+  });
 }
 
 export async function removeTrainingTime(db: Database, userId: string, groupId: string, timeId: string) {
@@ -372,6 +398,19 @@ export async function removeTrainingTime(db: Database, userId: string, groupId: 
     eq(trainingTimes.groupId, groupId), eq(trainingTimes.id, timeId),
   )).returning();
   if (!removed) throw new DomainError("Treningstiden finnes ikke for dette laget.");
+}
+
+export async function updateTrainingTimeCounts(db: Database, userId: string, groupId: string, timeId: string, input: unknown) {
+  idSchema.parse(timeId);
+  const counts = z.object({ expectedPlayers: optionalCountSchema, expectedCoaches: optionalCountSchema }).parse(input);
+  await db.transaction(async (tx) => {
+    await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("update");
+    await requireGroupManager(tx, userId, groupId);
+    const [updated] = await tx.update(trainingTimes).set(counts).where(and(
+      eq(trainingTimes.groupId, groupId), eq(trainingTimes.id, timeId),
+    )).returning();
+    if (!updated) throw new DomainError("Treningstiden finnes ikke for dette laget.");
+  });
 }
 
 export async function groupDetails(db: Database, userId: string, groupId: string) {

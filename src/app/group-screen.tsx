@@ -1,4 +1,4 @@
-import { AppLink, Card, MemberSelect, NativeInput, SubmitButton, TextAreaInput, TextInput, WeekdaySelect } from "@/app/ui";
+import { AppLink, Card, MemberSelect, NativeInput, SubmitButton, TextAreaInput, TextInput } from "@/app/ui";
 import { notFound } from "next/navigation";
 import { ZodError } from "zod";
 import { getDatabase } from "@/db";
@@ -6,7 +6,7 @@ import { generationJobs } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
 import { DomainError, groupDetails } from "@/lib/domain";
-import { changeHeadCoach, deleteMember, deleteTrainingTime, newCoachInvitation, newTrainingEvent, newTrainingTime, saveGroupSettings } from "@/app/actions";
+import { changeHeadCoach, deleteMember, deleteTrainingTime, newCoachInvitation, newTrainingEvent, saveGroupSettings } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubTheme } from "@/app/club-theme";
 import { generationDate, osloToday } from "@/lib/planning";
@@ -16,6 +16,9 @@ import { formatTimeRange } from "@/lib/validation";
 import { clubUrl, teamUrl } from "@/lib/slugs";
 import { PlanningPrioritiesEditor } from "@/app/planning-priorities-editor";
 import { AutomaticPlanSettings } from "@/app/automatic-plan-settings";
+import { DifferentiationSettings } from "@/app/differentiation-settings";
+import { Trash2 } from "lucide-react";
+import { NewTrainingTimeDialog } from "@/app/new-training-time-dialog";
 
 const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 const roleName = (role: string) => role === "head_coach" ? "Hovedtrener" : "Trener";
@@ -83,17 +86,12 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
         <div className="stack">
           {section === "innstillinger" && <Card className="app-card">
             <h2>Treningstider</h2>
-            {details.times.length ? <ul className="clean">{details.times.map((time) => <li className="row" key={time.id}>
+            {canManage && <NewTrainingTimeDialog groupId={groupId} playerCount={group.playerCount} coachCount={group.coachCount} />}
+            {details.times.length ? <ul className="clean">{details.times.map((time) => <li key={time.id}>
               <span>{weekdays[time.weekday - 1]} kl. {formatTimeRange(time.startTime, time.endTime)} <small>· {time.timezone}</small></span>
-              {canManage && <form action={deleteTrainingTime}><input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="timeId" value={time.id} /><SubmitButton variant="danger-soft" size="sm">Fjern tid</SubmitButton></form>}
+              <div className="training-time-actions"><span className="training-time-counts">Forventede spillere: {time.expectedPlayers ?? group.playerCount ?? "Ikke oppgitt"}. Trenere: {time.expectedCoaches ?? group.coachCount ?? "Alle registrerte"}.</span>
+              {canManage && <><NewTrainingTimeDialog key={JSON.stringify(time)} groupId={groupId} time={time} playerCount={group.playerCount} coachCount={group.coachCount} /><form action={deleteTrainingTime}><input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="timeId" value={time.id} /><span title="Slett treningstid"><SubmitButton className="training-time-delete" variant="ghost" size="sm" aria-label={`Slett treningstid ${weekdays[time.weekday - 1]} kl. ${formatTimeRange(time.startTime, time.endTime)}`}><Trash2 size={17} aria-hidden="true" /></SubmitButton></span></form></>}</div>
             </li>)}</ul> : <p className="muted">Ingen faste treningstider registrert.</p>}
-            {canManage && <form className="inline-form" action={newTrainingTime}>
-              <input type="hidden" name="groupId" value={groupId} />
-              <WeekdaySelect />
-              <NativeInput label="Fra" type="time" name="startTime" required />
-              <NativeInput label="Til" type="time" name="endTime" required /><SubmitButton>Legg til tid</SubmitButton>
-            </form>}
-            <small>Tidsrom: 15–240 minutter. En tidligere til-tid betyr avslutning neste dag.</small>
           </Card>}
           {section === "brukere" && <Card className="app-card">
             <h2>Lagets trenere</h2>
@@ -128,13 +126,16 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
               <input type="hidden" name="groupId" value={groupId} />
               <NativeInput label="Årgang (valgfritt)" name="birthYear" type="number" min={1900} max={2100} step={1} defaultValue={group.birthYear ?? ""} />
               <small>For eksempel 2017. Brukes i alle årsplaner og nye øktforslag. Tidligere øktversjoner endres ikke.</small>
+              <DifferentiationSettings settings={group.differentiation} playerCount={group.playerCount} coachCount={group.coachCount} />
               <TextAreaInput label="Lagets generelle instrukser" name="generalInstructions" rows={5} maxLength={8000} defaultValue={group.generalInstructions} />
               <AutomaticPlanSettings enabled={group.autoDraftEnabled} days={group.generationDaysBefore} />
               <small>Lagets instrukser, aktive klubbdokumenter, årsplan og tidligere planer med evalueringer sendes til modellleverandøren ved generering. Ikke legg inn private opplysninger om barn.</small>
               <h3>Prioriteringer for AI-genererte økter</h3>
               <PlanningPrioritiesEditor key={JSON.stringify(group.aiPriorities)} priorities={group.aiPriorities} />
               <SubmitButton>Lagre rammer</SubmitButton>
-            </form> : <><p>Årgang: {group.birthYear ?? "Ikke oppgitt"}.</p><p>Automatisk planlegging: {group.autoDraftEnabled ? `På, ${group.generationDaysBefore} dager før ny trening` : "Av"}.</p>
+            </form> : <><p>Årgang: {group.birthYear ?? "Ikke oppgitt"}.</p><p>Spillere: {group.playerCount ?? "Ikke oppgitt"}. Trenere: {group.coachCount ?? "Alle registrerte"}.</p><p>Differensiering: {group.differentiation.enabled ? "På" : "Av"}.</p>
+              {group.differentiation.enabled && <ul>{group.differentiation.levels.map((level, index) => <li key={index}>Nivå {index + 1}: {level.players} spillere</li>)}</ul>}
+              <p>Automatisk planlegging: {group.autoDraftEnabled ? `På, ${group.generationDaysBefore} dager før ny trening` : "Av"}.</p>
               <h3>Lagets generelle instrukser</h3><p className="preserve-lines">{group.generalInstructions || "Ingen instrukser registrert."}</p>
               <h3>Prioriteringer for AI-genererte økter</h3><PlanningPrioritiesEditor priorities={group.aiPriorities} disabled />
             </>}

@@ -46,6 +46,9 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     await assert.rejects(updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 3, aiPriorities: ["coach_input"] }));
     await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 3, aiPriorities: priorities });
     await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2 });
+    await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 2, playerCount: 22, differentiation: {
+      enabled: true, levels: [{ players: 4, groups: 1 }, { players: 6, groups: 0 }, { players: 12, groups: 3 }],
+    } });
     await saveAnnualPlan(db, head.id, group.id, { year: 2026, objectives: "Bli spillbar" }, 0);
     await saveAnnualPlan(db, head.id, group.id, { year: 2027, objectives: "Neste års retning" }, 0);
     await savePlanPeriod(db, head.id, group.id, 2026, {
@@ -65,6 +68,9 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     const draft = { event: { ...aiEvent }, plan: completePlan() };
     const before = (await db.select().from(sessionVersions)).length;
     const context = await sessionAIContext(db, coach.id, group.id, id, 1, draft);
+    assert.equal(context.differentiation?.teamPlayers, 22);
+    assert.equal(context.differentiation?.sessionPlayers, draft.plan.expectedPlayers);
+    assert.deepEqual(context.differentiation?.settings.levels.map((level) => level.players), [4, 6, 12]);
     assert.equal(context.history.length, 5);
     assert.deepEqual(context.history.map((item) => item.date), ["2026-11-06", "2026-11-05", "2026-11-04", "2026-11-03", "2026-11-02"]);
     assert.equal(context.age.age, 9);

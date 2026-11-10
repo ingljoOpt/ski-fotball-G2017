@@ -93,15 +93,18 @@ test("migration backfills existing names, duplicates and reserved routes without
     await migrateLocalDatabase(database);
     connection = await connectLocalDatabase(database);
     const migratedClubs = await connection.client.query<{ slug: string }>("select * from clubs order by id");
-    const migratedGroups = await connection.client.query<{ slug: string; ai_priorities: PlanningPriority[]; auto_draft_enabled: boolean; general_instructions: string }>("select * from groups order by id");
+    const migratedGroups = await connection.client.query<{ slug: string; ai_priorities: PlanningPriority[]; auto_draft_enabled: boolean; general_instructions: string; player_count: number | null; coach_count: number | null; differentiation: { enabled: boolean } }>("select * from groups order by id");
     const withoutSlug = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).filter(([key]) => key !== "slug"));
     assert.deepEqual(migratedClubs.rows.map(withoutSlug), originalClubs.rows);
-    const withoutAddedGroupFields = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).filter(([key]) => !["slug", "ai_priorities", "auto_draft_enabled", "general_instructions"].includes(key)));
+    const withoutAddedGroupFields = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).filter(([key]) => !["slug", "ai_priorities", "auto_draft_enabled", "general_instructions", "player_count", "coach_count", "differentiation"].includes(key)));
     assert.deepEqual(migratedGroups.rows.map(withoutAddedGroupFields), originalGroups.rows);
     for (const row of migratedGroups.rows) {
       assert.deepEqual(row.ai_priorities, defaultPlanningPriorities);
       assert.equal(row.auto_draft_enabled, false);
       assert.equal(row.general_instructions, "");
+      assert.equal(row.player_count, null);
+      assert.equal(row.coach_count, null);
+      assert.equal(row.differentiation.enabled, false);
     }
     assert.equal(new Set(migratedClubs.rows.map((row) => row.slug)).size, 5, "suffix-like existing names cannot cause migration collisions");
     assert.ok(migratedClubs.rows.some((row) => row.slug === "ae-o-a"));

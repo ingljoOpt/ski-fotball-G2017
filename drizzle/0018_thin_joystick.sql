@@ -1,0 +1,1 @@
+ALTER TABLE "groups" ADD COLUMN "differentiation" jsonb DEFAULT '{"enabled":false,"levels":[{"players":0,"groups":0},{"players":0,"groups":0},{"players":0,"groups":0}]}'::jsonb NOT NULL;

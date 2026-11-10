@@ -8,6 +8,22 @@ import {
 import { completePlan } from "./planning-fixtures.ts";
 import { birthYearSchema, formatTimeRange, settingsSchema, timeRangeSchema } from "../../src/lib/validation.ts";
 import { defaultPlanningPriorities, planningPrioritiesSchema } from "../../src/lib/planning-priorities.ts";
+import { differentiationCounts, differentiationSchema } from "../../src/lib/differentiation.ts";
+
+test("differentiation slider divides the total and clamps boundaries", () => {
+  assert.deepEqual(differentiationCounts([5, 11], 22), [5, 6, 11]);
+  assert.deepEqual(differentiationCounts([5, 11], 8), [5, 3, 0]);
+  assert.deepEqual(differentiationCounts([5, 11], 0), [0, 0, 0]);
+  assert.deepEqual(differentiationCounts([4, 4], 10), [4, 0, 6]);
+});
+
+test("differentiation validates levels without requiring group counts", () => {
+  const settings = differentiationSchema.parse({ enabled: true, levels: [
+    { players: 4, groups: 1 }, { players: 6, groups: 0 }, { players: 12, groups: 3 },
+  ] });
+  assert.equal(differentiationSchema.safeParse({ ...settings, levels: settings.levels.map((level) => ({ ...level, groups: 0 })) }).success, true);
+  assert.equal(differentiationSchema.safeParse({ ...settings, levels: [{ players: -1, groups: 1 }, ...settings.levels.slice(1)] }).success, false);
+});
 
 test("exercise recalculation tracks changed coach selections independent of order", () => {
   const first = crypto.randomUUID(), second = crypto.randomUUID();

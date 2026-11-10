@@ -63,7 +63,7 @@ export default async function TrainingSession({ params, searchParams }: {
       }).format(latest.createdAt)}` : "Ingen aktiv øktplan"}</small>
     </header>
     {canEdit ? <SessionPlanEditor key={event.revision} groupId={groupId} eventId={eventId} revision={event.revision} initialEvent={event}
-      coaches={details.coaches} ageLabel={ageLabel} initialPlan={latest?.plan ?? { ...emptySessionPlan(), coachIds: latestVersion.plan.coachIds, confirmedCoaches: latestVersion.plan.confirmedCoaches }}
+      coaches={details.coaches} ageLabel={ageLabel} initialPlan={latest?.plan ?? { ...emptySessionPlan(), coachIds: latestVersion.plan.coachIds, expectedPlayers: latestVersion.plan.expectedPlayers, confirmedCoaches: latestVersion.plan.confirmedCoaches }}
       initialDraft={query.initialDraft === "1" && latest?.version === 1 && latest.plan.exercises.length === 0} />
       : latest ? <SessionPlanView plan={latest.plan} coaches={details.coaches} durationMinutes={event.durationMinutes} theme={event.theme} objectives={event.objectives}
         ageLabel={ageLabel} /> : <p className="notice">Ingen aktiv øktplan.</p>}
