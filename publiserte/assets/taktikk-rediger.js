@@ -188,9 +188,33 @@
   }
 
   function mayReplace() {
-    return !dirty || window.confirm(root.dataset.storageMode === 'file'
-      ? 'Du har endringer i tavlen. Last ned JSON først hvis du vil beholde dem. Fortsette?'
-      : 'Du har endringer som ikke er publisert. Last ned JSON først hvis du vil beholde dem. Fortsette?');
+    return !dirty || window.confirm(root.dataset.storageMode === 'exercise'
+      ? 'Du har endringer i animasjonen. Bruk animasjonen i øvelsen først hvis du vil beholde dem. Fortsette?'
+      : root.dataset.storageMode === 'file'
+        ? 'Du har endringer i tavlen. Last ned JSON først hvis du vil beholde dem. Fortsette?'
+        : 'Du har endringer som ikke er publisert. Last ned JSON først hvis du vil beholde dem. Fortsette?');
+  }
+
+  if (root.dataset.storageMode === 'exercise') {
+    window.addEventListener('message', (event) => {
+      if (event.origin !== location.origin || event.source !== window.parent || event.data?.type !== 'exercise-load-scene') return;
+      try {
+        if (event.data.scene) loadScene(event.data.scene, 'taktikktavle.json', false);
+        report('Animasjonen er klar. Bruk knappen for å legge den til i øvelsen.');
+      } catch (error) {
+        report(`Kunne ikke åpne animasjonen: ${error.message}`, true);
+      }
+    });
+    byId('download').addEventListener('click', () => {
+      try {
+        board.validateScene(scene);
+        window.parent.postMessage({ type: 'exercise-save-scene', scene }, location.origin);
+        dirty = false;
+        report('Animasjonen er lagt til i skjemaet. Lagre øvelsen for å beholde den.');
+      } catch (error) {
+        report(`Kunne ikke bruke animasjonen: ${error.message}`, true);
+      }
+    });
   }
 
   function tick(time) {
@@ -387,6 +411,7 @@
     }
   });
   byId('download').addEventListener('click', () => {
+    if (root.dataset.storageMode === 'exercise') return;
     stopPreview();
     try {
       board.validateScene(scene);

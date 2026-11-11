@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { validateScene, positionAt, pitchDimensions, objectTransform, renderPitch, mount } = require('../publiserte/assets/taktikk.js');
+const { validateScene, positionAt, pitchDimensions, objectTransform, renderPitch, mount, mountScene } = require('../publiserte/assets/taktikk.js');
 
 const example = JSON.parse(fs.readFileSync(path.join(__dirname, '../publiserte/media/taktikk/firkant-pasning.json'), 'utf8'));
 const copy = () => structuredClone(example);
@@ -198,7 +198,8 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
       setAttribute(name, value) { this.attributes[name] = value; },
       appendChild(child) { this.children.push(child); },
       replaceChildren(child) { this.children = [child]; },
-      addEventListener(name, callback) { this.listeners[name] = callback; }
+      addEventListener(name, callback) { this.listeners[name] = callback; },
+      removeEventListener(name, callback) { if (this.listeners[name] === callback) delete this.listeners[name]; }
     };
   }
   const nodes = Object.fromEntries(['message', 'canvas', 'controls', 'play', 'reset', 'step']
@@ -210,7 +211,10 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
   };
   const callbacks = new Map();
   let nextId = 0;
-  globalThis.document = { createElementNS: () => element(), addEventListener() {} };
+  const documentListeners = {};
+  globalThis.document = { createElementNS: () => element(),
+    addEventListener(name, callback) { documentListeners[name] = callback; },
+    removeEventListener(name, callback) { if (documentListeners[name] === callback) delete documentListeners[name]; } };
   globalThis.window = { matchMedia: () => ({ matches: true }) };
   globalThis.fetch = async () => ({ ok: true, json: async () => example });
   globalThis.requestAnimationFrame = (callback) => {
@@ -225,7 +229,7 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
     callback(time);
   };
 
-  await mount(board);
+  const destroy = await mount(board);
   const ball = nodes.canvas.children[0].children.find((child) => child.attributes.class === 'tactic-ball');
   assert.equal(callbacks.size, 0, 'animasjonen skal ikke starte automatisk');
   assert.equal(ball.attributes.transform, 'translate(27 21.7)');
@@ -251,14 +255,18 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
   assert.equal(ball.attributes.transform, 'translate(27 21.7)');
   nodes.reset.listeners.click();
   assert.equal(callbacks.size, 0);
+  nodes.play.listeners.click();
+  destroy();
+  assert.equal(callbacks.size, 0, 'avspilling stoppes når forhåndsvisningen fjernes');
+  assert.equal(nodes.play.listeners.click, undefined);
+  assert.equal(documentListeners.visibilitychange, undefined);
 
   const vertical = copy();
   vertical.pitch = { orientation: 'vertical', size: 'small' };
   vertical.objects[0].type = 'goal';
   vertical.objects[0].rotation = 90;
   vertical.objects[1].type = 'markerCone';
-  globalThis.fetch = async () => ({ ok: true, json: async () => vertical });
-  await mount(board);
+  const destroyVertical = mountScene(board, vertical);
   const goal = nodes.canvas.children[0].children.find((child) => child.attributes.class === 'tactic-goal');
   const marker = nodes.canvas.children[0].children.find((child) => child.attributes.class === 'tactic-markerCone');
   assert.equal(nodes.canvas.children[0].attributes.viewBox, '0 0 70 100');
@@ -273,4 +281,13 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
   assert.equal(marker.attributes.transform, objectTransform(vertical, vertical.objects[1], positionAt(vertical, 900).positions[vertical.objects[1].id]));
   nodes.reset.listeners.click();
   assert.equal(callbacks.size, 0);
+  destroyVertical();
+
+  const still = copy();
+  still.frames = [still.frames[0]];
+  const destroyStill = mountScene(board, still);
+  assert.equal(nodes.controls.hidden, true);
+  assert.equal(nodes.message.hidden, false);
+  assert.equal(nodes.message.textContent, still.frames[0].caption);
+  destroyStill();
 });

@@ -182,15 +182,22 @@
 
   async function mount(board) {
     const message = board.querySelector('[data-tactic-message]');
+    message.textContent = 'Laster taktikktavlen …';
+    const response = await fetch(board.dataset.tacticSrc);
+    if (!response.ok) throw new Error(`HTTP ${response.status} for ${board.dataset.tacticSrc}`);
+    return mountScene(board, await response.json());
+  }
+
+  function mountScene(board, input) {
+    const message = board.querySelector('[data-tactic-message]');
     const canvas = board.querySelector('[data-tactic-canvas]');
     const controls = board.querySelector('[data-tactic-controls]');
     const playButton = board.querySelector('[data-tactic-play]');
     const resetButton = board.querySelector('[data-tactic-reset]');
     const step = board.querySelector('[data-tactic-step]');
-    message.textContent = 'Laster taktikktavlen …';
-    const response = await fetch(board.dataset.tacticSrc);
-    if (!response.ok) throw new Error(`HTTP ${response.status} for ${board.dataset.tacticSrc}`);
-    const scene = validateScene(await response.json());
+    const scene = validateScene(input);
+    controls.hidden = true;
+    message.hidden = false;
     const elements = renderPitch(scene, canvas);
     const total = (scene.frames.length - 1) * scene.durationMs;
     let elapsed = 0;
@@ -227,7 +234,7 @@
       else animation = requestAnimationFrame(tick);
     }
 
-    playButton.addEventListener('click', () => {
+    function play() {
       if (animation !== null) {
         stop();
         return;
@@ -238,19 +245,23 @@
       playButton.setAttribute('aria-label', 'Pause animasjonen');
       playButton.setAttribute('title', 'Pause');
       animation = requestAnimationFrame(tick);
-    });
-    resetButton.addEventListener('click', () => {
+    }
+    function reset() {
       stop();
       elapsed = 0;
       render();
-    });
-    document.addEventListener('visibilitychange', () => {
+    }
+    function onVisibilityChange() {
       if (document.hidden && animation !== null) stop();
-    });
-    const container = board.closest('details');
-    if (container) container.addEventListener('toggle', () => {
+    }
+    function onToggle() {
       if (!container.open && animation !== null) stop();
-    });
+    }
+    const container = board.closest('details');
+    playButton.addEventListener('click', play);
+    resetButton.addEventListener('click', reset);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (container) container.addEventListener('toggle', onToggle);
     render();
     if (scene.frames.length > 1) {
       controls.hidden = false;
@@ -258,7 +269,14 @@
       message.textContent = scene.frames[0].caption;
     }
     if (scene.frames.length > 1) message.hidden = true;
+    return () => {
+      stop();
+      playButton.removeEventListener('click', play);
+      resetButton.removeEventListener('click', reset);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      if (container) container.removeEventListener('toggle', onToggle);
+    };
   }
 
-  return { validateScene, positionAt, pitchDimensions, objectTransform, renderPitch, mount };
+  return { validateScene, positionAt, pitchDimensions, objectTransform, renderPitch, mount, mountScene };
 });

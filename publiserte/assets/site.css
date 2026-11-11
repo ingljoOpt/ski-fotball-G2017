@@ -1,3 +1,5 @@
+@import "./taktikk-bane.css";
+
 :root {
   color-scheme: light;
   --ink: #19333a;
@@ -66,30 +68,6 @@ main { max-width: 68rem; margin: auto; padding: 2rem 1.5rem 5rem; overflow-wrap:
 .tactic-board { margin: 0 1.25rem 1.25rem; padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: #f7faf7; }
 .tactic-title { color: var(--ink); font-weight: 750; }
 .tactic-description, .tactic-message { margin: .35rem 0 .8rem; color: var(--muted); font-size: .9rem; }
-.tactic-pitch { display: block; width: 100%; max-height: 28rem; border-radius: .5rem; }
-.tactic-pitch[data-size="small"] { width: 50%; }
-.tactic-pitch[data-size="medium"] { width: 75%; }
-.pitch-background { fill: #176f50; }
-.pitch-line { fill: none; stroke: #c9ead4; stroke-width: .5; opacity: .8; }
-.tactic-player circle { fill: #194a83; stroke: white; stroke-width: .8; }
-.tactic-player text { fill: white; font: bold 3px system-ui, sans-serif; }
-.cone-base { fill: #ce5b0d; stroke: #6b3809; stroke-width: .35; stroke-linejoin: round; }
-.cone-body { fill: #f58622; stroke: #713509; stroke-width: .35; stroke-linejoin: round; }
-.cone-band { fill: #fff3dc; stroke: #d9b795; stroke-width: .15; }
-.cone-highlight { fill: none; stroke: #ffc078; stroke-width: .3; stroke-linecap: round; }
-.marker-cone-base { fill: #d78a09; stroke: #704300; stroke-width: .3; }
-.marker-cone-body { fill: #ffc329; stroke: #9c6103; stroke-width: .25; }
-.marker-cone-highlight { fill: none; stroke: #fff1a4; stroke-width: .25; stroke-linecap: round; }
-.ball-surface { fill: #fff; stroke: #263d32; stroke-width: .3; }
-.ball-shade { fill: #a6b5ad; opacity: .4; }
-.ball-seams { fill: none; stroke: #53625a; stroke-width: .13; }
-.ball-panel { fill: #28332e; }
-.goal-net-background { fill: #dcebe3; fill-opacity: .55; stroke: #395c4b; stroke-width: .3; stroke-linejoin: round; }
-.goal-net-roof { fill: #f2faf4; fill-opacity: .35; }
-.goal-net { fill: none; stroke: #567d6a; stroke-width: .18; }
-.goal-frame { fill: none; stroke: #fff; stroke-width: .65; stroke-linecap: round; stroke-linejoin: round; }
-.tactic-smallGoal text, .tactic-goal text { fill: #19333a; font: bold 3px system-ui, sans-serif; }
-.tactic-cone text, .tactic-markerCone text, .tactic-ball text { fill: #19333a; font: bold 3px system-ui, sans-serif; }
 .tactic-legend { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; margin-top: .65rem; color: var(--muted); font-size: .8rem; }
 .tactic-legend span { display: inline-flex; align-items: center; gap: .35rem; }
 .tactic-legend i { display: inline-block; width: .75rem; height: .75rem; }

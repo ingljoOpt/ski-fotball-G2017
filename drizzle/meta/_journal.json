@@ -141,6 +141,13 @@
       "when": 1794383880628,
       "tag": "0019_team_coaches",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794386252046,
+      "tag": "0020_shiny_moira_mactaggert",
+      "breakpoints": true
     }
   ]
 }

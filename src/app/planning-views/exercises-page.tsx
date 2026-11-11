@@ -3,11 +3,14 @@ import { ZodError } from "zod";
 import { getDatabase } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { DomainError, groupDetails } from "@/lib/domain";
-import { osloToday } from "@/lib/planning";
+import { nffAgeSource, osloToday } from "@/lib/planning";
 import { Account } from "@/app/components";
 import { ClubTheme } from "@/app/club-theme";
 import { PlanningNavigation } from "@/app/planning-components";
 import { teamUrl } from "@/lib/slugs";
+import { getNffCurriculum } from "@/lib/nff-curriculum";
+import { listCustomExercises } from "@/lib/custom-exercise-domain";
+import { CustomExerciseBank } from "@/app/custom-exercise-bank";
 
 export default async function OwnExercises({ params }: { params: Promise<{ groupId: string }> }) {
   const user = await requireUser();
@@ -19,14 +22,16 @@ export default async function OwnExercises({ params }: { params: Promise<{ group
     throw error;
   }
   const basePath = teamUrl(details.club, details.group);
+  const age = nffAgeSource(Number(osloToday().slice(0, 4)), details.group.birthYear).age;
+  const [exercises, curriculum] = await Promise.all([
+    listCustomExercises(await getDatabase(), user.id, groupId), getNffCurriculum(age),
+  ]);
   return <ClubTheme club={details.club} header>
     <Account email={user.email} />
     <PlanningNavigation basePath={basePath} year={Number(osloToday().slice(0, 4))} />
     <h1>Egne øvelser · {details.group.name}</h1>
-    <p>Lag og rediger egne animasjoner med spillere, baller, kjegler og mål.</p>
-    <p className="notice">Last ned JSON for å ta vare på arbeidet, og åpne filen her for å redigere videre.
-      Animasjoner lagres foreløpig som filer hos deg, ikke i en delt øvelsesbank for laget.</p>
-    <iframe className="exercise-editor-frame" title="Rediger egne øvelser og animasjoner"
-      src={`${basePath}/ovelser/rediger/editor`} />
+    <p>Lag og del egne øvelser med trenerne på laget.</p>
+    <CustomExerciseBank groupId={groupId} basePath={basePath} exercises={exercises}
+      topics={curriculum.topics.map(({ id, theme, sourceUrl }) => ({ id, theme, sourceUrl }))} age={age} />
   </ClubTheme>;
 }

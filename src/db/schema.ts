@@ -18,6 +18,26 @@ export const users = pgTable("users", {
   createdAt: createdAt(),
 });
 
+export const customExercises = pgTable("custom_exercises", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  theme: text("theme").notNull().default(""),
+  themeSource: text("theme_source").notNull().default(""),
+  objectives: text("objectives").notNull().default(""),
+  ageMin: integer("age_min").notNull(),
+  ageMax: integer("age_max").notNull(),
+  videoUrl: text("video_url").notNull().default(""),
+  animations: jsonb("animations").$type<unknown[]>().notNull().default([]),
+  revision: integer("revision").notNull().default(1),
+  createdAt: createdAt(),
+}, (table) => [
+  foreignKey({ columns: [table.clubId, table.groupId], foreignColumns: [groups.clubId, groups.id] }).onDelete("cascade"),
+  check("custom_exercise_age_range", sql`${table.ageMin} >= 3 and ${table.ageMax} <= 100 and ${table.ageMin} <= ${table.ageMax}`),
+]);
+
 export const annualPlans = pgTable("annual_plans", {
   id: uuid("id").defaultRandom().primaryKey(),
   clubId: uuid("club_id").notNull(),

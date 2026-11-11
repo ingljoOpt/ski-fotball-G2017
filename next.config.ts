@@ -8,11 +8,13 @@ const config: NextConfig = {
     "/grupper/*/ovelser/rediger/*": [
       "./publiserte/rediger-taktikk.html",
       "./publiserte/assets/site.css",
+      "./publiserte/assets/taktikk*.css",
       "./publiserte/assets/taktikk*.js",
     ],
     "/*/*/ovelser/rediger/*": [
       "./publiserte/rediger-taktikk.html",
       "./publiserte/assets/site.css",
+      "./publiserte/assets/taktikk*.css",
       "./publiserte/assets/taktikk*.js",
     ],
   },

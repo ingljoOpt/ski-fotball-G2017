@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+@import "../../publiserte/assets/taktikk-bane.css";
 
 :root { color-scheme: light; --ink: #2e2e2e; --muted: #626262; --green: #0056f5; --line: #dce2eb; --paper: #fafafa; --club-primary: #0056f5; --club-accent: #ecf0ea; --club-soft: #ebf2ff; --club-border: #c2d7ff; }
 :root, .light { --accent: #0056f5; --accent-foreground: #fff; --focus: #0056f5; --background: #fafafa; --foreground: #2e2e2e; --surface: #fff; --muted: #626262; }
@@ -309,6 +310,17 @@ summary { cursor: pointer; }
 .wheel-month:last-child { min-height: 520px; }
 .wheel-month article + article { margin-top: 1rem; }
 .exercise-editor-frame { width: 100%; height: 1100px; border: 1px solid var(--line); border-radius: .75rem; margin-top: 1.5rem; background: white; }
+.custom-exercise-form { margin-top: 2rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: .75rem; background: white; }
+.custom-exercise-form select { min-height: 40px; padding: .5rem; border: 1px solid var(--club-border); border-radius: .375rem; background: white; }
+.custom-exercise-form fieldset { display: grid; gap: .75rem; border: 1px solid var(--line); padding: 1rem; }
+.custom-exercise-form .exercise-form-fields { border: 0; padding: 0; gap: 1rem; }
+.exercise-description { white-space: pre-wrap; }
+.exercise-animation-preview { max-width: 720px; margin: .75rem 0; }
+.exercise-animation-controls { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.exercise-animation-controls[hidden] { display: none; }
+.exercise-animation-controls [data-playing="false"] .preview-pause, .exercise-animation-controls [data-playing="true"] .preview-play { display: none; }
+.exercise-animation-step { flex-basis: 100%; color: var(--muted); font-size: .85rem; }
+.exercise-video { display: block; width: min(100%, 720px); aspect-ratio: 16 / 9; border: 0; margin-top: 1rem; }
 @media (max-width: 700px) {
   .annual-wheel { grid-template-columns: minmax(0, 1fr); }
   .wheel-chart { max-width: 320px; margin-inline: auto; }

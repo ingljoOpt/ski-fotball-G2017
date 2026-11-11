@@ -39,6 +39,12 @@ På desktop (fra 1000 piksler) vises hovedmenyen og klubb-/lagvalgene i en fast 
 
 Administratorsider og redigeringshandlinger beholder eksisterende tilgangskontroll. Lagring og valideringsfeil returnerer til den aktuelle administrasjonssiden.
 
+### Egne øvelser
+
+Under **Lag → Egne øvelser** kan trenere opprette og redigere lagets øvelser med beskrivelse, valgfritt NFF-tema og øvingsmål, aldersintervall og opptil ti animasjoner. Temaene hentes fra lagets lagrede fagplan for inneværende alder; oppdater fagplanen i årsplanen hvis listen er tom. Velg **Bruk animasjon** i animasjonsbyggeren og deretter **Lagre øvelse** for å beholde endringene. Animasjonene kan forhåndsvises med avspilling, pause og tilbakestilling i øvelsesskjemaet. Øvelsene lagres i lagets database og deles ikke offentlig eller automatisk i øktplaner.
+
+YouTube- og Vimeo-lenker kan legges til og vises i en innebygd spiller når treneren velger **Vis video**. Videoleverandøren mottar da en forespørsel fra nettleseren. Andre videokilder støttes ikke foreløpig, og enkelte videoer kan være sperret for innebygging av eieren.
+
 ### Sportsplan og retningslinjer
 
 **Sportsplan** i klubb- og lagmenyen viser klubbens dokumenter. Trenere kan lese Markdown og uttrukket tekst fra PDF og Word på siden, og laste ned originalene, men bare klubbadministratorer kan opprette, redigere, laste opp eller fjerne dem. Tekstuttrekk kan mangle bilder, formatering og annet innhold. Administratorer kan opprette og redigere Markdown med formateringsknapper og forhåndsvisning. HTML og bilder vises ikke i Markdown-visningen; bilder kan fremdeles finnes i originalfilen.
@@ -136,7 +142,7 @@ Lagmenyen har **Økter**, **Årsplan**, **Brukere**, **Innstillinger** og **Egne
 
 - Økter er lagets startside og viser neste trening og de fem siste lagrede øktene. Faste tider uten plan vises som plassholdere med ønsket genereringsdato og knapp for manuell oppretting med treningens faktiske tidsrom. Automatisk generering krever at laget har aktivert den og at produksjonsjobben er konfigurert. Tidligere virtuelle treningstider fremstilles ikke som gjennomførte økter. Årsplanen nås fra Økter.
 - Årsplan vises som et klikkbart årshjul og en vertikalt rullbar månedsoversikt med forslag og låste perioder. NFF-fagplanen åpnes fra høyre. Perioder bekreftes og redigeres direkte i planleggingsflyten; treninger og hendelser vises for valgt måned, som beholdes i URL-en.
-- Egne øvelser integrerer den eksisterende animasjonseditoren direkte i appen, uten avhengighet til GitHub Pages. Lagmedlemskap kontrolleres også for editorens HTML og ressurser. JSON kan åpnes, redigeres og lastes ned; felles databaselagring av egne øvelser og tilknytning til øktkort gjenstår. Last ned filen før du forlater en endret tavle.
+- Egne øvelser lagres i lagets database med valgfritt NFF-tema, øvingsmål, aldersintervall, video og animasjoner. Lagmedlemskap kontrolleres også for editorens HTML og ressurser. Tilknytning til øktkort gjenstår.
 
 ### AI-øktassistent
 
