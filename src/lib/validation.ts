@@ -4,6 +4,10 @@ import { differentiationSchema } from "./differentiation.ts";
 
 export const nameSchema = z.string().trim().min(2, "Navnet må ha minst to tegn.").max(100, "Navnet er for langt.");
 export const emailSchema = z.email("Oppgi en gyldig e-postadresse.").trim().toLowerCase().max(254);
+export const coachSchema = z.object({
+  name: z.string().trim().min(2, "Navnet må ha minst to tegn.").max(254, "Navnet er for langt."),
+  email: z.preprocess((value) => value === "" ? null : value, emailSchema.nullable()),
+});
 export const idSchema = z.uuid("Ugyldig ID.");
 export const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/, "Ugyldig lenke.");
 export const birthYearSchema = z.preprocess((value) => value === "" ? null : value,

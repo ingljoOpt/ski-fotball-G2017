@@ -134,6 +134,13 @@
       "when": 1794316077557,
       "tag": "0018_thin_joystick",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794383880628,
+      "tag": "0019_team_coaches",
+      "breakpoints": true
     }
   ]
 }

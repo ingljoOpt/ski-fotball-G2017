@@ -77,7 +77,7 @@ export async function runScheduledDrafts(db: Database, now = new Date(), generat
         setWhere: or(eq(generationJobs.status, "failed"), and(eq(generationJobs.status, "running"), lte(generationJobs.leaseUntil, claimedAt))) }).returning();
     if (!job) { skipped++; return; }
     try {
-      const coachIds = (await sessionCoaches(db, candidate.group.id)).map((member) => member.userId);
+      const coachIds = (await sessionCoaches(db, candidate.group.id)).map((member) => member.id);
       const draft = { event: candidate.event, plan: expectedSessionPlan(candidate.group, candidate.time, coachIds) };
       const context = await scheduledSessionAIContext(db, candidate.userId, candidate.group.id, draft);
       const proposal = await generate(context, AbortSignal.timeout(180_000));

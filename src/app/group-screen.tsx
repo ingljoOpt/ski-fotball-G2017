@@ -6,7 +6,7 @@ import { generationJobs } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
 import { DomainError, groupDetails } from "@/lib/domain";
-import { changeHeadCoach, deleteMember, deleteTrainingTime, newCoachInvitation, newTrainingEvent, saveGroupSettings } from "@/app/actions";
+import { changeHeadCoach, deleteTeamCoach, deleteTrainingTime, newCoachInvitation, newTrainingEvent, saveGroupSettings, saveTeamCoach } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubTheme } from "@/app/club-theme";
 import { generationDate, osloToday } from "@/lib/planning";
@@ -95,16 +95,38 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
           </Card>}
           {section === "brukere" && <Card className="app-card">
             <h2>Lagets trenere</h2>
-            <ul className="clean">{details.members.map((member) => <li className="row" key={member.userId}>
-              <span>{member.email}<br /><small>{roleName(member.role)}</small></span>
-              {canManage && (details.isAdmin || member.role === "coach") && <form action={deleteMember}>
-                <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="userId" value={member.userId} /><SubmitButton variant="danger-soft" size="sm">Fjern medlem</SubmitButton>
-              </form>}
+            <p className="muted">Trenere tilhører laget og kan være med i øktplanleggingen uten egen konto. E-post er valgfritt; lagring gir ikke app-tilgang.</p>
+            <ul className="clean">{details.coaches.map((coach) => <li className="stack" key={coach.id}>
+              <span><strong>{coach.name}</strong>{coach.email && <><br />{coach.email}</>}<br /><small>
+                {coach.role ? `${roleName(coach.role)} · Har app-tilgang`
+                  : details.pending.some((invite) => invite.email === coach.email) ? "Invitert · Venter på svar" : "Uten app-tilgang"}
+              </small></span>
+              {canManage && <>
+                <details><summary>Rediger trener</summary><form action={saveTeamCoach}>
+                  <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="coachId" value={coach.id} />
+                  <TextInput label="Navn" name="name" isRequired minLength={2} maxLength={254} defaultValue={coach.name} />
+                  <TextInput label="E-postadresse (valgfritt)" type="email" name="email" maxLength={254} defaultValue={coach.email ?? ""} isReadOnly={Boolean(coach.userId)} />
+                  {coach.userId && <small>E-post er bundet til brukerens innlogging.</small>}
+                  <SubmitButton>Lagre trener</SubmitButton>
+                </form></details>
+                <div className="row">
+                  {!coach.role && coach.email && <form action={newCoachInvitation}>
+                    <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="coachId" value={coach.id} />
+                    <SubmitButton size="sm">{details.pending.some((invite) => invite.email === coach.email) ? "Inviter på nytt" : "Inviter til appen"}</SubmitButton>
+                  </form>}
+                  {(details.isAdmin || coach.role !== "head_coach") && <form action={deleteTeamCoach}>
+                    <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="coachId" value={coach.id} />
+                    <SubmitButton variant="danger-soft" size="sm">Fjern trener</SubmitButton>
+                  </form>}
+                </div>
+              </>}
             </li>)}</ul>
-            {!details.members.length && <p className="muted">Venter på at hovedtrener aksepterer invitasjonen.</p>}
-            {canManage && <><h3>Inviter trener</h3><form action={newCoachInvitation}>
+            {!details.coaches.length && <p className="muted">Ingen trenere registrert ennå.</p>}
+            {canManage && <><h3>Legg til trener</h3><form action={saveTeamCoach}>
               <input type="hidden" name="groupId" value={groupId} />
-              <TextInput label="E-postadresse" type="email" name="email" isRequired /><SubmitButton>Inviter trener</SubmitButton>
+              <TextInput label="Navn" name="name" isRequired minLength={2} maxLength={254} />
+              <TextInput label="E-postadresse (valgfritt)" type="email" name="email" maxLength={254} />
+              <SubmitButton>Legg til trener</SubmitButton>
             </form></>}
             {details.pending.length > 0 && <><h3>Venter på svar</h3><ul className="clean">{details.pending.map((invite) => <li key={invite.id}>{invite.email}<br /><small>{roleName(invite.role)}</small></li>)}</ul></>}
             {details.isAdmin && <><h3>Overfør hovedtrenerrollen</h3>

@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, gte, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db/index.ts";
-import { annualEvents, annualPlans, clubs, generationJobs, groupMembers, groups, planPeriods, planningHistory, sessionVersions, trainingEvents, trainingTimes, users } from "../db/schema.ts";
+import { annualEvents, annualPlans, clubs, coaches, generationJobs, groupMembers, groups, planPeriods, planningHistory, sessionVersions, trainingEvents, trainingTimes, users } from "../db/schema.ts";
 import { DomainError, getGroupAccess } from "./domain.ts";
 import { idSchema, minutesBetween, optionalCountSchema } from "./validation.ts";
 import { sessionHasEnded } from "./session-review.ts";
@@ -47,8 +47,8 @@ function assertRevision(actual: number, expected: unknown) {
 }
 
 export async function sessionCoaches(db: Database, groupId: string) {
-  return db.select({ userId: users.id, email: users.email }).from(groupMembers)
-    .innerJoin(users, eq(users.id, groupMembers.userId)).where(eq(groupMembers.groupId, groupId)).orderBy(asc(users.email));
+  return db.select({ id: coaches.id, name: coaches.name }).from(coaches)
+    .where(eq(coaches.groupId, groupId)).orderBy(asc(coaches.name), asc(coaches.id));
 }
 
 export async function annualPlanning(db: Database, userId: string, groupId: string, year: number) {
@@ -317,8 +317,8 @@ export async function createTrainingEvent(
       ...data, coachInput: trainerInput, clubId: group.clubId, groupId, recurrenceKey: effectiveKey, status: "planned", cancelledAt: cancelled ? new Date() : null,
     }).returning();
     const members = await sessionCoaches(tx, groupId);
-    const coachIds = selectedCoachIds === undefined ? members.map((member) => member.userId) : z.array(idSchema).max(500).parse(selectedCoachIds);
-    if (new Set(coachIds).size !== coachIds.length || coachIds.some((id) => !members.some((member) => member.userId === id))) {
+    const coachIds = selectedCoachIds === undefined ? members.map((member) => member.id) : z.array(idSchema).max(500).parse(selectedCoachIds);
+    if (new Set(coachIds).size !== coachIds.length || coachIds.some((id) => !members.some((member) => member.id === id))) {
       throw new DomainError("Velg bare trenere som er medlemmer av laget.");
     }
     const defaults = expectedSessionPlan(group, recurringTime, coachIds);
@@ -356,7 +356,7 @@ export async function saveScheduledSessionPlan(db: Database, userId: string, gro
     if (!job || job.date !== data.date || job.startTime !== data.startTime) return false;
     const [head] = await tx.select({ userId: groupMembers.userId }).from(groupMembers).where(and(
       eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId), eq(groupMembers.role, "head_coach")));
-    const currentCoachIds = (await sessionCoaches(tx, groupId)).map((member) => member.userId).sort();
+    const currentCoachIds = (await sessionCoaches(tx, groupId)).map((member) => member.id).sort();
     if (initial.plan.coachIds && JSON.stringify([...initial.plan.coachIds].sort()) !== JSON.stringify(currentCoachIds)) {
       await tx.update(generationJobs).set({ status: "failed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
       return false;
@@ -455,7 +455,7 @@ export async function saveSessionPlan(
     if (!latest) throw new DomainError("Økten mangler en planversjon. Kontakt administrator.");
     if (plan.coachIds) {
       const members = await sessionCoaches(tx, groupId);
-      const allowed = new Set([...members.map((member) => member.userId), ...(latest.plan.coachIds ?? [])]);
+      const allowed = new Set([...members.map((member) => member.id), ...(latest.plan.coachIds ?? [])]);
       if (plan.coachIds.some((id) => !allowed.has(id))) throw new DomainError("Velg bare trenere som er medlemmer av laget.");
     }
     await tx.insert(sessionVersions).values({

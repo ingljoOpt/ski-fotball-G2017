@@ -255,6 +255,22 @@ export const groupMembers = pgTable("group_members", {
   }).onDelete("cascade"),
 ]);
 
+export const coaches = pgTable("coaches", {
+  id: uuid("id").defaultRandom().notNull(),
+  clubId: uuid("club_id").notNull(),
+  groupId: uuid("group_id").notNull(),
+  name: text("name").notNull(),
+  email: text("email"),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+}, (table) => [
+  primaryKey({ columns: [table.groupId, table.id] }),
+  foreignKey({ columns: [table.clubId, table.groupId], foreignColumns: [groups.clubId, groups.id] }).onDelete("cascade"),
+  unique("coach_group_email").on(table.groupId, table.email),
+  unique("coach_group_user").on(table.groupId, table.userId),
+  check("coach_name_length", sql`length(trim(${table.name})) between 2 and 254`),
+  check("coach_user_email", sql`${table.userId} is null or ${table.email} is not null`),
+]);
+
 export const invitations = pgTable("invitations", {
   id: uuid("id").defaultRandom().primaryKey(),
   clubId: uuid("club_id").notNull(),

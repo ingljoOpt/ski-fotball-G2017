@@ -3,7 +3,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { AppLink } from "./ui";
 
 export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, objectives, ageLabel, idPrefix = "plan", showLegacy = false, onEdit, onRemove }: {
-  plan: SessionPlan; coaches?: { userId: string; email: string }[]; durationMinutes: number; theme?: string; objectives?: string; ageLabel?: string; idPrefix?: string; showLegacy?: boolean;
+  plan: SessionPlan; coaches?: { id: string; name: string }[]; durationMinutes: number; theme?: string; objectives?: string; ageLabel?: string; idPrefix?: string; showLegacy?: boolean;
   onEdit?: (exerciseIds: string[]) => void; onRemove?: (exerciseIds: string[], label: string) => void;
 }) {
   const check = checkSessionPlan(plan, durationMinutes);
@@ -16,7 +16,7 @@ export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, ob
         {ageLabel && <div><dt>Alder</dt><dd>{ageLabel}</dd></div>}
         <div><dt>Varighet</dt><dd>{durationMinutes} min<small>Øvelser: {check.totalMinutes} min</small></dd></div>
         <div><dt>Spillere / trenere</dt><dd>{plan.expectedPlayers ?? "Uavklart"} / {plan.confirmedCoaches ?? "Uavklart"}<small>Forventet / planlagt</small></dd></div>
-        {plan.coachIds && <div><dt>Planlagte trenere</dt><dd>{plan.coachIds.length ? plan.coachIds.map((id) => coaches.find((coach) => coach.userId === id)?.email ?? "Tidligere lagmedlem").join(", ") : "Ingen valgt"}</dd></div>}
+        {plan.coachIds && <div><dt>Planlagte trenere</dt><dd>{plan.coachIds.length ? plan.coachIds.map((id) => coaches.find((coach) => coach.id === id)?.name ?? "Tidligere lagmedlem").join(", ") : "Ingen valgt"}</dd></div>}
       </dl>
       <div className="session-outline">
         {objectives !== undefined && <section><h2>Øvingsmål</h2><p className="preserve-lines">{objectives || "Ikke satt."}</p></section>}

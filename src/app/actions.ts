@@ -9,10 +9,10 @@ import { requireUser, SESSION_COOKIE } from "@/lib/auth";
 import { localConfig } from "@/lib/config";
 import {
   acceptInvitation, addTrainingTime, consumeLoginLink, createClub, createGroup,
-  createLoginLink, DomainError, inviteCoach, removeMember, removeTrainingTime,
+  createLoginLink, DomainError, inviteRegisteredCoach, removeMember, removeTrainingTime,
   revokeSession, updateGroupSettings, updateTrainingTime, acceptClubInvitation, cancelClubInvitation,
   inviteClubAdmin, removeClubAdmin, transferHeadCoach,
-  updateClubBranding, resetClubBranding,
+  updateClubBranding, resetClubBranding, saveCoach, removeCoach,
 } from "@/lib/domain";
 import { idSchema } from "@/lib/validation";
 import { logoFromForm } from "@/lib/logo";
@@ -172,9 +172,26 @@ export async function newGroup(form: FormData) {
 export async function newCoachInvitation(form: FormData) {
   const user = await requireUser();
   return run(`${groupPath(form)}/brukere`, async () => {
-    const { token, email } = await inviteCoach(await getDatabase(), user.id, field(form, "groupId"), field(form, "email"));
+    const { token, email } = await inviteRegisteredCoach(await getDatabase(), user.id, field(form, "groupId"), field(form, "coachId"));
     console.log(`[LOKAL INVITASJON til ${email}] ${localConfig().appUrl}/invitasjon/${token}`);
     return `${groupPath(form)}/brukere?melding=${encodeURIComponent("Invitasjonen ligger i serverterminalen og varer i sju dager.")}`;
+  });
+}
+
+export async function saveTeamCoach(form: FormData) {
+  const user = await requireUser();
+  return run(`${groupPath(form)}/brukere`, async () => {
+    await saveCoach(await getDatabase(), user.id, field(form, "groupId"),
+      { name: field(form, "name"), email: field(form, "email") }, field(form, "coachId") || undefined);
+    return `${groupPath(form)}/brukere?melding=${encodeURIComponent("Treneren er lagret. App-tilgang krever en akseptert invitasjon.")}`;
+  });
+}
+
+export async function deleteTeamCoach(form: FormData) {
+  const user = await requireUser();
+  return run(`${groupPath(form)}/brukere`, async () => {
+    await removeCoach(await getDatabase(), user.id, field(form, "groupId"), field(form, "coachId"));
+    return `${groupPath(form)}/brukere?melding=${encodeURIComponent("Treneren er fjernet fra laget, og eventuell lagtilgang er tilbakekalt.")}`;
   });
 }
 

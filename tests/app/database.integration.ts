@@ -223,7 +223,11 @@ test("PGlite: migrations, login, invitations and tenant authorization", async (t
       });
 
       await t.test("removal revokes access and pending invitations", async () => {
-        const pending = await inviteCoach(tx, admin.id, firstGroup.group.id, coach.email);
+        const pending = { token: "d".repeat(64) };
+        await tx.insert(invitations).values({
+          clubId: club.id, groupId: firstGroup.group.id, email: coach.email, role: "coach",
+          tokenHash: hashToken(pending.token), expiresAt: new Date(Date.now() + 86_400_000),
+        });
         await removeMember(tx, head.id, firstGroup.group.id, coach.id);
         await assert.rejects(getGroupAccess(tx, coach.id, firstGroup.group.id), DomainError);
         await assert.rejects(acceptInvitation(tx, coach.id, pending.token), DomainError);

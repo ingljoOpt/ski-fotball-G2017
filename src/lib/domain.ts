@@ -2,10 +2,10 @@ import { randomBytes, createHash } from "node:crypto";
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "../db/index.ts";
 import {
-  annualPlans, authSessions, clubAdmins, clubInvitations, clubs, groupMembers, groups,
+  annualPlans, authSessions, clubAdmins, clubInvitations, clubs, coaches, groupMembers, groups,
   invitations, loginLinks, trainingTimes, users,
 } from "../db/schema.ts";
-import { birthYearSchema, emailSchema, idSchema, nameSchema, optionalCountSchema, safeReturnPath, settingsSchema, tokenSchema, trainingTimeSchema } from "./validation.ts";
+import { birthYearSchema, coachSchema, emailSchema, idSchema, nameSchema, optionalCountSchema, safeReturnPath, settingsSchema, tokenSchema, trainingTimeSchema } from "./validation.ts";
 import { z } from "zod";
 import { brandingSchema, DEFAULT_ACCENT, DEFAULT_PRIMARY } from "./branding.ts";
 import { normalizeLogo } from "./logo.ts";
@@ -295,14 +295,86 @@ export async function teamAddress(db: Database, userId: string, groupId: string)
 }
 
 export async function inviteCoach(db: Database, userId: string, groupId: string, email: string) {
-  const { group } = await requireGroupManager(db, userId, groupId);
-  const token = newToken();
+  idSchema.parse(groupId);
   const cleanEmail = emailSchema.parse(email);
-  await db.insert(invitations).values({
-    clubId: group.clubId, groupId, email: cleanEmail, role: "coach",
-    tokenHash: hashToken(token), expiresAt: expiresIn(7),
+  return db.transaction(async (tx) => {
+    await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("update");
+    const { group } = await requireGroupManager(tx, userId, groupId);
+    const [member] = await tx.select({ userId: users.id }).from(groupMembers)
+      .innerJoin(users, eq(users.id, groupMembers.userId))
+      .where(and(eq(groupMembers.groupId, groupId), eq(users.email, cleanEmail)));
+    if (member) throw new DomainError("Treneren har allerede tilgang til laget.");
+    await tx.delete(invitations).where(and(eq(invitations.groupId, groupId),
+      eq(invitations.email, cleanEmail), eq(invitations.role, "coach"), isNull(invitations.acceptedAt)));
+    const token = newToken();
+    await tx.insert(invitations).values({
+      clubId: group.clubId, groupId, email: cleanEmail, role: "coach",
+      tokenHash: hashToken(token), expiresAt: expiresIn(7),
+    });
+    return { token, email: cleanEmail };
   });
-  return { token, email: cleanEmail };
+}
+
+export async function saveCoach(db: Database, userId: string, groupId: string, input: unknown, coachId?: string) {
+  idSchema.parse(groupId);
+  if (coachId) idSchema.parse(coachId);
+  const data = coachSchema.parse(input);
+  return db.transaction(async (tx) => {
+    await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("update");
+    const { group } = await requireGroupManager(tx, userId, groupId);
+    const [existing] = coachId ? await tx.select().from(coaches)
+      .where(and(eq(coaches.groupId, groupId), eq(coaches.id, coachId))) : [];
+    if (coachId && !existing) throw new DomainError("Treneren finnes ikke på laget.");
+    if (existing?.userId && data.email !== existing.email) {
+      throw new DomainError("E-postadressen kan ikke endres etter at treneren har fått app-tilgang.");
+    }
+    if (data.email) {
+      const [duplicate] = await tx.select({ id: coaches.id }).from(coaches)
+        .where(and(eq(coaches.groupId, groupId), eq(coaches.email, data.email)));
+      if (duplicate && duplicate.id !== coachId) throw new DomainError("E-postadressen er allerede registrert på en trener i laget.");
+    }
+    if (existing) {
+      if (existing.email && existing.email !== data.email) {
+        await tx.delete(invitations).where(and(eq(invitations.groupId, groupId),
+          eq(invitations.email, existing.email), isNull(invitations.acceptedAt)));
+      }
+      await tx.update(coaches).set(data).where(and(eq(coaches.groupId, groupId), eq(coaches.id, existing.id)));
+      return existing.id;
+    }
+    const [coach] = await tx.insert(coaches).values({ ...data, clubId: group.clubId, groupId }).returning();
+    return coach.id;
+  });
+}
+
+export async function inviteRegisteredCoach(db: Database, userId: string, groupId: string, coachId: string) {
+  idSchema.parse(groupId);
+  idSchema.parse(coachId);
+  return db.transaction(async (tx) => {
+    await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("update");
+    await requireGroupManager(tx, userId, groupId);
+    const [coach] = await tx.select().from(coaches).where(and(eq(coaches.groupId, groupId), eq(coaches.id, coachId)));
+    if (!coach) throw new DomainError("Treneren finnes ikke på laget.");
+    if (!coach.email) throw new DomainError("Legg inn e-postadresse før treneren inviteres.");
+    return inviteCoach(tx, userId, groupId, coach.email);
+  });
+}
+
+export async function removeCoach(db: Database, userId: string, groupId: string, coachId: string) {
+  idSchema.parse(groupId);
+  idSchema.parse(coachId);
+  await db.transaction(async (tx) => {
+    await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("update");
+    await requireGroupManager(tx, userId, groupId);
+    const [coach] = await tx.select().from(coaches).where(and(eq(coaches.groupId, groupId), eq(coaches.id, coachId)));
+    if (!coach) throw new DomainError("Treneren finnes ikke på laget.");
+    if (coach.userId) {
+      await removeMember(tx, userId, groupId, coach.userId);
+    } else {
+      if (coach.email) await tx.delete(invitations).where(and(eq(invitations.groupId, groupId),
+        eq(invitations.email, coach.email), isNull(invitations.acceptedAt)));
+      await tx.delete(coaches).where(and(eq(coaches.groupId, groupId), eq(coaches.id, coachId)));
+    }
+  });
 }
 
 export async function acceptInvitation(db: Database, userId: string, token: string) {
@@ -327,6 +399,9 @@ export async function acceptInvitation(db: Database, userId: string, token: stri
     await tx.insert(groupMembers).values({
       clubId: invitation.clubId, groupId: invitation.groupId, userId, role: invitation.role,
     }).onConflictDoNothing();
+    await tx.insert(coaches).values({
+      id: userId, clubId: invitation.clubId, groupId: invitation.groupId, userId, name: user.email, email: user.email,
+    }).onConflictDoUpdate({ target: [coaches.groupId, coaches.email], set: { userId } });
     return invitation.groupId;
   });
 }
@@ -341,6 +416,7 @@ export async function removeMember(db: Database, userId: string, groupId: string
     if (!access.isAdmin) conditions.push(eq(groupMembers.role, "coach"));
     const [removed] = await tx.delete(groupMembers).where(and(...conditions)).returning();
     if (!removed) throw new DomainError("Medlemmet finnes ikke, eller bare klubbadministrator kan fjerne denne rollen.");
+    await tx.delete(coaches).where(and(eq(coaches.groupId, groupId), eq(coaches.userId, targetUserId)));
     // Pending invitations must not restore a removed member's access.
     await tx.delete(invitations).where(and(
       eq(invitations.groupId, groupId), isNull(invitations.acceptedAt),
@@ -415,7 +491,7 @@ export async function updateTrainingTimeCounts(db: Database, userId: string, gro
 
 export async function groupDetails(db: Database, userId: string, groupId: string) {
   const access = await getGroupAccess(db, userId, groupId);
-  const [members, times, pending, [club]] = await Promise.all([
+  const [members, times, pending, [club], registeredCoaches] = await Promise.all([
     db.select({ userId: users.id, email: users.email, role: groupMembers.role }).from(groupMembers)
       .innerJoin(users, eq(users.id, groupMembers.userId)).where(eq(groupMembers.groupId, groupId)).orderBy(users.email),
     db.select().from(trainingTimes).where(eq(trainingTimes.groupId, groupId)).orderBy(trainingTimes.weekday, trainingTimes.startTime),
@@ -423,9 +499,12 @@ export async function groupDetails(db: Database, userId: string, groupId: string
       .from(invitations).where(and(eq(invitations.groupId, groupId),
         isNull(invitations.acceptedAt), gt(invitations.expiresAt, new Date()))) : Promise.resolve([]),
     db.select().from(clubs).where(eq(clubs.id, access.group.clubId)),
+    db.select({ id: coaches.id, name: coaches.name, email: coaches.email, userId: coaches.userId, role: groupMembers.role })
+      .from(coaches).leftJoin(groupMembers, and(eq(groupMembers.groupId, coaches.groupId), eq(groupMembers.userId, coaches.userId)))
+      .where(eq(coaches.groupId, groupId)).orderBy(coaches.name, coaches.id),
   ]);
   const legacyYears = access.group.birthYear === null
     ? await db.select({ birthYear: annualPlans.legacyBirthYear }).from(annualPlans).where(eq(annualPlans.groupId, groupId)).groupBy(annualPlans.legacyBirthYear) : [];
   const conflictingBirthYears = legacyYears.flatMap((entry) => entry.birthYear === null ? [] : [entry.birthYear]);
-  return { ...access, members, times, pending, club, conflictingBirthYears: conflictingBirthYears.length > 1 ? conflictingBirthYears : [] };
+  return { ...access, members, coaches: registeredCoaches, times, pending, club, conflictingBirthYears: conflictingBirthYears.length > 1 ? conflictingBirthYears : [] };
 }

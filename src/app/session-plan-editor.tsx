@@ -24,7 +24,7 @@ const resourceFields = [
 const countValue = (value: string) => value === "" ? null : Number(value);
 
 export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, initialPlan, coaches, ageLabel, initialDraft = false }: {
-  groupId: string; eventId: string; revision: number; initialEvent: EventInput; initialPlan: SessionPlan; coaches: { userId: string; email: string }[]; ageLabel?: string; initialDraft?: boolean;
+  groupId: string; eventId: string; revision: number; initialEvent: EventInput; initialPlan: SessionPlan; coaches: { id: string; name: string }[]; ageLabel?: string; initialDraft?: boolean;
 }) {
   const [event, setEvent] = useState(initialEvent);
   const [plan, setPlan] = useState(initialPlan);
@@ -140,12 +140,12 @@ export function SessionPlanEditor({ groupId, eventId, revision, initialEvent, in
     </div>
     <fieldset className="coach-selection"><legend>Planlagte trenere (valgfritt)</legend>
       {plan.coachIds === undefined && <p className="muted">Ingen trenere er valgt ved navn. Velg trenere for å bruke antallet i utvalget.</p>}
-      {[...coaches, ...(plan.coachIds ?? []).filter((id) => !coaches.some((coach) => coach.userId === id)).map((userId) => ({ userId, email: "Tidligere lagmedlem" }))].map((coach) =>
-        <label key={coach.userId}><input type="checkbox" checked={plan.coachIds?.includes(coach.userId) ?? false} onChange={(event) => {
-          const coachIds = event.target.checked ? [...(plan.coachIds ?? []), coach.userId] : (plan.coachIds ?? []).filter((id) => id !== coach.userId);
+      {[...coaches, ...(plan.coachIds ?? []).filter((id) => !coaches.some((coach) => coach.id === id)).map((id) => ({ id, name: "Tidligere lagmedlem" }))].map((coach) =>
+        <label key={coach.id}><input type="checkbox" checked={plan.coachIds?.includes(coach.id) ?? false} onChange={(event) => {
+          const coachIds = event.target.checked ? [...(plan.coachIds ?? []), coach.id] : (plan.coachIds ?? []).filter((id) => id !== coach.id);
           setPlan({ ...plan, coachIds, confirmedCoaches: coachIds.length,
             ...(plan.exercises.length ? { coachIdsForExercises: plan.coachIdsForExercises ?? plan.coachIds ?? [] } : {}) });
-        }} /> {coach.email}</label>)}
+        }} /> {coach.name}</label>)}
       <small>Utvalget er en planforutsetning, ikke dokumentasjon på faktisk oppmøte.</small>
       {needsRecalculation && <p className="notice">Trenerutvalget er endret. Øktassistenten kan beregne øvelsene på nytt.</p>}
     </fieldset>

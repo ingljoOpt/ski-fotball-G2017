@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { connectLocalDatabase } from "../../src/db/local.ts";
 import { generationJobs, planningHistory, sessionVersions, trainingEvents, users } from "../../src/db/schema.ts";
 import { migrateLocalDatabase } from "../../scripts/migrate.ts";
-import { acceptInvitation, addTrainingTime, createClub, createGroup, DomainError, groupDetails, inviteCoach, updateGroupSettings, updateTrainingTime, updateTrainingTimeCounts } from "../../src/lib/domain.ts";
+import { acceptInvitation, addTrainingTime, createClub, createGroup, DomainError, groupDetails, inviteCoach, saveCoach, updateGroupSettings, updateTrainingTime, updateTrainingTimeCounts } from "../../src/lib/domain.ts";
 import { createTrainingEvent, groupCalendar, saveSessionPlan, trainingEventDetails } from "../../src/lib/planning-domain.ts";
 import { datesInYear, weekdayFor } from "../../src/lib/planning.ts";
 import { prepareAIProposal } from "../../src/lib/session-ai.ts";
@@ -24,6 +24,7 @@ test("scheduled generation is opt-in, idempotent, retryable and never overwrites
     const club = await createClub(db, admin.id, "Testklubb");
     const { group, token } = await createGroup(db, admin.id, club.id, "Testlag", head.email, 2017);
     await acceptInvitation(db, head.id, token);
+    const offline = await saveCoach(db, head.id, group.id, { name: "Trener uten konto", email: "" });
     await addTrainingTime(db, head.id, group.id, { weekday: 3, startTime: "18:00", endTime: "19:00" });
     const now = new Date("2026-11-09T05:00:00Z");
     const generate: Parameters<typeof runScheduledDrafts>[2] = async (context) => {
@@ -50,7 +51,8 @@ test("scheduled generation is opt-in, idempotent, retryable and never overwrites
     assert.equal(version.eventSnapshot.status, "planned");
     assert.equal(version.origin, "ai");
     assert.equal(version.createdBy, null);
-    assert.deepEqual(version.plan.coachIds, [head.id]);
+    assert.deepEqual(new Set(version.plan.coachIds), new Set([head.id, offline]));
+    assert.equal(version.plan.confirmedCoaches, 2);
     assert.equal(version.plan.coachAttendanceConfirmed, undefined);
     assert.equal(history.actorType, "system");
     assert.equal(history.actorId, null);
@@ -121,6 +123,14 @@ test("scheduled generation is opt-in, idempotent, retryable and never overwrites
     });
     assert.equal(membershipChanged.created, 0);
     assert.equal(membershipChanged.skipped, 1);
+    assert.equal((await db.select().from(trainingEvents)).length, 4);
+    const rosterChanged = await runScheduledDrafts(db, new Date("2026-12-21T05:00:00Z"), async (context, signal) => {
+      const proposal = await generate(context, signal);
+      await saveCoach(db, head.id, group.id, { name: "Ny trener uten konto", email: "" });
+      return proposal;
+    });
+    assert.equal(rosterChanged.created, 0);
+    assert.equal(rosterChanged.skipped, 1);
     assert.equal((await db.select().from(trainingEvents)).length, 4);
   } finally {
     await connection.close();

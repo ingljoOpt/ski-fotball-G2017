@@ -20,6 +20,7 @@ Kravgrunnlag: [nettsted-spesifikasjon](nettsted-spesifikasjon.md).
 - [x] Opprette lag og invitere hovedtrener som første medlem.
 - [x] Hovedtrener kan invitere og fjerne trenere på eget lag.
 - [x] Klubbadministrator kan legge til og fjerne lagmedlemmer.
+- [x] Lagtilknyttet trenerregister med navn og valgfri e-post, uavhengig av app-tilgang. Registrerte trenere kan velges og telles i øktplanlegging uten konto. Invitasjon og e-postbundet aksept kobler på app-tilgang uten å endre trener-ID; endring av e-post/fjerning tilbakekaller ubrukte invitasjoner. Eksisterende medlemskap og historiske øktversjoner bevares ved migrering.
 - [x] Lagets faste treningstider med fra-/til-tid og antall dager før automatisk oppretting lagres. Varigheten følger hver trening; ingen lagfelles standardvarighet. Selve automatikkjobben kommer i steg 4.
 - [x] Flere klubbadministratorer og overføring av hovedtrenerrolle, med e-postbundet invitasjon/tilbakekalling, vern av siste administrator og atomisk rollebytte til eksisterende lagmedlem.
 - [x] Klubbprofil: klubbadministrator kan laste opp logo og velge primær-/aksentfarger, med forhåndsvisning, validering og tilbakestilling til standard.
