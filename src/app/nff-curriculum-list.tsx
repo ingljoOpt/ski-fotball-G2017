@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useDraggable } from "@dnd-kit/core";
 import { Popover } from "@heroui/react";
-import { GripVertical, Info, RefreshCw } from "lucide-react";
+import { GripVertical, Info, Plus, RefreshCw } from "lucide-react";
 import type { Curriculum, CurriculumSkill, CurriculumTopic } from "@/lib/nff-curriculum";
 import { objectivesForSkill, parseSkillObjectives, selectedMomentIndices, skillForSession, skillProgression, themePeriodContent, type Period } from "@/lib/planning";
 import { saveThemePeriod, updateNffCurriculum } from "@/app/actions";
@@ -32,6 +32,35 @@ export function SkillSuggestions({ skills }: { skills: CurriculumSkill[] }) {
 }
 export function selectCurriculumTopic(id: string, month: number) {
   window.dispatchEvent(new CustomEvent("nff-topic-selected", { detail: { id, month } }));
+}
+
+export function NewPeriodDialog({ groupId, year, month, revision, topics }: {
+  groupId: string; year: number; month: number; revision: number; topics: CurriculumTopic[];
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [selectedMonth, setSelectedMonth] = useState(month);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (open) dialog.current?.querySelector<HTMLInputElement>('input[name="startDate"]')?.focus();
+  }, [open]);
+  return <>
+    <ActionButton type="button" onPress={() => {
+      const selected = Number(new URLSearchParams(window.location.search).get("month") ?? month);
+      setSelectedMonth(Number.isInteger(selected) && selected >= 1 && selected <= 12 ? selected : month);
+      setOpen(true);
+      dialog.current?.showModal();
+    }}><Plus size={17} aria-hidden="true" /> Eget tema</ActionButton>
+    <dialog ref={dialog} className="training-time-dialog" aria-labelledby={titleId} onClose={() => setOpen(false)}>
+      <h2 id={titleId}>Eget tema</h2>
+      {open && <form action={saveThemePeriod} onSubmit={() => dialog.current?.close()}>
+        <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={year} />
+        <input type="hidden" name="month" value={selectedMonth} /><input type="hidden" name="revision" value={revision} />
+        <ThemePeriodFields year={year} month={selectedMonth} topics={topics} />
+        <div className="row"><SubmitButton>Lagre</SubmitButton><ActionButton type="button" variant="ghost" onPress={() => dialog.current?.close()}>Avbryt</ActionButton></div>
+      </form>}
+    </dialog>
+  </>;
 }
 
 export function NffCurriculumDrawer({ birthYear, settingsPath, ...props }: {
@@ -154,7 +183,7 @@ function CurriculumPeriodForm({ topics, groupId, year, revision }: {
       <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={year} />
       <input type="hidden" name="month" value={month} /><input type="hidden" name="revision" value={revision} />
       <ThemePeriodFields year={year} month={month} topics={topics} initialTopicId={topic.id} />
-      <div className="row"><SubmitButton>Bekreft og lås perioden</SubmitButton><ActionButton variant="secondary" onPress={() => setSelection(null)}>Avbryt</ActionButton></div>
+      <div className="row"><SubmitButton>Lagre</SubmitButton><ActionButton variant="secondary" onPress={() => setSelection(null)}>Avbryt</ActionButton></div>
     </form>
   </div>;
 }
@@ -180,16 +209,23 @@ export function ThemePeriodFields({ year, month = 1, period, topics, initialTopi
       const next = topics.find((item) => item.id === event.target.value);
       setTopicId(event.target.value);
       if (next) { const content = themePeriodContent(next); setTheme(content.theme); setObjectives(content.objectives); setSourceUrl(content.sourceUrl); setProgression(content.progression); setChanged(true); }
+      else { setTheme(""); setObjectives(""); setSourceUrl(""); setProgression(""); setChanged(true); }
     }}><option value="">Eget hovedtema</option>{topics.filter((item) => item.kind === "main").map((item) => <option key={item.id} value={item.id}>{item.theme}</option>)}</select></label>
-    {topic ? <input type="hidden" name="theme" value={theme} /> : <TextInput label="Eget hovedtema" name="theme" isRequired maxLength={150} value={theme} onChange={setTheme} />}
+    {topic ? <input type="hidden" name="theme" value={theme} /> : <TextInput label="Tittel" name="theme" isRequired maxLength={150} value={theme} onChange={setTheme} />}
     <TextAreaInput label="Øvingsmål" name="objectives" required rows={4} maxLength={8000} value={objectives} onChange={(event) => setObjectives(event.target.value)} />
-    <TextAreaInput label="Trenernes ekstra øvingsmomenter" name="coachMoments" rows={3} maxLength={8000} defaultValue={period?.coachMoments ?? ""} />
-    {topic && <details><summary>Delferdigheter og øvingsmomenter</summary>
-      {topic.skills.map((skill) => <div key={skill.id}><strong>{skill.title}</strong><ul>{skill.moments.map((moment, index) => <li key={index}>{moment}</li>)}</ul></div>)}
-    </details>}
-    {period && !changed || !topic ? <TextAreaInput label="Delferdigheter og progresjon" name="progression" rows={4} maxLength={8000} value={progression} onChange={(event) => setProgression(event.target.value)} />
-      : <SkillProgressionFields key={topicId} skills={topic.skills} />}
-    <TextInput label="Kildelenke" name="sourceUrl" type="url" maxLength={2000} value={sourceUrl} onChange={setSourceUrl} />
+    {topic ? <>
+      <TextAreaInput label="Trenernes ekstra øvingsmomenter" name="coachMoments" rows={3} maxLength={8000} defaultValue={period?.coachMoments ?? ""} />
+      <details><summary>Delferdigheter og øvingsmomenter</summary>
+        {topic.skills.map((skill) => <div key={skill.id}><strong>{skill.title}</strong><ul>{skill.moments.map((moment, index) => <li key={index}>{moment}</li>)}</ul></div>)}
+      </details>
+      {period && !changed ? <TextAreaInput label="Delferdigheter og progresjon" name="progression" rows={4} maxLength={8000} value={progression} onChange={(event) => setProgression(event.target.value)} />
+        : <SkillProgressionFields key={topicId} skills={topic.skills} />}
+      <TextInput label="Kildelenke" name="sourceUrl" type="url" maxLength={2000} value={sourceUrl} onChange={setSourceUrl} />
+    </> : <>
+      <input type="hidden" name="coachMoments" value={!changed ? period?.coachMoments ?? "" : ""} />
+      <input type="hidden" name="progression" value={!changed ? period?.progression ?? "" : ""} />
+      <input type="hidden" name="sourceUrl" value={!changed ? period?.sourceUrl ?? "" : ""} />
+    </>}
   </>;
 }
 

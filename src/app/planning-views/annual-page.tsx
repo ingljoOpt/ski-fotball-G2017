@@ -5,17 +5,17 @@ import { requireUser } from "@/lib/auth";
 import { DomainError } from "@/lib/domain";
 import { annualPlanHistory, groupCalendar } from "@/lib/planning-domain";
 import { annualThemeSuggestions, nffAgeSource } from "@/lib/planning";
-import { saveThemePeriod, unlockMonthTheme } from "@/app/actions";
+import { unlockMonthTheme } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubTheme } from "@/app/club-theme";
 import { AppLink, Card, SubmitButton } from "@/app/ui";
 import { months, PlanningNavigation, planningSelection, YearPicker } from "@/app/planning-components";
-import { AnnualWheel, SelectedMonthInput } from "@/app/annual-wheel";
+import { AnnualWheel } from "@/app/annual-wheel";
 import { PlanningHistory } from "@/app/planning-history";
 import { teamUrl } from "@/lib/slugs";
 import { AnnualMonth } from "@/app/annual-month";
 import { getNffCurriculum } from "@/lib/nff-curriculum";
-import { NffCurriculumDrawer, ThemePeriodFields } from "@/app/nff-curriculum-list";
+import { NffCurriculumDrawer, NewPeriodDialog } from "@/app/nff-curriculum-list";
 import { PlanningDnd } from "@/app/planning-dnd";
 import { Lock } from "lucide-react";
 
@@ -41,18 +41,17 @@ export default async function AnnualPlan({ params, searchParams }: {
   const ageSource = nffAgeSource(year, details.group.birthYear);
   const curriculum = await getNffCurriculum(ageSource.age);
   const suggestions = annualThemeSuggestions(year, details.periods, curriculum.topics);
-  const hidden = <>
-    <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={year} /><SelectedMonthInput month={month} />
-    <input type="hidden" name="revision" value={plan?.revision ?? 0} />
-  </>;
   return <ClubTheme club={details.club} header>
     <Account email={user.email} />
     <PlanningNavigation basePath={basePath} year={year} />
     <h1>Årsplan {year} · {details.group.name}</h1>
     <PlanningDnd key={`${year}-${details.group.birthYear}`}>
     <div className="row annual-toolbar"><YearPicker year={year} month={month} />
-      <NffCurriculumDrawer key={`${year}-${details.group.birthYear}`} birthYear={details.group.birthYear} settingsPath={`${basePath}/innstillinger`}
-        curriculum={curriculum} groupId={groupId} year={year} revision={plan?.revision ?? 0} initialMonth={month} />
+      <div className="row">
+        <NewPeriodDialog groupId={groupId} year={year} month={month} revision={plan?.revision ?? 0} topics={curriculum.topics} />
+        <NffCurriculumDrawer key={`${year}-${details.group.birthYear}`} birthYear={details.group.birthYear} settingsPath={`${basePath}/innstillinger`}
+          curriculum={curriculum} groupId={groupId} year={year} revision={plan?.revision ?? 0} initialMonth={month} />
+      </div>
     </div>
     {details.group.birthYear === null && <p className="notice" role="alert">Årskull er ikke satt for laget. <AppLink href={`${basePath}/innstillinger`}>Åpne laginnstillinger</AppLink></p>}
     <Notices searchParams={searchParams} />
@@ -69,9 +68,6 @@ export default async function AnnualPlan({ params, searchParams }: {
         </form>]];
       })))}
       monthContent={months.map((_, index) => <div key={index}>
-        <details className="annual-period-editor"><summary>Ny periode</summary><form action={saveThemePeriod}>{hidden}
-          <ThemePeriodFields year={year} month={index + 1} topics={curriculum.topics} /><SubmitButton>Bekreft og lås perioden</SubmitButton>
-        </form></details>
         <AnnualMonth details={details} year={year} month={index + 1} basePath={basePath} curriculum={curriculum}
           suggestion={suggestions.find((proposal) => proposal.startDate <= `${year}-${String(index + 1).padStart(2, "0")}-31` && proposal.endDate >= `${year}-${String(index + 1).padStart(2, "0")}-01`)} />
       </div>)} />
