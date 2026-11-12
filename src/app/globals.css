@@ -310,6 +310,12 @@ summary { cursor: pointer; }
 .wheel-month:last-child { min-height: 520px; }
 .wheel-month article + article { margin-top: 1rem; }
 .exercise-editor-frame { width: 100%; height: 1100px; border: 1px solid var(--line); border-radius: .75rem; margin-top: 1.5rem; background: white; }
+.own-exercises-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1.25rem; list-style: none; padding: 0; margin: 1.5rem 0; }
+.own-exercise-card { height: 100%; }
+.own-exercise-card h2 { overflow-wrap: anywhere; }
+.own-exercise-card .button { align-self: flex-start; }
+.own-exercise-reader { max-width: 760px; }
+.own-exercise-reader h2 { margin-top: 1.75rem; }
 .custom-exercise-form { margin-top: 2rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: .75rem; background: white; }
 .custom-exercise-form select { min-height: 40px; padding: .5rem; border: 1px solid var(--club-border); border-radius: .375rem; background: white; }
 .custom-exercise-form fieldset { display: grid; gap: .75rem; border: 1px solid var(--line); padding: 1rem; }

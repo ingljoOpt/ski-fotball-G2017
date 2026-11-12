@@ -37,7 +37,8 @@ export function NavigationLinks({ items, label, className = "" }: { items: Item[
   const target = useContext(MobileNavigationTarget);
   const activeHref = items.find((item) => pathname === item.href.split("?")[0])?.href
     ?? items.find((item) => item.label === "Økter" &&
-      (pathname === `${item.href}/okter` || pathname.startsWith(`${item.href}/okter/`)))?.href;
+      (pathname === `${item.href}/okter` || pathname.startsWith(`${item.href}/okter/`)))?.href
+    ?? items.find((item) => item.label === "Egne øvelser" && pathname.startsWith(`${item.href}/`))?.href;
   const links = items.map((item) => <a href={item.href} key={item.href}
     aria-current={activeHref === item.href ? "page" : undefined}>{item.label}</a>);
   if (className.includes("context-navigation")) return <>

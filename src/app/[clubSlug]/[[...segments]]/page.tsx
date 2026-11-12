@@ -46,6 +46,12 @@ export default async function TenantPage({ params, searchParams }: {
   if (section === "aarsplan") return <AnnualPlan {...props} />;
   if (section === "kalender") redirect(withSearch(`${teamUrl(team.club, team.group)}/aarsplan`, await searchParams));
   if (section === "ovelser") return <OwnExercises {...props} />;
+  if (segments.length === 3 && segments[1] === "ovelser") {
+    return <OwnExercises params={props.params} exerciseId={segments[2]} />;
+  }
+  if (segments.length === 4 && segments[1] === "ovelser" && segments[3] === "rediger") {
+    return <OwnExercises params={props.params} exerciseId={segments[2]} edit />;
+  }
   if (section === "okter/ny") return <NewSession {...props} />;
   if (segments.length === 3 && segments[1] === "okter") {
     return <TrainingSession params={Promise.resolve({ groupId: team.group.id, eventId: segments[2] })} searchParams={searchParams} />;
