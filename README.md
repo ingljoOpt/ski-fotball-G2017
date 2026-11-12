@@ -41,7 +41,7 @@ Administratorsider og redigeringshandlinger beholder eksisterende tilgangskontro
 
 ### Egne øvelser
 
-Under **Lag → Egne øvelser** vises øvelsene som kort. Velg **Vis** for å åpne lesesiden med øvelsens ID i adressen, beskrivelse, øvingsmål, animasjoner og eventuell video. Trenere som er medlemmer av laget kan velge **Rediger** på lesesiden; klubbadministratorer uten lagmedlemskap har lesetilgang, men kan ikke redigere. Etter første lagring av en ny øvelse åpnes lesesiden automatisk.
+Under **Lag → Egne øvelser** vises øvelsene som kort. Velg **Vis** for å åpne lesesiden med øvelsens ID i adressen, beskrivelse, øvingsmål, animasjoner og eventuell video. Trenere som er medlemmer av laget kan velge **Rediger øvelse** øverst på lesesiden; klubbadministratorer uten lagmedlemskap har lesetilgang, men kan ikke redigere. Etter første lagring av en ny øvelse åpnes lesesiden automatisk.
 
 Øvelsene kan ha valgfritt NFF-tema og øvingsmål, aldersintervall og opptil ti animasjoner. Temaene hentes fra lagets lagrede fagplan for inneværende alder; oppdater fagplanen i årsplanen hvis listen er tom. Velg **Bruk animasjon** i animasjonsbyggeren og deretter **Lagre øvelse** for å beholde endringene. Animasjonene kan forhåndsvises med avspilling, pause og tilbakestilling. Øvelsene lagres i lagets database og deles ikke offentlig eller automatisk i øktplaner.
 

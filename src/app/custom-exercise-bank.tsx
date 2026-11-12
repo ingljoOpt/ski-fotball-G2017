@@ -69,14 +69,11 @@ export function CustomExerciseBank({ groupId, basePath, exercises, topics, age }
   </>;
 }
 
-export function ExerciseReader({ exercise, basePath, canEdit }: { exercise: Exercise; basePath: string; canEdit: boolean }) {
+export function ExerciseReader({ exercise, basePath }: { exercise: Exercise; basePath: string }) {
   const [showVideo, setShowVideo] = useState(false);
   const embedUrl = videoEmbedUrl(exercise.videoUrl);
   return <section className="own-exercise-reader" aria-label="Øvelsesbeskrivelse">
-    <div className="row">
-      <a href={`${basePath}/ovelser`}>← Til egne øvelser</a>
-      {canEdit && <a className="button button--md button--secondary" href={`${basePath}/ovelser/${exercise.id}/rediger`}>Rediger</a>}
-    </div>
+    <a href={`${basePath}/ovelser`}>← Til egne øvelser</a>
     <p><strong>Alder:</strong> {exercise.ageMin === exercise.ageMax ? `${exercise.ageMin} år` : `${exercise.ageMin}–${exercise.ageMax} år`}</p>
     {exercise.theme && <p><strong>Tema:</strong> {exercise.theme} {exercise.themeSource &&
       <a href={exercise.themeSource} target="_blank" rel="noreferrer">NFF-kilde</a>}</p>}

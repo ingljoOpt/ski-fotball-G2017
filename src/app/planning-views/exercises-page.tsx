@@ -38,10 +38,14 @@ export default async function OwnExercises({ params, exerciseId, edit = false }:
     return <ClubTheme club={details.club} header>
       <Account email={user.email} />
       <PlanningNavigation basePath={basePath} year={Number(osloToday().slice(0, 4))} />
-      <h1>{edit ? `Rediger øvelse · ${exercise.title}` : exercise.title}</h1>
+      <div className="row own-exercise-heading">
+        <h1>{edit ? `Rediger øvelse · ${exercise.title}` : exercise.title}</h1>
+        {!edit && details.role && <a className="button button--md button--secondary"
+          href={`${basePath}/ovelser/${exercise.id}/rediger`}>Rediger øvelse</a>}
+      </div>
       {edit && curriculum ? <ExerciseForm groupId={groupId} basePath={basePath} exercise={exercise}
         topics={curriculum.topics.map(({ id, theme, sourceUrl }) => ({ id, theme, sourceUrl }))} age={age} />
-        : <ExerciseReader exercise={exercise} basePath={basePath} canEdit={details.role !== null} />}
+        : <ExerciseReader exercise={exercise} basePath={basePath} />}
     </ClubTheme>;
   }
   const [exercises, curriculum] = await Promise.all([

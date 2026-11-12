@@ -314,6 +314,8 @@ summary { cursor: pointer; }
 .own-exercise-card { height: 100%; }
 .own-exercise-card h2 { overflow-wrap: anywhere; }
 .own-exercise-card .button { align-self: flex-start; }
+.own-exercise-heading h1 { min-width: 0; overflow-wrap: anywhere; }
+.own-exercise-heading .button { margin-left: auto; }
 .own-exercise-reader { max-width: 760px; }
 .own-exercise-reader h2 { margin-top: 1.75rem; }
 .custom-exercise-form { margin-top: 2rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: .75rem; background: white; }
