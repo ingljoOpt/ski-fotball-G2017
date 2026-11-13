@@ -11,6 +11,9 @@ import { migrateLocalDatabase } from "../../scripts/migrate.ts";
 import { acceptInvitation, createClub, createGroup, DomainError, inviteCoach, removeMember } from "../../src/lib/domain.ts";
 import { getCustomExercise, listCustomExercises, saveCustomExercise } from "../../src/lib/custom-exercise-domain.ts";
 import { readEquipment, writeEquipment } from "../../src/lib/exercise-equipment.ts";
+import { customExerciseSchema } from "../../src/lib/custom-exercises.ts";
+import { createTrainingEvent, saveSessionPlan, trainingEventDetails } from "../../src/lib/planning-domain.ts";
+import { completePlan } from "./planning-fixtures.ts";
 
 const model = createRequire(import.meta.url)("../../publiserte/assets/taktikk-rediger-modell.js");
 
@@ -85,6 +88,16 @@ test("custom exercises persist and remain isolated by team and revision", async 
     await assert.rejects(listCustomExercises(connection.db, outsider.id, group.id), DomainError);
     await assert.rejects(saveCustomExercise(connection.db, outsider.id, other.id, created.id, 1, input), DomainError);
     await assert.rejects(saveCustomExercise(connection.db, admin.id, group.id, created.id, 1, input), /Bare trenere/);
+    const event = { date: "2098-11-18", startTime: "18:00", endTime: "19:00", title: "Testøkt", theme: "", objectives: "" };
+    const eventId = await createTrainingEvent(connection.db, head.id, group.id, event);
+    const snapshot = customExerciseSchema.parse(created);
+    const plan = completePlan();
+    plan.exercises[0] = { ...plan.exercises[0], title: snapshot.title, description: snapshot.description,
+      objectives: snapshot.objectives, customExercise: snapshot };
+    await saveSessionPlan(connection.db, head.id, group.id, eventId, event, plan, 1, "draft");
+    const invalid = structuredClone(plan);
+    invalid.exercises[0].customExercise!.animations = [{ frames: [] }];
+    await assert.rejects(saveSessionPlan(connection.db, head.id, group.id, eventId, event, invalid, 2, "draft"));
     const updated = await saveCustomExercise(connection.db, coach.id, group.id, created.id, 1, { ...input, title: "Ny tittel" });
     assert.equal(updated.revision, 2);
     await assert.rejects(saveCustomExercise(connection.db, head.id, group.id, created.id, 1, input), /endret av en annen/);
@@ -98,6 +111,7 @@ test("custom exercises persist and remain isolated by team and revision", async 
       assert.equal(savedUpdated?.title, "Ny tittel");
       assert.equal(savedUpdated?.animations.length, 2);
       assert.equal(savedUpdated?.videoUrl, input.videoUrl);
+      assert.deepEqual((await trainingEventDetails(connection.db, admin.id, group.id, eventId)).versions[0].plan.exercises[0].customExercise, snapshot);
       assert.deepEqual(readEquipment(saved.find((item) => item.id === optional.id)?.equipment ?? ""), equipment);
       assert.equal(saved.find((item) => item.id === optional.id)?.ageMin, null);
       assert.equal((await getCustomExercise(connection.db, admin.id, group.id, created.id))?.title, "Ny tittel");

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { videoEmbedUrl } from "../../src/lib/video-embed.ts";
+import { videoEmbedUrl, videoWatchUrl } from "../../src/lib/video-embed.ts";
 import { customExerciseSchema, exerciseThemeSource } from "../../src/lib/custom-exercises.ts";
 import { readEquipment, writeEquipment } from "../../src/lib/exercise-equipment.ts";
 
@@ -11,13 +11,20 @@ const input = { title: "Pasning", description: "", theme: "", themeSource: "", o
   ageMin: 8, ageMax: 9, videoUrl: "", animations: [model.newScene()] };
 
 test("video embedding accepts only supported HTTPS video URLs", () => {
-  assert.equal(videoEmbedUrl("https://youtu.be/dQw4w9WgXcQ?t=10"), "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
-  assert.equal(videoEmbedUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ"), "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
+  assert.equal(videoEmbedUrl("https://youtu.be/dQw4w9WgXcQ?t=10"), "https://www.youtube.com/embed/dQw4w9WgXcQ");
+  assert.equal(videoEmbedUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ"), "https://www.youtube.com/embed/dQw4w9WgXcQ");
+  assert.equal(videoEmbedUrl("https://www.youtube.com/embed/F3PEp1QktkU?si=2HvFJHbZA6hiKJEF"), "https://www.youtube.com/embed/F3PEp1QktkU");
   assert.equal(videoEmbedUrl("https://vimeo.com/12345"), "https://player.vimeo.com/video/12345");
   for (const url of ["https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ", "javascript:alert(1)",
     "https://youtube.com@evil.example/watch?v=dQw4w9WgXcQ", "http://youtu.be/dQw4w9WgXcQ", "https://vimeo.com/nope"]) {
     assert.equal(videoEmbedUrl(url), null);
   }
+});
+
+test("video links open the watch page even when an embed URL was supplied", () => {
+  assert.equal(videoWatchUrl("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"), "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  assert.equal(videoWatchUrl("https://player.vimeo.com/video/12345"), "https://vimeo.com/12345");
+  assert.equal(videoWatchUrl("https://youtube.com.evil.example/embed/dQw4w9WgXcQ"), null);
 });
 
 test("exercise validation checks ages and animation contents", () => {

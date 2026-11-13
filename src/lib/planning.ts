@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { minutesBetween, timeRangeSchema } from "./validation.ts";
+import { customExerciseSchema } from "./custom-exercises.ts";
 
 export const NFF_SOURCE = "https://www.fotball.no/barn-og-ungdom/";
 export const yearSchema = z.coerce.number().int().min(2000).max(2100);
@@ -94,7 +95,7 @@ export function shortSessionSummary(theme: string | undefined, exercises: Pick<E
   }
   return parts.join(" ") || "Tema og øvelser er ikke oppgitt.";
 }
-export const exerciseSchema = z.object({
+const exerciseFields = {
   id: z.uuid(),
   stage: z.enum(["warmup", "theme", "game", "closing"]),
   title: z.string().trim().min(1).max(150),
@@ -107,12 +108,16 @@ export const exerciseSchema = z.object({
   assignedPlayers: optionalCount, coaches: optionalCount,
   balls: optionalCount, reserveBalls: optionalCount, smallGoals: optionalCount, largeGoals: optionalCount,
   noSpecialResources: z.boolean().optional(),
-}).superRefine((exercise, context) => {
+};
+const checkExerciseResources = (exercise: { noSpecialResources?: boolean; simultaneousGroups: number | null; balls: number | null;
+  reserveBalls: number | null; smallGoals: number | null; largeGoals: number | null }, context: z.RefinementCtx) => {
   if (exercise.noSpecialResources && [exercise.simultaneousGroups, exercise.balls, exercise.reserveBalls, exercise.smallGoals, exercise.largeGoals]
     .some((value) => value !== null && value > 0)) {
     context.addIssue({ code: "custom", path: ["noSpecialResources"], message: "Fjern gruppe- og utstyrstall før du markerer at ingen særskilt gruppeinndeling eller utstyr trengs." });
   }
-});
+};
+export const aiExerciseSchema = z.object(exerciseFields).superRefine(checkExerciseResources);
+export const exerciseSchema = z.object({ ...exerciseFields, customExercise: customExerciseSchema.optional() }).superRefine(checkExerciseResources);
 export const sessionPlanSchema = z.object({
   schemaVersion: z.literal(1),
   introduction: text,

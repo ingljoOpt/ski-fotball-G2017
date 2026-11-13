@@ -9,6 +9,24 @@ import { completePlan } from "./planning-fixtures.ts";
 import { birthYearSchema, formatTimeRange, settingsSchema, timeRangeSchema } from "../../src/lib/validation.ts";
 import { defaultPlanningPriorities, planningPrioritiesSchema } from "../../src/lib/planning-priorities.ts";
 import { differentiationCounts, differentiationSchema } from "../../src/lib/differentiation.ts";
+import { exerciseResourceDetails } from "../../src/lib/session-exercise-resources.ts";
+import { writeEquipment } from "../../src/lib/exercise-equipment.ts";
+
+test("exercise resource display requires equipment and excludes unknown values", () => {
+  const exercise = completePlan().exercises[0];
+  const noEquipment = { ...exercise, balls: null, reserveBalls: null, smallGoals: 0, largeGoals: null, sourceUrl: "https://tiim.no/" };
+  assert.equal(exerciseResourceDetails(noEquipment).hasEquipment, false);
+  const details = exerciseResourceDetails({ ...noEquipment, balls: 3, coaches: 0 });
+  assert.equal(details.hasEquipment, true);
+  assert.deepEqual(details.rows, [
+    { label: "Samtidige grupper", value: 2 }, { label: "Spillere fordelt", value: 12 }, { label: "Trenere", value: 0 },
+    { label: "Aktive baller", value: 3 }, { label: "Småmål", value: 0 },
+  ]);
+  const customExercise = { title: "Test", description: "", objectives: "", theme: "", themeSource: "", ageMin: null, ageMax: null,
+    videoUrl: "", animations: [], equipment: writeEquipment({ legacy: "", items: [{ type: "balls", name: "", count: "2" }] }) };
+  assert.equal(exerciseResourceDetails({ ...noEquipment, customExercise }).hasEquipment, true);
+  assert.equal(exerciseResourceDetails({ ...noEquipment, customExercise: { ...customExercise, equipment: "  " } }).hasEquipment, false);
+});
 
 test("short session summary uses known theme and exercises and remains bounded", () => {
   assert.equal(shortSessionSummary("Dribling", [{ title: "Stafett" }, { title: "Smålagsspill" }]),

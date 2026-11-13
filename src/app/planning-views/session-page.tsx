@@ -20,6 +20,8 @@ import { listSessionReviews } from "@/lib/session-review-domain";
 import { sessionHasEnded } from "@/lib/session-review";
 import { SessionReviewForm } from "@/app/session-review-form";
 import { SessionAdvancedTabs } from "@/app/session-advanced-tabs";
+import { listCustomExercises } from "@/lib/custom-exercise-domain";
+import { getExerciseTopics } from "@/lib/nff-curriculum";
 
 export default async function TrainingSession({ params, searchParams }: {
   params: Promise<{ groupId: string; eventId: string }>; searchParams: SearchParams;
@@ -48,6 +50,7 @@ export default async function TrainingSession({ params, searchParams }: {
   const ended = sessionHasEnded(event);
   const canReview = event.status !== "cancelled" && latest && ended;
   const canEdit = event.status !== "cancelled" && !ended;
+  const [ownExercises, topics] = canEdit ? await Promise.all([listCustomExercises(db, user.id, groupId), getExerciseTopics()]) : [[], []];
   const ageLabel = context.birthYear === null ? "Årskull ikke oppgitt" : nffAgeSource(context.year, context.birthYear).label;
   const versionLabel = latest ? `Planversjon ${latest.version} · Oppdatert ${new Intl.DateTimeFormat("nb-NO", {
     dateStyle: "short", timeStyle: "short", timeZone: "Europe/Oslo",
@@ -59,7 +62,7 @@ export default async function TrainingSession({ params, searchParams }: {
     <Notices searchParams={searchParams} />
     {canEdit ? <SessionPlanEditor key={event.revision} groupId={groupId} eventId={eventId} revision={event.revision} initialEvent={event}
       groupName={details.group.name} statusLabel={eventStatusLabels[event.status]} versionLabel={versionLabel}
-      coaches={details.coaches} ageLabel={ageLabel} initialPlan={latest?.plan ?? { ...emptySessionPlan(), coachIds: latestVersion?.plan.coachIds, expectedPlayers: latestVersion?.plan.expectedPlayers ?? null, confirmedCoaches: latestVersion?.plan.confirmedCoaches ?? null }}
+      coaches={details.coaches} ageLabel={ageLabel} basePath={basePath} ownExercises={ownExercises} topics={topics} initialPlan={latest?.plan ?? { ...emptySessionPlan(), coachIds: latestVersion?.plan.coachIds, expectedPlayers: latestVersion?.plan.expectedPlayers ?? null, confirmedCoaches: latestVersion?.plan.confirmedCoaches ?? null }}
       initialDraft={query.initialDraft === "1" && (!latest || (latest.version === 1 && latest.plan.exercises.length === 0))} />
       : <><SessionToolbar /><SessionHeading groupName={details.group.name} event={event} status={eventStatusLabels[event.status]} version={versionLabel} />
         {latest ? <SessionPlanView plan={latest.plan} coaches={details.coaches} durationMinutes={event.durationMinutes} theme={event.theme} objectives={event.objectives}

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eventSchema, exerciseSchema, sessionPlanSchema, checkSessionPlan } from "./planning.ts";
+import { eventSchema, aiExerciseSchema, sessionPlanSchema, checkSessionPlan } from "./planning.ts";
 import { idSchema } from "./validation.ts";
 
 export const aiDraftSchema = z.object({ event: eventSchema, plan: sessionPlanSchema });
@@ -17,7 +17,7 @@ const aiCount = z.number().int().min(0).max(500).nullable();
 const aiPlanSchema = z.object(sessionPlanSchema.shape).omit({ coachIds: true, coachIdsForExercises: true, coachAttendanceConfirmed: true,
   availableBalls: true, availableSmallGoals: true, availableLargeGoals: true, equipmentConfirmed: true, assumptions: true, coachRoles: true }).extend({
   expectedPlayers: aiCount, confirmedCoaches: aiCount,
-  exercises: z.array(exerciseSchema.safeExtend({
+  exercises: z.array(aiExerciseSchema.safeExtend({
     simultaneousGroups: aiCount, assignedPlayers: aiCount, coaches: aiCount, balls: aiCount,
     reserveBalls: aiCount, smallGoals: aiCount, largeGoals: aiCount,
   })).max(30),
@@ -78,7 +78,11 @@ export function prepareAIProposal(input: unknown, base: AIDraft, sources: {
       exercise.sourceCheckedOn = source.sourceCheckedOn;
     }
   }
-  const plan = sessionPlanSchema.parse({ ...proposal.plan, availableBalls: base.plan.availableBalls, availableSmallGoals: base.plan.availableSmallGoals,
+  const exercises = proposal.plan.exercises.map((exercise) => {
+    const saved = base.plan.exercises.find((existing) => existing.id === exercise.id)?.customExercise;
+    return saved ? { ...exercise, customExercise: { ...saved, title: exercise.title, description: exercise.description, objectives: exercise.objectives } } : exercise;
+  });
+  const plan = sessionPlanSchema.parse({ ...proposal.plan, exercises, availableBalls: base.plan.availableBalls, availableSmallGoals: base.plan.availableSmallGoals,
     availableLargeGoals: base.plan.availableLargeGoals, equipmentConfirmed: base.plan.equipmentConfirmed, assumptions: base.plan.assumptions, coachRoles: base.plan.coachRoles,
     ...(base.plan.coachIds ? { coachIds: base.plan.coachIds } : {}),
     ...(base.plan.coachIdsForExercises ? { coachIdsForExercises: base.plan.coachIdsForExercises } : {}),

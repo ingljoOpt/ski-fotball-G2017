@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 import { z } from "zod";
 import { createAgentUIStreamResponse } from "ai";
 import { createSessionAgent } from "../../src/lib/session-agent.ts";
@@ -7,6 +8,8 @@ import { aiConfiguration, aiProposalInputSchema, aiRequestSchema, chatTextMessag
 import { aiDraft, aiProposal, mockSessionModel } from "./session-ai-fixtures.ts";
 import type { sessionAIContext } from "../../src/lib/session-ai-context.ts";
 import { defaultPlanningPriorities } from "../../src/lib/planning-priorities.ts";
+
+const animationModel = createRequire(import.meta.url)("../../publiserte/assets/taktikk-rediger-modell.js");
 
 test("AI setup requires server credentials and a Gateway model address", () => {
   assert.throws(() => aiConfiguration({}), /AI_GATEWAY_API_KEY/);
@@ -72,6 +75,26 @@ test("AI does not request or overwrite legacy coach roles", () => {
   assert.equal(prepareAIProposal(input, base, []).draft.plan.coachRoles, "Eksisterende notat");
   assert.equal(prepareAIProposal({ ...proposal, plan: { ...proposal.plan, coachRoles: "AI-endring" } }, base, []).draft.plan.coachRoles, "Eksisterende notat");
   assert.ok(!prepareAIProposal(input, { ...base, plan: { ...base.plan, coachRoles: "" } }, []).warnings.some((warning) => warning.includes("Trenerroller")));
+});
+
+test("AI preserves saved exercise details for retained IDs without accepting generated metadata", () => {
+  const proposal = aiProposal();
+  const customExercise = { title: "Lagret", description: "Beskrivelse", objectives: "Mål", theme: "Pasning",
+    themeSource: "", ageMin: 8, ageMax: 9, videoUrl: "https://vimeo.com/12345", equipment: "Kjegler",
+    animations: [animationModel.newScene()] };
+  const base = { ...aiDraft(), plan: structuredClone(proposal.plan) };
+  base.plan.exercises[0].customExercise = customExercise;
+  const originalId = base.plan.exercises[0].id;
+  proposal.plan.exercises[0].description = "Ny beskrivelse";
+  const result = prepareAIProposal(proposal, base, []);
+  assert.deepEqual(result.draft.plan.exercises[0].customExercise, { ...customExercise, title: proposal.plan.exercises[0].title,
+    description: "Ny beskrivelse", objectives: proposal.plan.exercises[0].objectives });
+  assert.equal(base.plan.exercises[0].customExercise?.description, "Beskrivelse");
+  assert.equal("customExercise" in aiProposalInputSchema.parse({ ...proposal,
+    plan: { ...proposal.plan, exercises: [{ ...proposal.plan.exercises[0], customExercise }] } }).plan.exercises[0], false);
+  proposal.plan.exercises[0].id = crypto.randomUUID();
+  assert.notEqual(proposal.plan.exercises[0].id, originalId);
+  assert.equal(prepareAIProposal(proposal, base, []).draft.plan.exercises[0].customExercise, undefined);
 });
 
 test("new AI exercises default to planned participation without changing explicit or existing counts", () => {

@@ -25,6 +25,8 @@ const fieldLabels: Record<string, string> = {
   sourceCheckedOn: "Kilde kontrollert", simultaneousGroups: "Samtidige grupper", assignedPlayers: "Tildelte spillere",
   coaches: "Trenere", balls: "Baller", reserveBalls: "Reserveballer", smallGoals: "Små mål", largeGoals: "Store mål",
   noSpecialResources: "Ingen særskilt gruppeinndeling eller utstyr",
+  customExercise: "Egen øvelse", themeSource: "Temakilde", ageMin: "Alder fra", ageMax: "Alder til",
+  videoUrl: "Videolenke", equipment: "Utstyr per gruppe", animations: "Animasjoner",
   year: "Planår", startDate: "Fra dato", endDate: "Til dato", schemaVersion: "Skjemaversjon",
 };
 const statusLabels: Record<string, string> = { draft: "Øktplan", planned: "Øktplan", cancelled: "Avlyst" };
@@ -32,7 +34,7 @@ const statusLabels: Record<string, string> = { draft: "Øktplan", planned: "Økt
 function flatten(value: unknown, path = "", result: Record<string, unknown> = {}) {
   if ((value === null || value === undefined) && !path) return result;
   if (Array.isArray(value)) {
-    if (!value.length) result[path] = value;
+    if (!value.length || path.endsWith(".customExercise.animations")) result[path] = value;
     else value.forEach((item, index) => flatten(item, `${path}.${index + 1}`, result));
   } else if (value && typeof value === "object") {
     const entries = Object.entries(value);
@@ -46,7 +48,7 @@ function formatValue(value: unknown, path: string) {
   if (value === null || value === undefined || value === "") return "Tomt";
   if (typeof value === "boolean") return value ? "Ja" : "Nei";
   if (path.endsWith(".status") && typeof value === "string" && statusLabels[value]) return statusLabels[value];
-  if (Array.isArray(value)) return value.length ? JSON.stringify(value) : "Ingen";
+  if (Array.isArray(value)) return path.endsWith(".customExercise.animations") ? `${value.length} animasjoner` : value.length ? JSON.stringify(value) : "Ingen";
   return String(value);
 }
 

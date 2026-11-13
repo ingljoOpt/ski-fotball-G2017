@@ -9,7 +9,9 @@ import { getNffCurriculum, relevantCurriculum } from "./nff-curriculum.ts";
 import { planningPrioritiesSchema, priorityLabels } from "./planning-priorities.ts";
 
 function exerciseSummary(exercise: Exercise) {
-  return { ...exercise, description: exercise.description.slice(0, 1200), organization: exercise.organization.slice(0, 1200),
+  const { customExercise: _customExercise, ...summary } = exercise;
+  void _customExercise;
+  return { ...summary, description: exercise.description.slice(0, 1200), organization: exercise.organization.slice(0, 1200),
     objectives: exercise.objectives.slice(0, 800), coachingPoints: exercise.coachingPoints.slice(0, 800),
     easier: exercise.easier.slice(0, 500), harder: exercise.harder.slice(0, 500), localAdaptations: exercise.localAdaptations.slice(0, 500) };
 }

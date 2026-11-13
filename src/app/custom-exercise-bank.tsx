@@ -4,7 +4,8 @@ import { useActionState, useEffect, useId, useRef, useState, type ReactNode } fr
 import { useRouter } from "next/navigation";
 import { Pause, Play, RotateCcw, Trash2 } from "lucide-react";
 import type { customExercises } from "@/db/schema";
-import { videoEmbedUrl } from "@/lib/video-embed";
+import { customExerciseSchema, exerciseThemeSource, type CustomExerciseInput } from "@/lib/custom-exercises";
+import { videoEmbedUrl, videoWatchUrl } from "@/lib/video-embed";
 import { equipmentTypes, readEquipment, writeEquipment, type EquipmentItem } from "@/lib/exercise-equipment";
 import tacticBoard from "../../publiserte/assets/taktikk.js";
 import { saveOwnExercise } from "./actions";
@@ -99,16 +100,37 @@ export function CustomExerciseBank({ groupId, basePath, exercises, topics }: {
 }
 
 export function ExerciseReader({ exercise, basePath }: { exercise: Exercise; basePath: string }) {
+  return <section className="own-exercise-reader" aria-label="Øvelsesbeskrivelse">
+    <a href={`${basePath}/ovelser`}>← Til egne øvelser</a>
+    <ExerciseContent exercise={exercise} />
+  </section>;
+}
+
+export function ExerciseContent({ exercise }: { exercise: CustomExerciseInput }) {
+  return <>
+    {exercise.description && <><h2>Beskrivelse</h2><p className="exercise-description">{exercise.description}</p></>}
+    {exercise.objectives && <><h2>Øvingsmål</h2><p className="exercise-description">{exercise.objectives}</p></>}
+    <ExerciseExtras exercise={exercise} />
+  </>;
+}
+
+function ExerciseVideo({ videoUrl, title }: { videoUrl: string; title: string }) {
+  const embedUrl = videoEmbedUrl(videoUrl);
+  if (!embedUrl) return null;
+  return <><iframe className="exercise-video" title={title} src={embedUrl}
+    allow={embedUrl.startsWith("https://www.youtube.com/") ? "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" : "picture-in-picture"}
+    allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+    <a className="exercise-video-link" href={videoWatchUrl(videoUrl) ?? undefined} target="_blank" rel="noopener noreferrer">Åpne videoen i en ny fane</a></>;
+}
+
+export function ExerciseExtras({ exercise }: { exercise: CustomExerciseInput }) {
   const [showVideo, setShowVideo] = useState(false);
   const embedUrl = videoEmbedUrl(exercise.videoUrl);
   const equipment = readEquipment(exercise.equipment);
-  return <section className="own-exercise-reader" aria-label="Øvelsesbeskrivelse">
-    <a href={`${basePath}/ovelser`}>← Til egne øvelser</a>
+  return <>
     {ageLabel(exercise.ageMin, exercise.ageMax) && <p><strong>Alder:</strong> {ageLabel(exercise.ageMin, exercise.ageMax)}</p>}
     {exercise.theme && <p><strong>Tema:</strong> {exercise.theme} {exercise.themeSource &&
       <a href={exercise.themeSource} target="_blank" rel="noreferrer">NFF-kilde</a>}</p>}
-    {exercise.description && <><h2>Beskrivelse</h2><p className="exercise-description">{exercise.description}</p></>}
-    {exercise.objectives && <><h2>Øvingsmål</h2><p className="exercise-description">{exercise.objectives}</p></>}
     {exercise.equipment && <section><h2>Utstyrskrav</h2>
       {equipment === null && <p role="alert">Det lagrede utstyret kunne ikke leses. Råteksten vises nedenfor.</p>}
       {(equipment?.legacy || equipment === null) && <p className="exercise-description">{equipment?.legacy ?? exercise.equipment}</p>}
@@ -123,33 +145,36 @@ export function ExerciseReader({ exercise, basePath }: { exercise: Exercise; bas
       <ActionButton type="button" variant="secondary" onPress={() => setShowVideo(!showVideo)}>
         {showVideo ? "Skjul video" : "Vis video"}
       </ActionButton>
-      {showVideo && <iframe className="exercise-video" title={`Video: ${exercise.title}`}
-        src={embedUrl} allow="picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />}
+      {showVideo && <ExerciseVideo videoUrl={exercise.videoUrl} title={`Video: ${exercise.title}`} />}
     </section>}
-  </section>;
+  </>;
 }
 
-export function ExerciseForm({ groupId, basePath, exercise, topics, close }: {
+export function ExerciseForm({ groupId, basePath, exercise, topics, close, session }: {
   groupId: string; basePath: string; exercise?: Exercise; topics: Topic[]; close?: () => void;
+  session?: { initial?: CustomExerciseInput; durationMinutes: number; onSave: (content: CustomExerciseInput, durationMinutes: number) => boolean;
+    onCancel: () => void; onBack?: () => void };
 }) {
+  const initial = session?.initial ?? exercise;
   const [values, setValues] = useState({
-    title: exercise?.title ?? "", description: exercise?.description ?? "", theme: exercise?.theme ?? "",
-    objectives: exercise?.objectives ?? "", ageMin: exercise?.ageMin?.toString() ?? "",
-    ageMax: exercise?.ageMax?.toString() ?? "", videoUrl: exercise?.videoUrl ?? "",
+    title: initial?.title ?? "", description: initial?.description ?? "", theme: initial?.theme ?? "",
+    objectives: initial?.objectives ?? "", ageMin: initial?.ageMin?.toString() ?? "",
+    ageMax: initial?.ageMax?.toString() ?? "", videoUrl: initial?.videoUrl ?? "",
   });
-  const [equipment] = useState(() => readEquipment(exercise?.equipment ?? ""));
-  const [equipmentLegacy, setEquipmentLegacy] = useState(equipment?.legacy ?? exercise?.equipment ?? "");
-  const [showEquipmentLegacy, setShowEquipmentLegacy] = useState(Boolean(exercise?.equipment && (equipment === null || equipment.legacy)));
+  const [durationMinutes, setDurationMinutes] = useState(session?.durationMinutes ?? 10);
+  const [equipment] = useState(() => readEquipment(initial?.equipment ?? ""));
+  const [equipmentLegacy, setEquipmentLegacy] = useState(equipment?.legacy ?? initial?.equipment ?? "");
+  const [showEquipmentLegacy, setShowEquipmentLegacy] = useState(Boolean(initial?.equipment && (equipment === null || equipment.legacy)));
   const [equipmentWarning, setEquipmentWarning] = useState(equipment === null);
   const [equipmentItems, setEquipmentItems] = useState(() => (equipment?.items ?? []).map((item, id) => ({ ...item, id })));
   const nextEquipmentId = useRef(equipmentItems.length);
   const equipmentFocus = useRef<{ id: number } | { type: EquipmentItem["type"] } | null>(null);
-  const [animations, setAnimations] = useState<unknown[]>(exercise?.animations ?? []);
+  const [animations, setAnimations] = useState<unknown[]>(initial?.animations ?? []);
   const [visible, setVisible] = useState<OptionalField[]>(() => [
-    ...(exercise?.theme ? ["theme" as const] : []), ...(exercise?.objectives ? ["objectives" as const] : []),
-    ...(exercise && (exercise.ageMin !== null || exercise.ageMax !== null) ? ["age" as const] : []),
-    ...(exercise?.videoUrl ? ["video" as const] : []),
-    ...(exercise?.equipment ? ["equipment" as const] : []),
+    ...(initial?.theme ? ["theme" as const] : []), ...(initial?.objectives ? ["objectives" as const] : []),
+    ...(initial && (initial.ageMin !== null || initial.ageMax !== null) ? ["age" as const] : []),
+    ...(initial?.videoUrl ? ["video" as const] : []),
+    ...(initial?.equipment ? ["equipment" as const] : []),
   ]);
   const [showVideo, setShowVideo] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
@@ -160,6 +185,16 @@ export function ExerciseForm({ groupId, basePath, exercise, topics, close }: {
   const topicListId = useId();
   const confirmedNavigation = useRef(false);
   const [state, action, pending] = useActionState(async (previous: { message: string; saved: boolean; id: string; revision: number }, form: FormData) => {
+    if (session) {
+      const parsed = customExerciseSchema.safeParse({
+        ...values, themeSource: exerciseThemeSource(values.theme.trim(), initial ?? null, topics), animations,
+        equipment: visible.includes("equipment")
+          ? writeEquipment({ legacy: equipmentLegacy, items: equipmentItems.map(({ type, name, count }) => ({ type, name, count })) }) : "",
+      });
+      if (!parsed.success) return { ...previous, saved: false, message: parsed.error.issues.map((issue) => issue.message).join(" ") };
+      if (session.onSave(parsed.data, durationMinutes)) setDirty(false);
+      return { ...previous, saved: false, message: "" };
+    }
     const result = await saveOwnExercise(previous, form);
     if (result.saved) setDirty(false);
     return result;
@@ -167,14 +202,14 @@ export function ExerciseForm({ groupId, basePath, exercise, topics, close }: {
   const router = useRouter();
 
   useEffect(() => {
-    if (!exercise && dialog.current && !dialog.current.open) dialog.current.showModal();
-  }, [exercise]);
+    if (!session && !exercise && dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, [exercise, session]);
   useEffect(() => {
-    if (state.saved) {
+    if (!session && state.saved) {
       if (!exercise?.id) window.location.replace(`${basePath}/ovelser/${state.id}`);
       else router.refresh();
     }
-  }, [state, router, exercise?.id, basePath]);
+  }, [state, router, exercise?.id, basePath, session]);
   useEffect(() => {
     function warn(event: BeforeUnloadEvent) { if (!confirmedNavigation.current && (dirty || editing !== null)) event.preventDefault(); }
     window.addEventListener("beforeunload", warn);
@@ -225,20 +260,24 @@ export function ExerciseForm({ groupId, basePath, exercise, topics, close }: {
     setVisible((current) => current.filter((item) => item !== field));
     setDirty(true);
   }
-  function closeForm() {
+  function closeForm(back = false) {
     if (pending) return;
     if ((dirty || editing !== null) && !window.confirm("Du kan ha ulagrede endringer. Lukk likevel?")) return;
     dialog.current?.close();
-    close?.();
+    if (back && session?.onBack) session.onBack();
+    else if (session) session.onCancel();
+    else close?.();
   }
   const content = <>
-    <div className="row"><h2 id="own-exercise-title">{exercise ? "Rediger øvelse" : "Ny øvelse"}</h2>
+    <div className="row"><h2 id="own-exercise-title">{exercise || session?.initial ? "Rediger øvelse" : "Ny øvelse"}</h2>
       {exercise ? <a className="button button--md button--secondary" href={`${basePath}/ovelser/${exercise.id}`} onClick={(event) => {
         if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         if ((dirty || editing !== null) && !window.confirm("Du kan ha ulagrede endringer. Lukk likevel?")) event.preventDefault();
         else confirmedNavigation.current = true;
       }}>Tilbake til øvelsen</a> : null}</div>
-    <form ref={form} action={action}>
+    <form ref={form} action={action} onKeyDown={session ? (event) => {
+      if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeForm(); }
+    } : undefined}>
       <fieldset disabled={pending} className="exercise-form-fields">
       <input type="hidden" name="groupId" value={groupId} />
       <input type="hidden" name="id" value={state.id} />
@@ -248,6 +287,8 @@ export function ExerciseForm({ groupId, basePath, exercise, topics, close }: {
         ? writeEquipment({ legacy: equipmentLegacy, items: equipmentItems.map(({ type, name, count }) => ({ type, name, count })) }) : ""} />
       <NativeInput label="Navn på øvelsen" name="title" value={values.title} onChange={(event) => update("title", event.target.value)} autoFocus={!exercise} required maxLength={150} />
       <TextAreaInput label="Beskrivelse" name="description" value={values.description} onChange={(event) => update("description", event.target.value)} maxLength={8000} rows={4} />
+      {session && <NativeInput label="Øvelsens minutter" type="number" min={1} max={240} step={1} required value={durationMinutes}
+        onChange={(event) => { setDurationMinutes(Number(event.target.value)); setDirty(true); }} />}
       {visible.includes("theme") && <OptionalFieldGroup label="Tema" onRemove={() => removeField("theme", "Tema")}><NativeInput label="Tema" name="theme" list={topicListId} value={values.theme} onChange={(event) => update("theme", event.target.value)} maxLength={150} />
         <datalist id={topicListId}>{topics.map((topic) => <option key={topic.theme} value={topic.theme} />)}</datalist>
         <small>Velg et forslag fra tilgjengelige NFF-fagplaner, eller skriv inn eget tema.</small></OptionalFieldGroup>}
@@ -259,7 +300,7 @@ export function ExerciseForm({ groupId, basePath, exercise, topics, close }: {
       {visible.includes("video") && <OptionalFieldGroup label="Innbyggingslenke" onRemove={() => removeField("video", "Innbyggingslenke")}><NativeInput label="Videolenke fra YouTube eller Vimeo" name="videoUrl" type="url" maxLength={2000}
         value={values.videoUrl} onChange={(event) => { update("videoUrl", event.target.value); setShowVideo(false); }} />
         {videoEmbedUrl(values.videoUrl) && <><ActionButton type="button" variant="secondary" onPress={() => setShowVideo(!showVideo)}>{showVideo ? "Skjul forhåndsvisning" : "Vis forhåndsvisning"}</ActionButton>
-          {showVideo && <iframe className="exercise-video" title="Forhåndsvisning av video" src={videoEmbedUrl(values.videoUrl) ?? undefined} allow="picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />}</>}</OptionalFieldGroup>}
+          {showVideo && <ExerciseVideo videoUrl={values.videoUrl} title="Forhåndsvisning av video" />}</>}</OptionalFieldGroup>}
       {visible.includes("equipment") && <OptionalFieldGroup label="Utstyrskrav" onRemove={() => removeField("equipment", "Utstyrskrav")}>
         <fieldset><legend>Utstyrskrav</legend>
           <p>Oppgi antall per gruppe i øvelsen.</p>
@@ -330,13 +371,14 @@ export function ExerciseForm({ groupId, basePath, exercise, topics, close }: {
               else setVisible((current) => [...current, key]);
             }}>+ {label}</button>)}
       </div>
-      <div className="exercise-form-actions"><SubmitButton isDisabled={editing !== null}>Lagre øvelse</SubmitButton>
-        {!exercise && <ActionButton type="button" variant="secondary" isDisabled={pending} onPress={closeForm}>Lukk</ActionButton>}</div>
+      <div className="exercise-form-actions"><SubmitButton isDisabled={editing !== null}>{session ? "Bruk i øktplan" : "Lagre øvelse"}</SubmitButton>
+        {session?.onBack && <ActionButton type="button" variant="secondary" isDisabled={pending} onPress={() => closeForm(true)}>Velg en annen øvelse</ActionButton>}
+        {(!exercise || session) && <ActionButton type="button" variant="secondary" isDisabled={pending} onPress={() => closeForm()} data-close-session-exercise={session ? "" : undefined}>Lukk</ActionButton>}</div>
       {editing !== null && <small>Lagre eller avbryt animasjonsredigeringen før du lagrer øvelsen.</small>}
       </fieldset>
     </form>
   </>;
-  return exercise ? <section className="custom-exercise-form" aria-labelledby="own-exercise-title">{content}</section>
+  return exercise || session ? <section className="custom-exercise-form" aria-labelledby="own-exercise-title">{content}</section>
     : <dialog ref={dialog} className="training-time-dialog custom-exercise-form custom-exercise-dialog" aria-labelledby="own-exercise-title"
       onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); closeForm(); } }}
       onCancel={(event) => { event.preventDefault(); closeForm(); }}>{content}</dialog>;

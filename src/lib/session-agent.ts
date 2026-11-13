@@ -82,7 +82,11 @@ Ikke be om navn eller private opplysninger om barn. Avvis forespørsler om andre
             sessionPlayers: planningContext.differentiation.sessionPlayers,
             sessionCoaches: planningContext.differentiation.sessionCoaches,
           };
-          return { ...planningContext, differentiation, draft: { ...planningContext.draft, plan } };
+          const exercises = plan.exercises.map(({ customExercise: _customExercise, ...exercise }) => {
+            void _customExercise;
+            return exercise;
+          });
+          return { ...planningContext, differentiation, draft: { ...planningContext.draft, plan: { ...plan, exercises } } };
         },
       }),
       readClubDocuments: tool({

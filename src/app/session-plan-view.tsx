@@ -3,6 +3,8 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { AppLink, Chip } from "./ui";
 import { formatDate } from "./planning-components";
 import type { ReactNode } from "react";
+import { ExerciseContent } from "./custom-exercise-bank";
+import { exerciseResourceDetails } from "@/lib/session-exercise-resources";
 
 export type EditSection = "rammer" | "introduksjon" | "deltakere" | "ovingsmal";
 
@@ -73,7 +75,9 @@ export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, ob
         {onAdd && <button type="button" data-add-section={section.title} title={`Legg til øvelse i ${section.title}`} aria-label={`Legg til øvelse i ${section.title}`}
           disabled={addDisabled} onClick={(event) => onAdd(section.title === "Oppvarming" ? "warmup" : section.title === "Avslutning" ? "closing" : "theme", section.insertAt, event.currentTarget)}><Plus size={17} aria-hidden="true" /></button>}
       </div></div>
-      {section.exercises.map(({ exercise, from, index }) => <article className="session-exercise" id={`${idPrefix}-ovelse-${exercise.id}`} key={exercise.id}>
+      {section.exercises.map(({ exercise, from, index }) => {
+        const resources = exerciseResourceDetails(exercise);
+        return <article className="session-exercise" id={`${idPrefix}-ovelse-${exercise.id}`} key={exercise.id}>
         <header className="exercise-heading">
           <div><small>{index + 1}. {stageLabels[exercise.stage]}</small><h3>{exercise.title}</h3></div>
           <div className="session-item-actions"><span className="exercise-duration">{exercise.durationMinutes} min<small>{from}–{from + exercise.durationMinutes} min</small></span>
@@ -83,8 +87,10 @@ export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, ob
         </header>
         <div className="exercise-body">
           {exerciseEditor?.(exercise.id) || <>
-          <p className="preserve-lines">{exercise.description || "Gjennomføring er ikke beskrevet ennå."}</p>
-          <details className="exercise-guidance">
+          {exercise.customExercise ? <div className="own-exercise-reader">
+            <ExerciseContent exercise={{ ...exercise.customExercise, title: exercise.title, description: exercise.description, objectives: exercise.objectives }} />
+          </div> : <p className="preserve-lines">{exercise.description || "Gjennomføring er ikke beskrevet ennå."}</p>}
+          {(!exercise.customExercise || exercise.organization || exercise.coachingPoints || exercise.easier || exercise.harder || exercise.localAdaptations) && <details className="exercise-guidance">
             <summary>Målsetting, læringsmomenter, organisering og variasjoner</summary>
             <div className="exercise-guidance-grid">
               {([
@@ -97,20 +103,18 @@ export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, ob
               </section>
               {exercise.localAdaptations && <section><h4>Lokale tilpasninger</h4><p className="preserve-lines">{exercise.localAdaptations}</p></section>}
             </div>
-          </details>
-          {(exercise.sourceUrl || (!exercise.noSpecialResources && [exercise.simultaneousGroups, exercise.assignedPlayers, exercise.coaches, exercise.balls, exercise.reserveBalls, exercise.smallGoals, exercise.largeGoals].some((value) => value !== null))) && <details className="exercise-guidance">
+          </details>}
+          {resources.hasEquipment && (resources.rows.length > 0 || exercise.sourceUrl) && <details className="exercise-guidance">
             <summary>Grupper, utstyr og kilde</summary>
-            {!exercise.noSpecialResources && [exercise.simultaneousGroups, exercise.assignedPlayers, exercise.coaches, exercise.balls, exercise.reserveBalls, exercise.smallGoals, exercise.largeGoals].some((value) => value !== null) && <dl className="exercise-resources">{([
-              ["simultaneousGroups", "Samtidige grupper"], ["assignedPlayers", "Spillere fordelt"], ["coaches", "Trenere"],
-              ["balls", "Aktive baller"], ["reserveBalls", "Reserveballer"], ["smallGoals", "Småmål"], ["largeGoals", "Store mål"],
-            ] as const).map(([field, label]) => <div key={field}><dt>{label}</dt><dd>{exercise[field] ?? "Uavklart"}</dd></div>)}</dl>}
+            {resources.rows.length > 0 && <dl className="exercise-resources">{resources.rows.map(({ label, value }) =>
+              <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
             {exercise.sourceUrl ? <p><AppLink href={exercise.sourceUrl}>Åpne øvelseskilden →</AppLink><br />
               <small>Oppgitt aldersmerking: {exercise.sourceAge || "ikke registrert"} · kontrollert av trener: {exercise.sourceCheckedOn || "ikke registrert"}.</small></p>
               : null}
           </details>}
           </>}
         </div>
-      </article>)}
+      </article>; })}
     </section>)}
     {showLegacy && (plan.assumptions || plan.equipmentConfirmed || plan.availableBalls !== null || plan.availableSmallGoals !== null || plan.availableLargeGoals !== null) && <div className="session-coach-notes">
       <section>
