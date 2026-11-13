@@ -69,12 +69,15 @@ test("team coaches can plan without accounts and gain access only by accepting a
       await assert.rejects(createTrainingEvent(db, admin.id, sibling.id, input, null, false, "", [offline]), /medlemmer/);
     });
 
-    await t.test("email can be added later; changes revoke invitations and names remain editable", async () => {
+    await t.test("email can be added later but cannot be changed or removed; names remain editable", async () => {
+      await saveCoach(db, head.id, group.id, { name: "Uten e-post", email: "" }, offline);
       await saveCoach(db, head.id, group.id, { name: "Endret testtrener", email: "offline@example.invalid" }, offline);
+      await assert.rejects(saveCoach(db, head.id, group.id, { name: "Feil navn", email: "annen@example.invalid" }, offline), /kan ikke endres eller fjernes/);
       const invitation = await inviteRegisteredCoach(db, head.id, group.id, offline);
-      await saveCoach(db, head.id, group.id, { name: "Endret testtrener", email: "" }, offline);
+      await assert.rejects(saveCoach(db, head.id, group.id, { name: "Feil navn", email: "" }, offline), /kan ikke endres eller fjernes/);
       assert.equal((await db.select().from(invitations).where(eq(invitations.tokenHash,
-        hashToken(invitation.token)))).length, 0);
+        hashToken(invitation.token)))).length, 1);
+      await saveCoach(db, head.id, group.id, { name: "Endret testtrener", email: "OFFLINE@example.invalid" }, offline);
       const selected = (await trainingEventDetails(db, head.id, group.id, eventId)).versions[0];
       assert.deepEqual(selected.plan.coachIds, [offline]);
       assert.equal((await sessionCoaches(db, group.id)).find((coach) => coach.id === offline)?.name, "Endret testtrener");
@@ -97,7 +100,8 @@ test("team coaches can plan without accounts and gain access only by accepting a
         { id: joining, name: "Invitert testtrener", email: guest.email, userId: guest.id, role: "coach" });
       assert.ok((await sessionCoaches(db, group.id)).some((coach) => coach.id === joining));
       await assert.rejects(inviteRegisteredCoach(db, head.id, group.id, joining), /allerede tilgang/);
-      await assert.rejects(saveCoach(db, head.id, group.id, { name: "Test", email: "" }, joining), /kan ikke endres/);
+      await assert.rejects(saveCoach(db, head.id, group.id, { name: "Test", email: "" }, joining), /kan ikke endres eller fjernes/);
+      await assert.rejects(saveCoach(db, head.id, group.id, { name: "Test", email: "ny@example.invalid" }, joining), /kan ikke endres eller fjernes/);
       await saveCoach(db, head.id, group.id, { name: "Nytt navn", email: guest.email }, joining);
     });
 
@@ -106,10 +110,10 @@ test("team coaches can plan without accounts and gain access only by accepting a
       await assert.rejects(removeCoach(db, head.id, group.id, head.id), DomainError);
       await removeCoach(db, head.id, group.id, joining);
       await assert.rejects(getGroupAccess(db, guest.id, group.id), DomainError);
-      await saveCoach(db, head.id, group.id, { name: "Uten konto", email: guest.email }, offline);
+      const [offlineUser] = await db.insert(users).values({ email: "offline@example.invalid" }).returning();
       const invite = await inviteRegisteredCoach(db, head.id, group.id, offline);
       await removeCoach(db, head.id, group.id, offline);
-      await assert.rejects(acceptInvitation(db, guest.id, invite.token), DomainError);
+      await assert.rejects(acceptInvitation(db, offlineUser.id, invite.token), DomainError);
       assert.equal((await sessionCoaches(db, group.id)).length, 2);
       assert.deepEqual((await trainingEventDetails(db, head.id, group.id, eventId)).versions[0].plan.coachIds, [offline]);
       await removeCoach(db, admin.id, group.id, head.id);

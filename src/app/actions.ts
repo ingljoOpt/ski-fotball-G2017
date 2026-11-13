@@ -209,13 +209,28 @@ export async function newCoachInvitation(form: FormData) {
   });
 }
 
-export async function saveTeamCoach(form: FormData) {
+async function saveCoachFromDialog(form: FormData, editing: boolean) {
   const user = await requireUser();
-  return run(`${groupPath(form)}/brukere`, async () => {
-    await saveCoach(await getDatabase(), user.id, field(form, "groupId"),
-      { name: field(form, "name"), email: field(form, "email") }, field(form, "coachId") || undefined);
-    return `${groupPath(form)}/brukere?melding=${encodeURIComponent("Treneren er lagret. App-tilgang krever en akseptert invitasjon.")}`;
-  });
+  try {
+    const db = await getDatabase();
+    const coachId = editing ? idSchema.parse(field(form, "coachId")) : undefined;
+    await saveCoach(db, user.id, field(form, "groupId"), { name: field(form, "name"), email: field(form, "email") }, coachId);
+    revalidatePath(await canonicalDestination(db, user.id, `${groupPath(form)}/brukere`));
+    return { saved: true, message: "" };
+  } catch (error) {
+    if (error instanceof DomainError) return { saved: false, message: error.message };
+    if (error instanceof ZodError) return { saved: false, message: error.issues.map((issue) => issue.message).join(" ") };
+    console.error("Treneren kunne ikke lagres:", error);
+    return { saved: false, message: "Lagringen feilet. Opplysningene er beholdt; prøv igjen." };
+  }
+}
+
+export async function addTeamCoach(form: FormData) {
+  return saveCoachFromDialog(form, false);
+}
+
+export async function updateTeamCoach(form: FormData) {
+  return saveCoachFromDialog(form, true);
 }
 
 export async function deleteTeamCoach(form: FormData) {

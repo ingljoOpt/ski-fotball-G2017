@@ -325,8 +325,8 @@ export async function saveCoach(db: Database, userId: string, groupId: string, i
     const [existing] = coachId ? await tx.select().from(coaches)
       .where(and(eq(coaches.groupId, groupId), eq(coaches.id, coachId))) : [];
     if (coachId && !existing) throw new DomainError("Treneren finnes ikke på laget.");
-    if (existing?.userId && data.email !== existing.email) {
-      throw new DomainError("E-postadressen kan ikke endres etter at treneren har fått app-tilgang.");
+    if (existing && (existing.email || existing.userId) && data.email !== existing.email) {
+      throw new DomainError("E-postadressen kan ikke endres eller fjernes etter lagring. Treneren må fjernes og opprettes på nytt.");
     }
     if (data.email) {
       const [duplicate] = await tx.select({ id: coaches.id }).from(coaches)
@@ -334,10 +334,6 @@ export async function saveCoach(db: Database, userId: string, groupId: string, i
       if (duplicate && duplicate.id !== coachId) throw new DomainError("E-postadressen er allerede registrert på en trener i laget.");
     }
     if (existing) {
-      if (existing.email && existing.email !== data.email) {
-        await tx.delete(invitations).where(and(eq(invitations.groupId, groupId),
-          eq(invitations.email, existing.email), isNull(invitations.acceptedAt)));
-      }
       await tx.update(coaches).set(data).where(and(eq(coaches.groupId, groupId), eq(coaches.id, existing.id)));
       return existing.id;
     }
