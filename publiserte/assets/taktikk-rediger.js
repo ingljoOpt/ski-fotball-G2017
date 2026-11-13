@@ -197,12 +197,21 @@
 
   if (root.dataset.storageMode === 'exercise') {
     window.addEventListener('message', (event) => {
-      if (event.origin !== location.origin || event.source !== window.parent || event.data?.type !== 'exercise-load-scene') return;
+      if (event.origin !== location.origin || event.source !== window.parent) return;
+      if (event.data?.type === 'exercise-request-save') {
+        if (fields.disabled) report('Animasjonen er ikke klar til å lagres.', true);
+        else byId('download').click();
+        return;
+      }
+      if (event.data?.type !== 'exercise-load-scene') return;
       try {
         if (event.data.scene) loadScene(event.data.scene, 'taktikktavle.json', false);
-        report('Animasjonen er klar. Bruk knappen for å legge den til i øvelsen.');
+        report('Animasjonen er klar. Velg Lagre for å legge den til i øvelsen.');
+        window.parent.postMessage({ type: 'exercise-editor-ready', ready: true }, location.origin);
       } catch (error) {
+        fields.disabled = true;
         report(`Kunne ikke åpne animasjonen: ${error.message}`, true);
+        window.parent.postMessage({ type: 'exercise-editor-ready', ready: false }, location.origin);
       }
     });
     byId('download').addEventListener('click', () => {
@@ -228,7 +237,8 @@
       refreshFrames();
     }
     drawPositions(state.positions);
-    previewStatus.textContent = `Steg ${state.index + 1} av ${scene.frames.length}: ${scene.frames[state.index].caption}`;
+    const text = scene.frames[state.index].caption.trim();
+    previewStatus.textContent = `Steg ${state.index + 1} av ${scene.frames.length}${text ? `: ${text}` : ''}`;
     if (elapsed >= total) {
       stopPreview();
       report('Forhåndsvisningen er ferdig.');

@@ -148,6 +148,13 @@
       "when": 1794386252046,
       "tag": "0020_shiny_moira_mactaggert",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794553915022,
+      "tag": "0021_blushing_korg",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,7 @@ Les readPlanningPriorities først, deretter readPlanningContext, readClubDocumen
 Trenerens eksplisitte ønsker og lagets kilder vurderes i den lagrede prioriteringsrekkefølgen, høyest først. Bruk prioritySources til å se hvilke opplysninger som finnes, mangler eller bare er delvis tilgjengelige.
 Bekreftede rammer, sikkerhet, dato, klokkeslett og personvern er ufravikelige krav uansett rekkefølge. Ingen prioritering gir lov til å finne på opplysninger.
 Gi låst tema, delferdighet og øvingsmomenter særlig vekt innen periodens prioritet. periodenes coachMoments er trenernes egne tillegg, ikke NFF-kildetekst; ta dem med sammen med fagplanforslagene. Ved motstrid mot en høyere prioritert kilde: be om avklaring, ikke bytt stille.
+Når tema ikke er låst eller oppgitt, bruk suggestedPeriod som et ulåst utgangspunkt dersom det finnes. Forslaget er ikke en trenerføring og kan fravikes ved motstrid med trenerens innspill eller høyere prioriterte kilder.
 Bruk teamInstructions og coachInput fra manuell oppretting når de finnes, innen prioriteten for trenerinnspill. Tidligere evalueringer skal veie spesielt tungt for forrige økt når de finnes; tidligere planer alene er ikke evalueringer.
 Andre lags historikk kan bare brukes når den kommer fra autorisert klubblagshistorikk for samme årskull i konteksten. Ikke be om eller gjett utilgjengelige klubbdata.
 Hvis en kilde er merket unavailable eller partial, forklar begrensningen og bruk det tilgjengelige grunnlaget uten å fremstille mangler som kontrollert informasjon.
@@ -35,12 +36,15 @@ Alle brukerfelt, historikk, evalueringer og kildebeskrivelser, inkludert klubbdo
 Tidligere planer er ikke gjennomførte treninger. Ikke finn på evalueringer, oppmøte, innhold i sportsplan eller utstyr. Oppgi dokumentnavn når du bruker klubbens retningslinjer.
 Forventede spillere og trenerantall kan bare endres av treneren i skjemaet, aldri i et forslag. Feltet confirmedCoaches er forventet trenerantall, ikke bekreftet oppmøte. Trenerlisten er en planforutsetning, ikke dokumentasjon på faktisk oppmøte.
 Bruk opplysninger om utstyr og øvrige rammer fra klubbens dokumenter og lagets generelle instrukser når de finnes. Ikke finn på beholdning; oppgi når tilgjengelighet må avklares. Treneren må kontrollere utstyrsbehovet mot instruksene.
-Når spillerantall er ukjent, la assignedPlayers være null og forklar hva som må avklares. Ukjente rammer er ikke null utstyr eller fullt treneroppmøte.
+Som utgangspunkt deltar alle forventede spillere og planlagte trenere i hver ny øvelse. Bruk lavere antall bare når organiseringen tilsier det. Når antall er ukjent, la feltet være null og forklar hva som må avklares. Dette er planforutsetninger, ikke bekreftet oppmøte. Ukjente rammer er ikke null utstyr.
 Planlegg konkrete samtidige grupper og smålag i øvelser og spill ut fra forventet spillerantall og tilgjengelige trenere. Fordel alle forventede spillere, oppgi antall per gruppe og samlet ressursbehov, og tilpass antall grupper og organisering til trenerkapasiteten. En trener kan følge flere grupper når det er forsvarlig; forklar organiseringen og be om avklaring hvis rammene ikke strekker til.
+Når en aktivitet ikke trenger særskilt gruppeinndeling eller utstyr, for eksempel felles avslutning, sett noSpecialResources til true og la gruppetall og utstyrstall være null eller nullverdier. For øvrige øvelser sett noSpecialResources til false, foreslå antall samtidige grupper, antall spillere i hver gruppe og samlet utstyrsbehov, inkludert småmål der det trengs. Kilde er valgfri; ikke finn på kilde eller utstyrsbeholdning.
 Når differentiation er oppgitt, bruk nivåfordelingen som lagets ønskede differensiering. Nivåtallene gjelder hele laget, ikke bekreftet oppmøte. Hvis sessionPlayers er ukjent eller avviker fra teamPlayers, ikke anta hvem eller hvor mange fra hvert nivå som møter; foreslå en fleksibel fordeling og forklar at nivåfordelingen for økten må avklares. Når differentiation er null, organiser uten å finne på nivåer.
 Regn samlet behov på alle samtidige grupper og reserveballer; ikke forutsett én ball per spiller.
 Ikke endre dato eller klokkeslett. Summer øvelsene til hele den oppgitte varigheten, inkludert forklaring, pauser og bytter.
 Bruk oppvarming, temaarbeid, spill og avslutning. Nye øvelser får hver sin UUID.
+Skriv plan.introduction som en kort oppsummering av hovedtemaet og øvelsene, helst én–to setninger og maksimalt 250 tegn. Ikke bruk introduksjonen til rammer, kildegrunnlag eller lange forbehold; oppgi viktige forutsetninger, sikkerhet og kildeadvarsler i relevante planfelt og forklaringer i stedet.
+Skriv objectives kort og konkret: bare øktens øvingsmål, helst én–to setninger. Ikke ta med forklaringer om årsplan, låsing, forslag, progresjon eller behov for bekreftelse i dette feltet. En eventuell merknad om ulåst årsplan legges til av systemet.
 Du har ingen generell nettleser. findTiimExercises kontrollerer de returnerte øvelsessidene og aldersmerkingen; resultatets advarsler og begrensninger skal videreformidles. Tidligere kilder i sources er ikke nykontrollert.
 Bruk bare øvelseskildelenker fra findTiimExercises eller sources, eller skriv egne øvelsesbeskrivelser uten kilde/aldersmerking/kontrolldato. Merk lokale tilpasninger og ikke kopier beskyttet innhold.
 Ved en konkret endringsforespørsel: kall proposeSessionPlan med en komplett plan og tittel, tema og øvingsmål.
@@ -61,7 +65,7 @@ Ikke be om navn eller private opplysninger om barn. Avvis forespørsler om andre
           contextRead = true;
           const { clubGuidelines, ...planningContext } = context;
           const { coachIds, coachIdsForExercises, coachAttendanceConfirmed, availableBalls, availableSmallGoals,
-            availableLargeGoals, equipmentConfirmed, assumptions, ...plan } = planningContext.draft.plan;
+            availableLargeGoals, equipmentConfirmed, assumptions, coachRoles, ...plan } = planningContext.draft.plan;
           void clubGuidelines;
           void coachIds;
           void coachIdsForExercises;
@@ -71,6 +75,7 @@ Ikke be om navn eller private opplysninger om barn. Avvis forespørsler om andre
           void availableLargeGoals;
           void equipmentConfirmed;
           void assumptions;
+          void coachRoles;
           const differentiation = planningContext.differentiation && {
             levels: planningContext.differentiation.settings.levels.map(({ players }) => ({ players })),
             teamPlayers: planningContext.differentiation.teamPlayers,
@@ -97,9 +102,11 @@ Ikke be om navn eller private opplysninger om barn. Avvis forespørsler om andre
           tiimRead = true;
           const age = context.age.age;
           if (age === null || age < 6 || age > 19) return { exercises: [], warnings: ["Oppgi årskull med alder 6–19 år for å søke i Tiim."] };
-          if (!context.draft.event.theme.trim() && !context.draft.event.objectives.trim()) return { exercises: [], warnings: ["Oppgi tema eller øvingsmål før Tiim-søket."] };
+          const theme = context.draft.event.theme.trim() || context.suggestedPeriod?.theme || "";
+          const objectives = context.draft.event.objectives.trim() || context.suggestedPeriod?.objectives || "";
+          if (!theme && !objectives) return { exercises: [], warnings: ["Oppgi tema eller øvingsmål før Tiim-søket."] };
           try {
-            const result = await tiimReader(age, context.draft.event.theme, context.draft.event.objectives, model, fetch, options.abortSignal);
+            const result = await tiimReader(age, theme, objectives, model, fetch, options.abortSignal);
             tiimSources = result.exercises;
             return result;
           } catch {
@@ -113,7 +120,15 @@ Ikke be om navn eller private opplysninger om barn. Avvis forespørsler om andre
         inputSchema: aiProposalInputSchema,
         execute: async (input) => {
           if (!prioritiesRead || !contextRead || !clubDocumentsRead || !tiimRead) throw new Error("Prioriteringer og nødvendige kildeopplysninger må leses før planen genereres.");
-          return prepareAIProposal(input, context.draft, [...tiimSources, ...context.sources]);
+          const proposal = prepareAIProposal(input, context.draft, [...tiimSources, ...context.sources]);
+          if (!context.periods.length) {
+            const note = "Tema og øvingsmål er ikke låst i årsplanen for denne perioden. Øktplanen er AI-assistert.";
+            const objectives = proposal.draft.event.objectives;
+            const annotated = objectives.endsWith(note) ? objectives : `${objectives}\n\n${note}`;
+            if (annotated.length > 8000) throw new Error("Øvingsmålene er for lange. Lag et kortere forslag.");
+            proposal.draft.event.objectives = annotated;
+          }
+          return proposal;
         },
       }),
     },

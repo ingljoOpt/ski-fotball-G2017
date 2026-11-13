@@ -24,6 +24,7 @@ const fieldLabels: Record<string, string> = {
   localAdaptations: "Lokale tilpasninger", sourceUrl: "Kildelenke", sourceAge: "Kildealder",
   sourceCheckedOn: "Kilde kontrollert", simultaneousGroups: "Samtidige grupper", assignedPlayers: "Tildelte spillere",
   coaches: "Trenere", balls: "Baller", reserveBalls: "Reserveballer", smallGoals: "Små mål", largeGoals: "Store mål",
+  noSpecialResources: "Ingen særskilt gruppeinndeling eller utstyr",
   year: "Planår", startDate: "Fra dato", endDate: "Til dato", schemaVersion: "Skjemaversjon",
 };
 const statusLabels: Record<string, string> = { draft: "Øktplan", planned: "Øktplan", cancelled: "Avlyst" };

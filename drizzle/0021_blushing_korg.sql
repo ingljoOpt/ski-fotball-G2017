@@ -1,0 +1,5 @@
+ALTER TABLE "custom_exercises" DROP CONSTRAINT "custom_exercise_age_range";--> statement-breakpoint
+ALTER TABLE "custom_exercises" ALTER COLUMN "age_min" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "custom_exercises" ALTER COLUMN "age_max" DROP NOT NULL;--> statement-breakpoint
+ALTER TABLE "custom_exercises" ADD COLUMN "equipment" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "custom_exercises" ADD CONSTRAINT "custom_exercise_age_range" CHECK (("custom_exercises"."age_min" is null or "custom_exercises"."age_min" between 3 and 100) and ("custom_exercises"."age_max" is null or "custom_exercises"."age_max" between 3 and 100) and ("custom_exercises"."age_min" is null or "custom_exercises"."age_max" is null or "custom_exercises"."age_min" <= "custom_exercises"."age_max"));

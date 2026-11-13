@@ -32,7 +32,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ grou
       .replace('data-media-root="{{ \'/media/taktikk/\' | relative_url }}"', `data-media-root="/ingen-mediekilder/" data-storage-mode="${exerciseMode ? "exercise" : "file"}"`)
       .replaceAll(/\{\{ '\/assets\/([^']+)' \| relative_url \}\}/g, "./$1")
       .replace("Last ned JSON-filen og legg den i prosjektet før den kan publiseres.", exerciseMode
-        ? "Bruk animasjonen i øvelsen og lagre deretter øvelsen for å beholde endringene."
+        ? "Lagre animasjonen i øvelsen og lagre deretter øvelsen for å beholde endringene."
         : "Last ned JSON-filen for å lagre arbeidet. Åpne filen her for å fortsette senere. Ingen automatisk lagring eller publisering.")
       .replace(/<label for="editor-filename">Filnavn<\/label>\s*<input id="editor-filename"([^>]*)>/,
         exerciseMode ? '<input id="editor-filename" type="hidden" value="taktikktavle.json">' : '<label for="editor-filename">Filnavn</label><input id="editor-filename"$1>')

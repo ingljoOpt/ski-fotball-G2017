@@ -46,7 +46,8 @@ export async function runScheduledDrafts(db: Database, now = new Date(), generat
   const teams = await db.select({ group: groups, userId: groupMembers.userId }).from(groups)
     .leftJoin(groupMembers, and(eq(groupMembers.groupId, groups.id), eq(groupMembers.role, "head_coach")))
     .where(eq(groups.autoDraftEnabled, true));
-  const candidates: { group: typeof groups.$inferSelect; userId: string; time: typeof trainingTimes.$inferSelect; event: ReturnType<typeof eventSchema.parse> }[] = [];
+  const candidates: { group: typeof groups.$inferSelect; userId: string; time: typeof trainingTimes.$inferSelect | undefined;
+    event: ReturnType<typeof eventSchema.parse>; saved: { id: string; revision: number } | null }[] = [];
   let failed = 0;
   for (const { group, userId } of teams) {
     if (!userId) { failed++; continue; }
@@ -55,10 +56,13 @@ export async function runScheduledDrafts(db: Database, now = new Date(), generat
       for (const year of years) {
         const calendar = await groupCalendar(db, userId, group.id, year);
         for (const event of calendar.entries) {
-          if (!event.virtual || event.date < today || event.date > lastDate ||
+          if ((!event.virtual && event.status !== "no_plan") || event.date < today || event.date > lastDate ||
             (event.date === today && event.startTime <= localTime) || generationDate(event.date, group.generationDaysBefore) > today) continue;
           const time = times.find((item) => item.startTime === event.startTime && item.endTime === event.endTime && item.weekday === weekdayFor(event.date));
-          if (time) candidates.push({ group, userId, time, event: eventSchema.parse(event) });
+          if (event.virtual && !time) continue;
+          if (!event.virtual && !event.id) throw new Error("Lagret trening mangler ID.");
+          candidates.push({ group, userId, time, event: eventSchema.parse(event),
+            saved: event.id ? { id: event.id, revision: event.revision } : null });
         }
       }
     } catch { failed++; }
@@ -74,14 +78,15 @@ export async function runScheduledDrafts(db: Database, now = new Date(), generat
       date: candidate.event.date, startTime: candidate.event.startTime, status: "running", leaseToken, leaseUntil, updatedAt: claimedAt })
       .onConflictDoUpdate({ target: [generationJobs.groupId, generationJobs.date, generationJobs.startTime],
         set: { status: "running", leaseToken, leaseUntil, updatedAt: claimedAt },
-        setWhere: or(eq(generationJobs.status, "failed"), and(eq(generationJobs.status, "running"), lte(generationJobs.leaseUntil, claimedAt))) }).returning();
+        setWhere: or(eq(generationJobs.status, "failed"), candidate.saved ? eq(generationJobs.status, "completed") : undefined,
+          and(eq(generationJobs.status, "running"), lte(generationJobs.leaseUntil, claimedAt))) }).returning();
     if (!job) { skipped++; return; }
     try {
       const coachIds = (await sessionCoaches(db, candidate.group.id)).map((member) => member.id);
       const draft = { event: candidate.event, plan: expectedSessionPlan(candidate.group, candidate.time, coachIds) };
       const context = await scheduledSessionAIContext(db, candidate.userId, candidate.group.id, draft);
       const proposal = await generate(context, AbortSignal.timeout(180_000));
-      if (await saveScheduledSessionPlan(db, candidate.userId, candidate.group.id, candidate.time.id, job.id, leaseToken, draft, proposal,
+      if (await saveScheduledSessionPlan(db, candidate.userId, candidate.group.id, candidate.time?.id, candidate.saved, job.id, leaseToken, draft, proposal,
         new Date(now.getTime() + Date.now() - startedAt), context.differentiation?.settings ?? null)) created++;
       else skipped++;
     } catch {

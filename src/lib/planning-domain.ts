@@ -337,7 +337,7 @@ export async function createTrainingEvent(
   });
 }
 
-export async function saveScheduledSessionPlan(db: Database, userId: string, groupId: string, timeId: string,
+export async function saveScheduledSessionPlan(db: Database, userId: string, groupId: string, timeId: string | undefined, saved: { id: string; revision: number } | null,
   jobId: string, leaseToken: string, initial: AIDraft, proposal: AIProposal, now: Date, differentiation: Differentiation | null) {
   const data = eventSchema.parse(proposal.draft.event);
   const plan = sessionPlanSchema.parse(proposal.draft.plan);
@@ -361,16 +361,32 @@ export async function saveScheduledSessionPlan(db: Database, userId: string, gro
       await tx.update(generationJobs).set({ status: "failed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
       return false;
     }
-    const [time] = await tx.select().from(trainingTimes).where(and(eq(trainingTimes.id, timeId), eq(trainingTimes.groupId, groupId))).for("update");
+    const [time] = timeId ? await tx.select().from(trainingTimes).where(and(eq(trainingTimes.id, timeId), eq(trainingTimes.groupId, groupId))).for("update") : [];
     const currentDefaults = expectedSessionPlan(group, time, currentCoachIds);
-    const eligible = group.autoDraftEnabled && head && time?.enabled && time.weekday === weekdayFor(data.date) &&
-      time.startTime === data.startTime && time.endTime === data.endTime && data.date >= today &&
+    const eligible = group.autoDraftEnabled && head && (saved || (time?.enabled && time.weekday === weekdayFor(data.date) &&
+      time.startTime === data.startTime && time.endTime === data.endTime)) && data.date >= today &&
       (data.date !== today || data.startTime > localTime) && generationDate(data.date, group.generationDaysBefore) <= today &&
       initial.plan.expectedPlayers === currentDefaults.expectedPlayers && initial.plan.confirmedCoaches === currentDefaults.confirmedCoaches &&
       JSON.stringify(group.differentiation.enabled ? group.differentiation : null) === JSON.stringify(differentiation) &&
       (initial.plan.coachIds === undefined) === (currentDefaults.coachIds === undefined);
     if (!eligible) {
       await tx.update(generationJobs).set({ status: "failed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
+      return false;
+    }
+    if (saved) {
+      const [event] = await tx.select().from(trainingEvents).where(and(eq(trainingEvents.id, saved.id), eq(trainingEvents.groupId, groupId))).for("update");
+      if (event && event.planDeletedAt && !event.cancelledAt && event.revision === saved.revision) {
+        const [latest] = await tx.select().from(sessionVersions).where(eq(sessionVersions.eventId, event.id)).orderBy(desc(sessionVersions.version)).limit(1);
+        if (!latest) throw new DomainError("Økten mangler en planversjon. Kontakt administrator.");
+        await tx.update(trainingEvents).set({ ...data, status: "planned", planDeletedAt: null, revision: event.revision + 1 }).where(eq(trainingEvents.id, event.id));
+        await tx.insert(sessionVersions).values({ clubId: group.clubId, groupId, eventId: event.id, version: latest.version + 1, createdBy: null, origin: "ai",
+          eventSnapshot: { ...data, status: "planned" }, plan, planningContext: await planningSnapshot(tx, userId, groupId, data.date) });
+        await writeHistory(tx, { clubId: group.clubId, groupId, planYear: Number(data.date.slice(0, 4)), entityType: "session", entityId: event.id,
+          action: "created", actorType: "system", actorId: null, beforeSnapshot: null, afterSnapshot: sessionSnapshot({ ...data, status: "planned" }, plan) });
+        await tx.update(generationJobs).set({ status: "completed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
+        return true;
+      }
+      await tx.update(generationJobs).set({ status: "completed", updatedAt: new Date() }).where(eq(generationJobs.id, job.id));
       return false;
     }
     const key = slotKey(data.date, data.startTime);

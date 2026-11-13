@@ -53,8 +53,9 @@ export const stageLabels = {
   game: "Spill / smålagsspill",
   closing: "Avslutning og oppsummering",
 };
-export function sessionSections(exercises: Exercise[]) {
-  const sections: { id: string; title: string; durationMinutes: number; exercises: { exercise: Exercise; from: number; index: number }[] }[] = [];
+export function sessionSections(exercises: Exercise[], includeEmpty = false) {
+  const titles = ["Oppvarming", "Hoveddel", "Avslutning"] as const;
+  const sections: { id: string; title: typeof titles[number]; durationMinutes: number; exercises: { exercise: Exercise; from: number; index: number }[] }[] = [];
   let from = 0;
   for (const [index, exercise] of exercises.entries()) {
     const title = exercise.stage === "warmup" ? "Oppvarming" : exercise.stage === "closing" ? "Avslutning" : "Hoveddel";
@@ -67,7 +68,31 @@ export function sessionSections(exercises: Exercise[]) {
     section.durationMinutes += exercise.durationMinutes;
     from += exercise.durationMinutes;
   }
-  return sections;
+  if (includeEmpty) {
+    for (const [rank, title] of titles.entries()) {
+      if (sections.some((section) => section.title === title)) continue;
+      const next = sections.findIndex((section) => titles.indexOf(section.title) > rank);
+      sections.splice(next < 0 ? sections.length : next, 0, { id: `tom-${rank}`, title, durationMinutes: 0, exercises: [] });
+    }
+  }
+  return sections.map((section, index) => ({
+    ...section,
+    insertAt: section.exercises.at(-1)?.index !== undefined
+      ? section.exercises[section.exercises.length - 1].index + 1
+      : sections.slice(index + 1).find((next) => next.exercises.length)?.exercises[0].index ?? exercises.length,
+  }));
+}
+
+export function shortSessionSummary(theme: string | undefined, exercises: Pick<Exercise, "title">[]) {
+  const shorten = (value: string, limit: number) => value.length > limit ? `${value.slice(0, limit - 1).trimEnd()}…` : value;
+  const parts: string[] = [];
+  if (theme?.trim()) parts.push(`Tema: ${shorten(theme.trim(), 60)}.`);
+  if (exercises.length) {
+    const titles = exercises.slice(0, 3).map((exercise) => shorten(exercise.title.trim(), 45)).join(", ");
+    const remaining = exercises.length - 3;
+    parts.push(`Øvelser: ${titles}${remaining > 0 ? ` og ${remaining} til` : ""}.`);
+  }
+  return parts.join(" ") || "Tema og øvelser er ikke oppgitt.";
 }
 export const exerciseSchema = z.object({
   id: z.uuid(),
@@ -81,6 +106,12 @@ export const exerciseSchema = z.object({
   simultaneousGroups: optionalCount,
   assignedPlayers: optionalCount, coaches: optionalCount,
   balls: optionalCount, reserveBalls: optionalCount, smallGoals: optionalCount, largeGoals: optionalCount,
+  noSpecialResources: z.boolean().optional(),
+}).superRefine((exercise, context) => {
+  if (exercise.noSpecialResources && [exercise.simultaneousGroups, exercise.balls, exercise.reserveBalls, exercise.smallGoals, exercise.largeGoals]
+    .some((value) => value !== null && value > 0)) {
+    context.addIssue({ code: "custom", path: ["noSpecialResources"], message: "Fjern gruppe- og utstyrstall før du markerer at ingen særskilt gruppeinndeling eller utstyr trengs." });
+  }
 });
 export const sessionPlanSchema = z.object({
   schemaVersion: z.literal(1),
@@ -242,6 +273,12 @@ export function annualThemeSuggestions(year: number, periods: Period[], topics: 
   return result;
 }
 
+export function themeSuggestionOnDate(date: string, periods: Period[], topics: Parameters<typeof annualThemeSuggestions>[2]) {
+  if (periodsOnDate(periods, date).length) return undefined;
+  return annualThemeSuggestions(Number(date.slice(0, 4)), periods, topics)
+    .find((suggestion) => suggestion.startDate <= date && suggestion.endDate >= date);
+}
+
 export function checkSessionPlan(plan: SessionPlan, durationMinutes: number) {
   const warnings: string[] = [];
   const totalMinutes = plan.exercises.reduce((total, exercise) => total + exercise.durationMinutes, 0);
@@ -249,19 +286,17 @@ export function checkSessionPlan(plan: SessionPlan, durationMinutes: number) {
   if (totalMinutes !== durationMinutes) warnings.push(`Tidsplanen er ${totalMinutes} minutter, men økten varer ${durationMinutes}. Ta med forklaring, pauser og bytter.`);
   if (!plan.expectedPlayers) warnings.push("Forventet spillerantall er ikke oppgitt.");
   if (!plan.confirmedCoaches) warnings.push("Ingen trenere er valgt for økten.");
-  if (!plan.coachRoles) warnings.push("Trenerroller er ikke beskrevet.");
-  if (!plan.alternatives) warnings.push("Alternativer ved endret oppmøte, utstyr eller forhold mangler.");
   const peak = { balls: 0, smallGoals: 0, largeGoals: 0, coaches: 0 };
   for (const [index, exercise] of plan.exercises.entries()) {
     const prefix = `${index + 1}. ${exercise.title}`;
     if (!exercise.description || !exercise.organization || !exercise.objectives || !exercise.coachingPoints) warnings.push(`${prefix}: fyll inn mål, organisering, gjennomføring og læringsmomenter.`);
     if (!exercise.easier || !exercise.harder) warnings.push(`${prefix}: enklere/vanskeligere variant mangler.`);
     if (exercise.sourceUrl && (!exercise.sourceAge || !exercise.sourceCheckedOn)) warnings.push(`${prefix}: kildens alder og kontrolldato er ikke registrert.`);
-    if (!exercise.sourceUrl && !exercise.localAdaptations) warnings.push(`${prefix}: oppgi kildelenke eller beskriv aktiviteten som lokalt opplegg.`);
-    if (!exercise.simultaneousGroups || exercise.assignedPlayers === null || exercise.coaches === null) warnings.push(`${prefix}: samtidige grupper, fordelte spillere eller trenerbehov er uavklart.`);
+    if (!exercise.noSpecialResources && (!exercise.simultaneousGroups || exercise.assignedPlayers === null || exercise.coaches === null)) warnings.push(`${prefix}: samtidige grupper, fordelte spillere eller trenerbehov er uavklart.`);
+    if (exercise.noSpecialResources && exercise.coaches === null) warnings.push(`${prefix}: trenerbehov er uavklart.`);
     if (exercise.assignedPlayers !== null && exercise.assignedPlayers !== plan.expectedPlayers) warnings.push(`${prefix}: spillerfordelingen stemmer ikke med forventet oppmøte.`);
     const resources = [exercise.balls, exercise.reserveBalls, exercise.smallGoals, exercise.largeGoals];
-    if (resources.some((value) => value === null)) warnings.push(`${prefix}: samlet utstyrsbehov på alle samtidige flater må fylles inn, også nullverdier.`);
+    if (!exercise.noSpecialResources && resources.some((value) => value === null)) warnings.push(`${prefix}: samlet utstyrsbehov på alle samtidige flater må fylles inn, også nullverdier.`);
     const balls = (exercise.balls ?? 0) + (exercise.reserveBalls ?? 0);
     peak.balls = Math.max(peak.balls, balls);
     peak.smallGoals = Math.max(peak.smallGoals, exercise.smallGoals ?? 0);
@@ -272,9 +307,9 @@ export function checkSessionPlan(plan: SessionPlan, durationMinutes: number) {
   else if (peak.coaches > plan.confirmedCoaches) warnings.push(`Trenere: trenger ${peak.coaches}, tilgjengelig ${plan.confirmedCoaches}.`);
   const hasExercises = plan.exercises.length > 0;
   return { warnings, totalMinutes, peak: {
-    balls: hasExercises && plan.exercises.every((exercise) => exercise.balls !== null && exercise.reserveBalls !== null) ? peak.balls : null,
-    smallGoals: hasExercises && plan.exercises.every((exercise) => exercise.smallGoals !== null) ? peak.smallGoals : null,
-    largeGoals: hasExercises && plan.exercises.every((exercise) => exercise.largeGoals !== null) ? peak.largeGoals : null,
+    balls: hasExercises && plan.exercises.every((exercise) => exercise.noSpecialResources || (exercise.balls !== null && exercise.reserveBalls !== null)) ? peak.balls : null,
+    smallGoals: hasExercises && plan.exercises.every((exercise) => exercise.noSpecialResources || exercise.smallGoals !== null) ? peak.smallGoals : null,
+    largeGoals: hasExercises && plan.exercises.every((exercise) => exercise.noSpecialResources || exercise.largeGoals !== null) ? peak.largeGoals : null,
     coaches: hasExercises && plan.exercises.every((exercise) => exercise.coaches !== null) ? peak.coaches : null,
   } };
 }

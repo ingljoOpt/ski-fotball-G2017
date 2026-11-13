@@ -57,9 +57,9 @@
     }
     if (!Array.isArray(scene.frames) || scene.frames.length < 1) throw new Error('Tavlen må ha minst ett steg.');
     for (const frame of scene.frames) {
-      if (!frame || typeof frame.caption !== 'string' || !frame.caption.trim() ||
+      if (!frame || typeof frame.caption !== 'string' ||
           !frame.positions || typeof frame.positions !== 'object' || Array.isArray(frame.positions)) {
-        throw new Error('Hvert steg må ha en beskrivelse og posisjoner.');
+        throw new Error('Hvert steg må ha en beskrivelse som tekst og posisjoner.');
       }
       if (Object.keys(frame.positions).length !== ids.size) throw new Error('Hvert steg må angi nøyaktig alle objektene.');
       for (const id of ids) {
@@ -212,7 +212,8 @@
         elements.get(id).setAttribute('transform', objectTransform(scene, object, point));
       }
       if (state.index !== displayedStep) {
-        step.textContent = `Steg ${state.index + 1} av ${scene.frames.length}: ${scene.frames[state.index].caption}`;
+        const caption = scene.frames[state.index].caption.trim();
+        step.textContent = `Steg ${state.index + 1} av ${scene.frames.length}${caption ? `: ${caption}` : ''}`;
         displayedStep = state.index;
       }
     }
@@ -267,6 +268,7 @@
       controls.hidden = false;
     } else {
       message.textContent = scene.frames[0].caption;
+      message.hidden = !scene.frames[0].caption.trim();
     }
     if (scene.frames.length > 1) message.hidden = true;
     return () => {

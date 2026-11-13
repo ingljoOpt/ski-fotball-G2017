@@ -85,7 +85,7 @@ Agenten bruker Vercel AI Gateway og skal kunne:
 1. Lage et øktutkast for valgt lag og dato.
 2. Se på tilgjengelig historikk og evalueringer, års-/periodeplan, klubbens felles veiledning og sportsplan, tema i kalenderen og øktens praktiske rammer.
 3. Bruke agentens nettleser til å åpne og undersøke offentlig tilgjengelige Tiim-sider for relevante øvelser, vise kildelenke og oppgi aldersmerking når den er kontrollert.
-4. Fordele spillere i lag og beskrive organisering, trenerroller, rotasjon, mål og samtidig ballbehov ut fra oppgitt spiller- og trenerantall.
+4. Fordele spillere i lag og beskrive organisering, rotasjon, mål og samtidig ballbehov ut fra oppgitt spiller- og trenerantall.
 5. Forklare viktige valg, vise antakelser og varsle når informasjon mangler eller forutsetninger ikke går opp.
 6. Revidere et eksisterende utkast etter en trenerprompt, uten å fjerne godkjent plan eller tidligere evaluering.
 
@@ -110,7 +110,8 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 - Alle lagrede endringer i økter, årsplaner og periodeplaner skal ha en uforanderlig endringshistorikk som viser **hvem som endret**, **når** og **hva som ble endret**, med tidligere og nye verdier eller referanser til bevarte versjoner. Dette omfatter også oppretting, sletting av perioder, flytting, godkjenning, avlysning og gjenåpning.
 - Endringsaktør hentes fra innlogget bruker på serveren, ikke fra et redigerbart skjemafelt. Ved AI-revisjoner registreres både AI-opprinnelse og brukeren som ba om eller godkjente endringen; automatiske jobber merkes som systemhandlinger. Historikk lagres atomisk sammen med endringen og bevares også når en bruker mister tilgang.
 - Autoriserte trenere og klubbadministratorer skal kunne åpne endringshistorikken fra økten eller planen. Brukeridentitet og intern endringshistorikk skal ikke vises via offentlige delingslenker.
-- En økt kan inneholde mål, tidsplan, øvelseskort, lag, trenerroller, utstyrsbehov, Tiim-kilder, lokale tilpasninger og medier.
+- Før øktens slutt ligger planversjoner, sletting av øktplan, avlysning/gjenåpning og endringshistorikk i faner under «Avansert» nederst i øktvisningen. Evaluering vises separat etter sluttid.
+- En økt kan inneholde mål, tidsplan, øvelseskort, lag, utstyrsbehov, Tiim-kilder, lokale tilpasninger og medier. Tidligere lagrede trenerroller bevares i historikken.
 - Manuell øktbygger bruker Tiim-inspirert struktur: tema/introduksjon, øvingsmål og rammer, deretter ordnede kort for oppvarming, temaarbeid, spill og avslutning. Hvert kort har varighet, mål, organisering/rotasjon, instruksjon, læringsmomenter, enklere/vanskeligere variant, kilde og lokale tilpasninger. Dette er egne beskrivelser, ikke kopiert Tiim-innhold.
 - Samme versjonerte, validerte plankontrakt skal brukes av manuell redigering og senere AI. Hver planversjon bevarer øktmetadata, planstatus og årsplankontekst; endringer i årsplanen skal ikke endre eksisterende planer i det stille. Utdaterte redigeringer avvises fremfor å overskrive en annen treners arbeid.
 - Kontroller at tidsplanen summerer til oppgitt øktlengde, og at samtidige grupper, mål og baller er regnet med. Vis tydelig varsel ved manglende data eller avvik, ikke en falsk grønn status.
@@ -125,6 +126,7 @@ Hvert utkast skal vise hvilke kilder og historiske økter som påvirket forslage
 
 - Et lag kan slå automatisk generering av utkast av eller på.
 - Laget angir treningstidene sine med fra-/til-tid og hvor mange dager før en trening et utkast skal opprettes automatisk dersom ingen økt allerede er opprettet manuelt. Utkastets varighet beregnes fra den aktuelle treningstiden, ikke en lagfelles standard.
+- Når planen for en kommende trening er slettet, oppretter automatjobben en ny plan etter samme frist. Tidligere planversjoner beholdes, og avlyste treninger og aktive planer overskrives ikke. Oversikten viser planleggingsfristen eller hvorfor automatisk planlegging er avslått, samt knappen «Opprett plan nå».
 - Eksempel: Laget trener onsdag kl. 18 og setter automatisk oppretting til tre dager før. Hvis ingen økt finnes for onsdagen når fristen nås, oppretter systemet ett AI-utkast basert på kalender, periodeplan, historikk og evalueringer.
 - Laget kan også angi hvor mange sammenhengende treninger en plan eller progresjonsblokk skal gjelde. Dette er separat fra lengden på hver treningsøkt.
 - Automatisk generering oppretter bare et utkast. Den skal aldri godkjenne, publisere eller sende ut en offentlig lenke uten menneskelig handling.

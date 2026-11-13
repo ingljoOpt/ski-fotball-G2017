@@ -2,13 +2,22 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   annualPlanSchema, checkSessionPlan, coachSelectionChanged, dateSchema, datesInYear, emptySessionPlan, eventSchema, nffAgeSource,
-  generationDate, osloToday, periodSchema, sessionPlanSchema, sessionSections, sourceUrlSchema, weekdayFor,
-  skillProgression, objectivesForSkill, parseSkillObjectives, selectedMomentIndices, annualThemeSuggestions, themePeriodContent, skillForSession, planningThemeDrop,
+  generationDate, osloToday, periodSchema, sessionPlanSchema, sessionSections, shortSessionSummary, sourceUrlSchema, weekdayFor,
+  skillProgression, objectivesForSkill, parseSkillObjectives, selectedMomentIndices, annualThemeSuggestions, themeSuggestionOnDate, themePeriodContent, skillForSession, planningThemeDrop,
 } from "../../src/lib/planning.ts";
 import { completePlan } from "./planning-fixtures.ts";
 import { birthYearSchema, formatTimeRange, settingsSchema, timeRangeSchema } from "../../src/lib/validation.ts";
 import { defaultPlanningPriorities, planningPrioritiesSchema } from "../../src/lib/planning-priorities.ts";
 import { differentiationCounts, differentiationSchema } from "../../src/lib/differentiation.ts";
+
+test("short session summary uses known theme and exercises and remains bounded", () => {
+  assert.equal(shortSessionSummary("Dribling", [{ title: "Stafett" }, { title: "Smålagsspill" }]),
+    "Tema: Dribling. Øvelser: Stafett, Smålagsspill.");
+  assert.equal(shortSessionSummary("", []), "Tema og øvelser er ikke oppgitt.");
+  const long = shortSessionSummary("T".repeat(150), Array.from({ length: 5 }, () => ({ title: "Ø".repeat(150) })));
+  assert.ok(long.length <= 250);
+  assert.match(long, / og 2 til\.$/);
+});
 
 test("differentiation slider divides the total and clamps boundaries", () => {
   assert.deepEqual(differentiationCounts([5, 11], 22), [5, 6, 11]);
@@ -99,6 +108,10 @@ test("annual suggestions form long periods, fill only empty months and never mut
   assert.ok(suggestions.every((suggestion) => suggestion.endDate < period.startDate || suggestion.startDate > period.endDate));
   assert.equal(suggestions[0].endDate, "2028-01-31");
   assert.equal(suggestions[1].startDate, "2028-03-01");
+  assert.equal(themeSuggestionOnDate("2028-03-15", [period], themes)?.theme, suggestions[1].theme);
+  assert.equal(themeSuggestionOnDate("2028-02-15", [period], themes), undefined);
+  assert.equal(themeSuggestionOnDate("2028-02-01", [period], themes), undefined);
+  assert.equal(themeSuggestionOnDate("2028-03-15", [], []), undefined);
   assert.deepEqual(period, snapshot);
   assert.deepEqual(annualThemeSuggestions(2028, [], []), []);
   assert.deepEqual(annualThemeSuggestions(2028, [{ ...period, startDate: "2028-01-01", endDate: "2028-12-31" }], themes), []);
@@ -182,6 +195,21 @@ test("session sections combine theme and game without reordering exercises or ch
   assert.deepEqual(sessionSections([]), []);
 });
 
+test("editable sections include missing stages with insertion positions without reordering exercises", () => {
+  const exercise = completePlan().exercises[0];
+  assert.deepEqual(sessionSections([], true).map(({ title, insertAt }) => [title, insertAt]),
+    [["Oppvarming", 0], ["Hoveddel", 0], ["Avslutning", 0]]);
+  const exercises = (["theme", "game", "closing", "warmup"] as const).map((stage) => ({ ...exercise, stage }));
+  const sections = sessionSections(exercises, true);
+  assert.deepEqual(sections.map(({ title, insertAt }) => [title, insertAt]),
+    [["Hoveddel", 2], ["Avslutning", 3], ["Oppvarming", 4]]);
+  const missing = sessionSections([{ ...exercise, stage: "closing" }], true);
+  assert.deepEqual(missing.map(({ title, insertAt }) => [title, insertAt]),
+    [["Oppvarming", 0], ["Hoveddel", 0], ["Avslutning", 1]]);
+  assert.deepEqual(sessionSections([], true).map(({ durationMinutes }) => durationMinutes), [0, 0, 0]);
+  assert.deepEqual(missing.map(({ durationMinutes }) => durationMinutes), [0, 0, exercise.durationMinutes]);
+});
+
 test("annual plans calculate NFF age sources per year without generating themes", () => {
   assert.equal(nffAgeSource(2026, 2017).age, 9);
   assert.ok(nffAgeSource(2026, 2017).url.endsWith("/barn_8-9/"));
@@ -231,6 +259,7 @@ test("drafts preserve unknown equipment and never produce success-shaped resourc
 test("session checks measure exact time, all concurrent groups, reserves and peak requirements", () => {
   const plan = completePlan();
   assert.equal(checkSessionPlan(plan, 60).warnings.length, 0);
+  assert.equal(checkSessionPlan({ ...plan, alternatives: "" }, 60).warnings.length, 0);
   assert.equal(checkSessionPlan(plan, 59).warnings.some((warning) => warning.includes("60 minutter")), true);
   plan.exercises.push({ ...plan.exercises[0], id: "00000000-0000-4000-8000-000000000002", durationMinutes: 10, balls: 3, reserveBalls: 1 });
   assert.equal(checkSessionPlan(plan, 70).peak.balls, 5, "sequential blocks use peak, not sum");
@@ -244,6 +273,28 @@ test("session checks measure exact time, all concurrent groups, reserves and pea
   assert.ok(checkSessionPlan(plan, 70).warnings.some((warning) => warning.includes("samlet utstyrsbehov")));
   plan.exercises[0].coaches = 3;
   assert.ok(checkSessionPlan(plan, 70).warnings.some((warning) => warning.includes("Trenere: trenger 3")));
+});
+
+test("resource-free activities are explicit; unknown needs remain unknown", () => {
+  const plan = completePlan();
+  const closing = { ...plan.exercises[0], id: crypto.randomUUID(), stage: "closing" as const, title: "Avslutning",
+    durationMinutes: 5, simultaneousGroups: null, balls: null, reserveBalls: null, smallGoals: null, largeGoals: null,
+    sourceUrl: "", localAdaptations: "" };
+  plan.exercises.push(closing);
+  const unknown = checkSessionPlan(plan, 65);
+  assert.equal(unknown.peak.smallGoals, null);
+  assert.ok(unknown.warnings.some((warning) => warning.includes("samlet utstyrsbehov")));
+  const declared = { ...closing, noSpecialResources: true };
+  plan.exercises[1] = declared;
+  assert.equal(sessionPlanSchema.safeParse(plan).success, true);
+  const checked = checkSessionPlan(plan, 65);
+  assert.equal(checked.peak.smallGoals, 4);
+  assert.equal(checked.peak.balls, 5);
+  assert.ok(!checked.warnings.some((warning) => warning.includes("Avslutning")));
+  assert.equal(sessionPlanSchema.safeParse({ ...plan, exercises: [plan.exercises[0], { ...declared, smallGoals: 2 }] }).success, false);
+  plan.exercises[1].coaches = null;
+  assert.equal(checkSessionPlan(plan, 65).peak.coaches, null);
+  assert.ok(checkSessionPlan(plan, 65).warnings.some((warning) => warning.includes("trenerbehov")));
 });
 
 test("plan contract requires unique exercise IDs and safe checked-source metadata", () => {

@@ -3,7 +3,7 @@ import type { Database } from "../db/index.ts";
 import { clubDocuments, groups, sessionReviews, sessionVersions, trainingEvents } from "../db/schema.ts";
 import { DomainError } from "./domain.ts";
 import { annualPlanning, trainingEventDetails } from "./planning-domain.ts";
-import { eventsDuring, nffAgeSource, periodsOnDate, type Exercise } from "./planning.ts";
+import { eventsDuring, nffAgeSource, periodsOnDate, themeSuggestionOnDate, type Exercise } from "./planning.ts";
 import type { AIDraft } from "./session-ai.ts";
 import { getNffCurriculum, relevantCurriculum } from "./nff-curriculum.ts";
 import { planningPrioritiesSchema, priorityLabels } from "./planning-priorities.ts";
@@ -54,7 +54,9 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
     .filter((exercise) => exercise.sourceUrl).map(({ sourceUrl, sourceAge, sourceCheckedOn }) => ({ sourceUrl, sourceAge, sourceCheckedOn }));
   const age = nffAgeSource(year, annual.group.birthYear);
   const periods = periodsOnDate(annual.periods, draft.event.date);
-  const curriculum = relevantCurriculum(await curriculumReader(age.age), [draft.event.theme, draft.event.objectives,
+  const fullCurriculum = await curriculumReader(age.age);
+  const suggestedPeriod = !draft.event.theme.trim() ? themeSuggestionOnDate(draft.event.date, annual.periods, fullCurriculum.topics) ?? null : null;
+  const curriculum = relevantCurriculum(fullCurriculum, [draft.event.theme, draft.event.objectives, suggestedPeriod?.theme ?? "",
     annual.plan?.objectives ?? "", ...periods.flatMap((period) => [period.theme, period.objectives, period.coachMoments ?? ""])]);
   const evaluations = history.length ? await db.select({ eventId: sessionReviews.eventId, review: sessionReviews.review,
     version: sessionVersions.version, plan: sessionVersions.plan })
@@ -83,7 +85,7 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
     club_guidelines: guidelines.length
       ? { status: "available", contextFields: ["clubGuidelines"], reason: "Aktive klubbdokumenter med uttrukket tekst." }
       : { status: "unavailable", reason: "Klubbens retningslinjer og sportsplan er ikke registrert i appen." },
-    period_focus: { status: periods.length ? "available" : "partial", contextFields: ["periods", "annualObjectives", "curriculum"], reason: periods.length ? "Periodene er lagret og låst av trener." : "Ingen låst temaperiode på øktdatoen." },
+    period_focus: { status: periods.length ? "available" : "partial", contextFields: ["periods", "suggestedPeriod", "annualObjectives", "curriculum"], reason: periods.length ? "Periodene er lagret og låst av trener." : "Ingen låst temaperiode på øktdatoen. Et eventuelt temaforslag er ikke en trenerføring." },
     coach_input: { status: input || annual.group.generalInstructions ? "available" : "unavailable", data: input, contextFields: ["coachInput", "teamInstructions"],
       reason: input || annual.group.generalInstructions ? "Lagets generelle instrukser og eventuelle innspill ved manuell oppretting." : "Ingen laginstrukser eller særskilte trenerinnspill registrert." },
     previous_evaluations: { status: historicalPlans.length ? historicalPlans.every((item) => item.evaluations.length) ? "available" : "partial" : "unavailable",
@@ -110,6 +112,7 @@ async function buildSessionAIContext(db: Database, userId: string, groupId: stri
     age,
     curriculum,
     annualObjectives: annual.plan?.objectives ?? "",
+    suggestedPeriod,
     periods: periods.map(({ startDate, endDate, theme, objectives, coachMoments, progression, sourceUrl }) => ({
       startDate, endDate, theme, objectives, coachMoments, progression, sourceUrl,
     })),

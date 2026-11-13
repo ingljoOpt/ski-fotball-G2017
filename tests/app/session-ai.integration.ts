@@ -9,7 +9,7 @@ import { sessionVersions, trainingEvents, users } from "../../src/db/schema.ts";
 import { migrateLocalDatabase } from "../../scripts/migrate.ts";
 import { acceptInvitation, createClub, createGroup, DomainError, inviteCoach, removeMember, updateGroupSettings } from "../../src/lib/domain.ts";
 import { annualPlanning, setTrainingCancellation, createTrainingEvent, saveAnnualEvent, saveAnnualPlan, savePlanPeriod, saveSessionPlan, saveSessionFocus, trainingEventDetails } from "../../src/lib/planning-domain.ts";
-import { objectivesForSkill, skillProgression } from "../../src/lib/planning.ts";
+import { objectivesForSkill, skillProgression, themeSuggestionOnDate } from "../../src/lib/planning.ts";
 import { scheduledSessionAIContext, sessionAIContext as buildSessionAIContext } from "../../src/lib/session-ai-context.ts";
 import { prepareAIProposal } from "../../src/lib/session-ai.ts";
 import { aiEvent, aiProposal } from "./session-ai-fixtures.ts";
@@ -97,6 +97,25 @@ test("AI context scopes and bounds historical plans, follows unsaved date and ne
     assert.equal(scheduled.teamInstructions, "Del på fire småmål.");
     assert.equal(scheduled.periods[0].coachMoments, "Øve på formasjon før cupen");
     assert.deepEqual(scheduled.history.map((item) => item.date), context.history.map((item) => item.date));
+    const topics = [{ id: "theme", kind: "main" as const, theme: "Foreslått tema", category: "Hovedtema", moments: ["Se opp"],
+      sourceUrl: "https://tiim.no/artikkel/fagplan", sourceTitle: "Fagplan", ageMin: 8, ageMax: 9, skills: [] }];
+    const curriculumReader = async () => ({ topics, fetchedAt: "2026-11-08", warnings: [] });
+    const unlockedDraft = { ...draft, event: { ...draft.event, date: "2026-09-10", theme: "", objectives: "" } };
+    const suggested = await scheduledSessionAIContext(db, coach.id, group.id, unlockedDraft, curriculumReader);
+    const annualForSuggestion = await annualPlanning(db, coach.id, group.id, 2026);
+    assert.deepEqual(suggested.suggestedPeriod, themeSuggestionOnDate(unlockedDraft.event.date, annualForSuggestion.periods, topics));
+    assert.equal(suggested.suggestedPeriod?.theme, "Foreslått tema");
+    const manualSuggested = await buildSessionAIContext(db, coach.id, group.id, id, 1, unlockedDraft, curriculumReader);
+    assert.deepEqual(manualSuggested.suggestedPeriod, suggested.suggestedPeriod);
+    assert.equal((await scheduledSessionAIContext(db, coach.id, group.id, { ...unlockedDraft,
+      event: { ...unlockedDraft.event, date: "2026-11-10" } }, curriculumReader)).suggestedPeriod, null);
+    assert.equal((await scheduledSessionAIContext(db, coach.id, group.id, { ...unlockedDraft,
+      event: { ...unlockedDraft.event, theme: "Trenerens tema" } }, curriculumReader)).suggestedPeriod, null);
+    const nextYearDraft = { ...unlockedDraft, event: { ...unlockedDraft.event, date: "2027-01-06" } };
+    assert.deepEqual((await scheduledSessionAIContext(db, coach.id, group.id, nextYearDraft, curriculumReader)).suggestedPeriod,
+      themeSuggestionOnDate(nextYearDraft.event.date, [], topics));
+    assert.equal((await scheduledSessionAIContext(db, coach.id, group.id, unlockedDraft,
+      async () => ({ topics: [], fetchedAt: "", warnings: [] }))).suggestedPeriod, null);
     assert.equal((await db.select().from(sessionVersions)).length, before);
     await assert.rejects(scheduledSessionAIContext(db, outsider.id, group.id, draft), DomainError);
     const serialized = JSON.stringify(context);

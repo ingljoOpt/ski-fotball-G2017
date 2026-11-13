@@ -1,59 +1,96 @@
-import { checkSessionPlan, sessionSections, stageLabels, type SessionPlan } from "@/lib/planning";
-import { Pencil, Trash2 } from "lucide-react";
-import { AppLink } from "./ui";
+import { checkSessionPlan, sessionSections, shortSessionSummary, stageLabels, type EventInput, type Exercise, type SessionPlan } from "@/lib/planning";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { AppLink, Chip } from "./ui";
+import { formatDate } from "./planning-components";
+import type { ReactNode } from "react";
 
-export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, objectives, ageLabel, idPrefix = "plan", showLegacy = false, onEdit, onRemove }: {
+export type EditSection = "rammer" | "introduksjon" | "deltakere" | "ovingsmal";
+
+function EditButton({ label, onEdit }: { label: string; onEdit?: () => void }) {
+  return onEdit && <span className="session-item-actions"><button type="button" title={`Rediger ${label}`} aria-label={`Rediger ${label}`}
+    onClick={onEdit}><Pencil size={17} aria-hidden="true" /></button></span>;
+}
+
+export function SessionHeading({ groupName, event, status, version, onEdit, editor }: {
+  groupName: string; event: EventInput; status: string; version: string; onEdit?: () => void; editor?: ReactNode;
+}) {
+  return <header className="session-heading">
+    <div className="session-section-heading"><span className="eyebrow">{groupName} · Økt</span><EditButton label="øktens rammer" onEdit={onEdit} /></div>
+    {editor || <>
+    <h1>{event.title}</h1>
+    <div className="row"><p>
+      {formatDate(event.date)} kl. {event.startTime}–{event.endTime}
+      {event.endTime < event.startTime ? " (neste dag)" : ""} · Europe/Oslo
+    </p><Chip>{status}</Chip></div>
+    <small>{version}</small>
+    </>}
+  </header>;
+}
+
+export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, objectives, ageLabel, idPrefix = "plan", showLegacy = false, onEdit, onRemove, onAdd, addDisabled, onEditSection, sectionEditor, exerciseEditor }: {
   plan: SessionPlan; coaches?: { id: string; name: string }[]; durationMinutes: number; theme?: string; objectives?: string; ageLabel?: string; idPrefix?: string; showLegacy?: boolean;
-  onEdit?: (exerciseIds: string[]) => void; onRemove?: (exerciseIds: string[], label: string) => void;
+  onEdit?: (exerciseId: string) => void; onRemove?: (exerciseId: string, label: string) => void;
+  onAdd?: (stage: Exercise["stage"], insertAt: number, trigger: HTMLButtonElement) => void; addDisabled?: boolean;
+  onEditSection?: (section: EditSection) => void;
+  sectionEditor?: (section: EditSection) => ReactNode; exerciseEditor?: (id: string) => ReactNode;
 }) {
   const check = checkSessionPlan(plan, durationMinutes);
-  const sections = sessionSections(plan.exercises);
+  const sections = sessionSections(plan.exercises, true);
+  const longIntroduction = plan.introduction.length > 250;
   return <div className="session-plan">
-    {plan.introduction && <p className="session-introduction preserve-lines">{plan.introduction}</p>}
+    {(plan.introduction || onEditSection || sectionEditor?.("introduksjon")) && <div className="session-introduction session-section-heading">
+      <div>
+        {sectionEditor?.("introduksjon") ||
+          <p className="preserve-lines">{longIntroduction ? shortSessionSummary(theme, plan.exercises) : plan.introduction || "Ingen introduksjon."}</p>}
+      </div>
+      <EditButton label="introduksjon" onEdit={onEditSection ? () => onEditSection("introduksjon") : undefined} />
+    </div>}
     <div className="session-overview">
-      <dl className="session-facts">
-        {theme !== undefined && <div><dt>Tema</dt><dd>{theme || "Ikke satt"}</dd></div>}
+      {sectionEditor?.("deltakere") || <dl className="session-facts">
+        {theme !== undefined && <div><dt className="session-section-heading"><span>Tema</span><EditButton label="tema og deltakere" onEdit={onEditSection ? () => onEditSection("deltakere") : undefined} /></dt><dd>{theme || "Ikke satt"}</dd></div>}
         {ageLabel && <div><dt>Alder</dt><dd>{ageLabel}</dd></div>}
         <div><dt>Varighet</dt><dd>{durationMinutes} min<small>Øvelser: {check.totalMinutes} min</small></dd></div>
-        <div><dt>Spillere / trenere</dt><dd>{plan.expectedPlayers ?? "Uavklart"} / {plan.confirmedCoaches ?? "Uavklart"}<small>Forventet / planlagt</small></dd></div>
+        <div><dt>Forventede spillere</dt><dd>{plan.expectedPlayers ?? "Uavklart"}</dd></div>
+        <div><dt>Planlagte trenere</dt><dd>{plan.confirmedCoaches ?? "Uavklart"}<small>Planforutsetning, ikke bekreftet oppmøte</small></dd></div>
         {plan.coachIds && <div><dt>Planlagte trenere</dt><dd>{plan.coachIds.length ? plan.coachIds.map((id) => coaches.find((coach) => coach.id === id)?.name ?? "Tidligere lagmedlem").join(", ") : "Ingen valgt"}</dd></div>}
-      </dl>
+      </dl>}
       <div className="session-outline">
-        {objectives !== undefined && <section><h2>Øvingsmål</h2><p className="preserve-lines">{objectives || "Ikke satt."}</p></section>}
-        {sections.length > 0 ? <nav aria-label="Øktinnhold" className="session-contents">
+        {objectives !== undefined && <section><div className="session-section-heading"><h2>Øvingsmål</h2><EditButton label="øvingsmål" onEdit={onEditSection ? () => onEditSection("ovingsmal") : undefined} /></div>{sectionEditor?.("ovingsmal") || <p className="preserve-lines">{objectives || "Ikke satt."}</p>}</section>}
+        {plan.exercises.length > 0 ? <nav aria-label="Øktinnhold" className="session-contents">
           <h2>Øktinnhold</h2>
           {sections.map((section) => <div key={section.id}>
             <h3>{section.title} <small>{section.durationMinutes} min</small></h3>
-            <ul>{section.exercises.map(({ exercise, from }) => <li key={exercise.id}>
+            {section.exercises.length > 0 && <ul>{section.exercises.map(({ exercise, from }) => <li key={exercise.id}>
               <a href={`#${idPrefix}-ovelse-${exercise.id}`}>{exercise.title} <span>({exercise.durationMinutes} min)</span></a>
               <small>{from}–{from + exercise.durationMinutes} min</small>
-            </li>)}</ul>
+            </li>)}</ul>}
           </div>)}
-        </nav> : <p className="muted">Ingen øvelser er lagt til ennå. Åpne øktbyggeren for å lage planen.</p>}
+        </nav> : <p className="muted">Ingen øvelser er lagt til ennå.</p>}
       </div>
     </div>
     {sections.map((section) => <section className="session-stage" key={section.id} aria-labelledby={`${idPrefix}-${section.id}`}>
       <div className="stage-heading"><h2 id={`${idPrefix}-${section.id}`}>{section.title}</h2><div className="session-item-actions"><span>{section.durationMinutes} min</span>
-        {onEdit && <button type="button" title={`Rediger ${section.title}`} aria-label={`Rediger ${section.title}`} onClick={() => onEdit(section.exercises.map(({ exercise }) => exercise.id))}><Pencil size={17} /></button>}
-        {onRemove && <button type="button" title={`Slett ${section.title}`} aria-label={`Slett ${section.title}`} onClick={() => onRemove(section.exercises.map(({ exercise }) => exercise.id), section.title)}><Trash2 size={17} /></button>}
+        {onAdd && <button type="button" data-add-section={section.title} title={`Legg til øvelse i ${section.title}`} aria-label={`Legg til øvelse i ${section.title}`}
+          disabled={addDisabled} onClick={(event) => onAdd(section.title === "Oppvarming" ? "warmup" : section.title === "Avslutning" ? "closing" : "theme", section.insertAt, event.currentTarget)}><Plus size={17} aria-hidden="true" /></button>}
       </div></div>
       {section.exercises.map(({ exercise, from, index }) => <article className="session-exercise" id={`${idPrefix}-ovelse-${exercise.id}`} key={exercise.id}>
         <header className="exercise-heading">
           <div><small>{index + 1}. {stageLabels[exercise.stage]}</small><h3>{exercise.title}</h3></div>
           <div className="session-item-actions"><span className="exercise-duration">{exercise.durationMinutes} min<small>{from}–{from + exercise.durationMinutes} min</small></span>
-            {onEdit && <button type="button" title={`Rediger ${exercise.title}`} aria-label={`Rediger ${exercise.title}`} onClick={() => onEdit([exercise.id])}><Pencil size={17} /></button>}
-            {onRemove && <button type="button" title={`Slett ${exercise.title}`} aria-label={`Slett ${exercise.title}`} onClick={() => onRemove([exercise.id], exercise.title)}><Trash2 size={17} /></button>}
+            {onEdit && <button type="button" title={`Rediger ${exercise.title}`} aria-label={`Rediger ${exercise.title}`} onClick={() => onEdit(exercise.id)}><Pencil size={17} /></button>}
+            {onRemove && <button type="button" title={`Slett ${exercise.title}`} aria-label={`Slett ${exercise.title}`} onClick={() => onRemove(exercise.id, exercise.title)}><Trash2 size={17} /></button>}
           </div>
         </header>
         <div className="exercise-body">
+          {exerciseEditor?.(exercise.id) || <>
           <p className="preserve-lines">{exercise.description || "Gjennomføring er ikke beskrevet ennå."}</p>
           <details className="exercise-guidance">
             <summary>Målsetting, læringsmomenter, organisering og variasjoner</summary>
             <div className="exercise-guidance-grid">
-              {[
+              {([
                 ["Målsetting", exercise.objectives], ["Læringsmomenter", exercise.coachingPoints],
                 ["Organisering", exercise.organization],
-              ].map(([label, value]) => <section key={label}><h4>{label}</h4><p className="preserve-lines">{value || "Ikke beskrevet ennå."}</p></section>)}
+              ] as const).map(([label, value]) => <section key={label}><h4>{label}</h4><p className="preserve-lines">{value || "Ikke beskrevet ennå."}</p></section>)}
               <section><h4>Variasjoner</h4>
                 <p className="preserve-lines"><strong>Enklere: </strong>{exercise.easier || "Ikke beskrevet ennå."}</p>
                 <p className="preserve-lines"><strong>Vanskeligere: </strong>{exercise.harder || "Ikke beskrevet ennå."}</p>
@@ -61,34 +98,26 @@ export function SessionPlanView({ plan, coaches = [], durationMinutes, theme, ob
               {exercise.localAdaptations && <section><h4>Lokale tilpasninger</h4><p className="preserve-lines">{exercise.localAdaptations}</p></section>}
             </div>
           </details>
-          <details className="exercise-guidance">
+          {(exercise.sourceUrl || (!exercise.noSpecialResources && [exercise.simultaneousGroups, exercise.assignedPlayers, exercise.coaches, exercise.balls, exercise.reserveBalls, exercise.smallGoals, exercise.largeGoals].some((value) => value !== null))) && <details className="exercise-guidance">
             <summary>Grupper, utstyr og kilde</summary>
-            <p>{exercise.simultaneousGroups ?? "Uavklart"} samtidige grupper · {exercise.assignedPlayers ?? "Uavklart"} spillere fordelt · {exercise.coaches ?? "Uavklart"} trenere.</p>
-            <p>Totalt samtidig: {exercise.balls ?? "Uavklart"} aktive + {exercise.reserveBalls ?? "Uavklart"} reserveballer, {exercise.smallGoals ?? "Uavklart"} småmål, {exercise.largeGoals ?? "Uavklart"} store mål.</p>
+            {!exercise.noSpecialResources && [exercise.simultaneousGroups, exercise.assignedPlayers, exercise.coaches, exercise.balls, exercise.reserveBalls, exercise.smallGoals, exercise.largeGoals].some((value) => value !== null) && <dl className="exercise-resources">{([
+              ["simultaneousGroups", "Samtidige grupper"], ["assignedPlayers", "Spillere fordelt"], ["coaches", "Trenere"],
+              ["balls", "Aktive baller"], ["reserveBalls", "Reserveballer"], ["smallGoals", "Småmål"], ["largeGoals", "Store mål"],
+            ] as const).map(([field, label]) => <div key={field}><dt>{label}</dt><dd>{exercise[field] ?? "Uavklart"}</dd></div>)}</dl>}
             {exercise.sourceUrl ? <p><AppLink href={exercise.sourceUrl}>Åpne øvelseskilden →</AppLink><br />
               <small>Oppgitt aldersmerking: {exercise.sourceAge || "ikke registrert"} · kontrollert av trener: {exercise.sourceCheckedOn || "ikke registrert"}.</small></p>
-              : <p className="muted">Ingen ekstern kilde er registrert.</p>}
-          </details>
+              : null}
+          </details>}
+          </>}
         </div>
       </article>)}
     </section>)}
-    <div className="session-coach-notes">
-      {[
-        ["Trenerroller", plan.coachRoles],
-        ["Alternativer ved endringer", plan.alternatives], ["Gjenbruk og progresjon", plan.progression],
-      ].filter(([, value]) => value).map(([label, value]) => <section key={label}><h2>{label}</h2><p className="preserve-lines">{value}</p></section>)}
-      <section><h2>Ressurskontroll</h2>
-        <p>Største samtidige behov: {check.peak.balls ?? "Uavklart"} baller inkludert reserve · {check.peak.smallGoals ?? "Uavklart"} småmål · {check.peak.largeGoals ?? "Uavklart"} store mål · {check.peak.coaches ?? "Uavklart"} trenere.</p>
-        <p className="muted">Tallene er toppbehov mellom sekvensielle blokker, ikke en sum gjennom økten. Treneren må kontrollere tilgjengelig utstyr mot klubbens og lagets instrukser.</p>
-        {check.warnings.length > 0 ? <details className="notice error"><summary>{check.warnings.length} uavklarte kontrollpunkter</summary>
-          <ul>{check.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
-        </details> : <p className="notice">Tallkontroll uten avvik. Trener må fortsatt kontrollere sikkerhet, kilder og om organiseringen fungerer i praksis.</p>}
-      </section>
-      {showLegacy && (plan.assumptions || plan.equipmentConfirmed || plan.availableBalls !== null || plan.availableSmallGoals !== null || plan.availableLargeGoals !== null) && <section>
+    {showLegacy && (plan.assumptions || plan.equipmentConfirmed || plan.availableBalls !== null || plan.availableSmallGoals !== null || plan.availableLargeGoals !== null) && <div className="session-coach-notes">
+      <section>
         <h2>Tidligere registrerte rammer</h2>
         <p>Baller: {plan.availableBalls ?? "Uavklart"} · småmål: {plan.availableSmallGoals ?? "Uavklart"} · store mål: {plan.availableLargeGoals ?? "Uavklart"} · utstyr bekreftet: {plan.equipmentConfirmed ? "Ja" : "Nei"}.</p>
         {plan.assumptions && <p className="preserve-lines">{plan.assumptions}</p>}
-      </section>}
-    </div>
+      </section>
+    </div>}
   </div>;
 }

@@ -94,10 +94,13 @@ main { max-width: 68rem; margin: auto; padding: 2rem 1.5rem 5rem; overflow-wrap:
 .tactic-editor label:not(.editor-file) { display: block; margin-top: .7rem; font-weight: 650; font-size: .9rem; }
 .tactic-editor input:not([type="file"]), .tactic-editor select, .tactic-editor textarea { width: 100%; padding: .5rem; border: 1px solid #8da49a; border-radius: .4rem; background: white; color: var(--ink); font: inherit; }
 .editor-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .75rem 0; }
-.tactic-editor button, .editor-file { min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid var(--green); border-radius: .45rem; background: white; color: var(--green-dark); font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; }
-.tactic-editor button:hover, .editor-file:hover { background: #e3f0e5; }
+.tactic-editor:not([data-storage-mode="exercise"]) button, .editor-file { min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid var(--green); border-radius: .45rem; background: white; color: var(--green-dark); font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; }
+.tactic-editor:not([data-storage-mode="exercise"]) button:hover, .editor-file:hover { background: #e3f0e5; }
+.tactic-editor[data-storage-mode="exercise"] button.button { background: var(--button-bg); }
+.tactic-editor[data-storage-mode="exercise"] > fieldset:last-child { margin-bottom: 0; }
 .tactic-editor button:disabled { opacity: .5; cursor: not-allowed; }
 .tactic-editor .editor-primary { margin-top: 1rem; background: var(--green); color: white; }
+.tactic-editor[data-storage-mode="exercise"] > .editor-toolbar, .tactic-editor[data-storage-mode="exercise"] #editor-download { display: none; }
 .editor-file input { display: block; max-width: 100%; font: inherit; font-weight: 400; }
 .editor-canvas .tactic-pitch { max-height: none; touch-action: none; }
 .tactic-editor fieldset:disabled .editor-canvas { pointer-events: none; opacity: .6; }

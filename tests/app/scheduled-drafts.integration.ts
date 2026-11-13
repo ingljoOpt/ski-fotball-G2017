@@ -8,7 +8,7 @@ import { connectLocalDatabase } from "../../src/db/local.ts";
 import { generationJobs, planningHistory, sessionVersions, trainingEvents, users } from "../../src/db/schema.ts";
 import { migrateLocalDatabase } from "../../scripts/migrate.ts";
 import { acceptInvitation, addTrainingTime, createClub, createGroup, DomainError, groupDetails, inviteCoach, saveCoach, updateGroupSettings, updateTrainingTime, updateTrainingTimeCounts } from "../../src/lib/domain.ts";
-import { createTrainingEvent, groupCalendar, saveSessionPlan, trainingEventDetails } from "../../src/lib/planning-domain.ts";
+import { createTrainingEvent, deleteSessionPlan, groupCalendar, saveSessionPlan, setTrainingCancellation, trainingEventDetails } from "../../src/lib/planning-domain.ts";
 import { datesInYear, weekdayFor } from "../../src/lib/planning.ts";
 import { prepareAIProposal } from "../../src/lib/session-ai.ts";
 import { runScheduledDrafts } from "../../src/lib/scheduled-drafts.ts";
@@ -132,6 +132,80 @@ test("scheduled generation is opt-in, idempotent, retryable and never overwrites
     assert.equal(rosterChanged.created, 0);
     assert.equal(rosterChanged.skipped, 1);
     assert.equal((await db.select().from(trainingEvents)).length, 4);
+  } finally {
+    await connection.close();
+    await rm(directory, { recursive: true });
+  }
+});
+
+test("a deleted plan is regenerated without overwriting concurrent edits or cancelled sessions", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "scheduled-deleted-plan-"));
+  await migrateLocalDatabase(directory);
+  const connection = await connectLocalDatabase(directory);
+  try {
+    const { db } = connection;
+    const [admin, head] = await db.insert(users).values([{ email: "deleted-admin@example.invalid" }, { email: "deleted-head@example.invalid" }]).returning();
+    const club = await createClub(db, admin.id, "Testklubb");
+    const { group, token } = await createGroup(db, admin.id, club.id, "Testlag", head.email);
+    await acceptInvitation(db, head.id, token);
+    await addTrainingTime(db, head.id, group.id, { weekday: 3, startTime: "18:00", endTime: "19:00", expectedPlayers: 12, expectedCoaches: 2 });
+    await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 0, autoDraftEnabled: true });
+    const date = datesInYear(2090).find((day) => weekdayFor(day) === 3)!;
+    const now = new Date(`${date}T05:00:00Z`);
+    const generate: Parameters<typeof runScheduledDrafts>[2] = async (context) => {
+      const sample = completePlan().exercises[0];
+      return prepareAIProposal({ title: "AI-utkast", theme: "Pasning", objectives: "Se opp",
+        plan: { ...context.draft.plan, exercises: [{ ...sample, simultaneousGroups: null, assignedPlayers: null, coaches: null,
+          balls: null, reserveBalls: null, smallGoals: null, largeGoals: null }] } }, context.draft, []);
+    };
+    assert.equal((await runScheduledDrafts(db, now, generate)).created, 1);
+    const [event] = await db.select().from(trainingEvents);
+    await deleteSessionPlan(db, head.id, group.id, event.id, event.revision);
+    await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 0, autoDraftEnabled: false });
+    assert.equal((await runScheduledDrafts(db, now, generate)).created, 0);
+    await updateGroupSettings(db, head.id, group.id, { generationDaysBefore: 0, autoDraftEnabled: true });
+    assert.equal((await runScheduledDrafts(db, now, async () => { throw new Error("Fiktiv modellfeil"); })).failed, 1);
+    assert.equal((await runScheduledDrafts(db, now, generate)).created, 1);
+    let details = await trainingEventDetails(db, head.id, group.id, event.id);
+    assert.equal(details.event.status, "planned");
+    assert.equal(details.versions.length, 2);
+    assert.equal(details.versions[0].origin, "ai");
+    assert.equal(details.versions[0].plan.expectedPlayers, 12);
+    assert.equal(details.versions[0].plan.confirmedCoaches, 2);
+    assert.equal((await db.select().from(trainingEvents)).length, 1);
+    assert.equal((await runScheduledDrafts(db, now, generate)).created, 0);
+
+    await deleteSessionPlan(db, head.id, group.id, event.id, details.event.revision);
+    details = await trainingEventDetails(db, head.id, group.id, event.id);
+    const race = await runScheduledDrafts(db, now, async (context, signal) => {
+      const proposal = await generate(context, signal);
+      await saveSessionPlan(db, head.id, group.id, event.id, context.draft.event, completePlan(), details.event.revision, "draft");
+      return proposal;
+    });
+    assert.equal(race.created, 0);
+    details = await trainingEventDetails(db, head.id, group.id, event.id);
+    assert.equal(details.versions[0].origin, "manual");
+    assert.equal(details.versions.length, 3);
+
+    await deleteSessionPlan(db, head.id, group.id, event.id, details.event.revision);
+    details = await trainingEventDetails(db, head.id, group.id, event.id);
+    await setTrainingCancellation(db, head.id, group.id, event.id, details.event.revision, true);
+    assert.equal((await runScheduledDrafts(db, now, generate)).created, 0);
+    assert.equal((await trainingEventDetails(db, head.id, group.id, event.id)).versions.length, 3);
+
+    const single = await createTrainingEvent(db, head.id, group.id, { date, startTime: "20:00", endTime: "21:00",
+      title: "Enkeltøkt", theme: "", objectives: "" });
+    await deleteSessionPlan(db, head.id, group.id, single, 1);
+    const cancelledDuringGeneration = await runScheduledDrafts(db, now, async (context, signal) => {
+      const proposal = await generate(context, signal);
+      await setTrainingCancellation(db, head.id, group.id, single, 2, true);
+      return proposal;
+    });
+    assert.equal(cancelledDuringGeneration.created, 0);
+    assert.equal((await trainingEventDetails(db, head.id, group.id, single)).event.status, "cancelled");
+    await setTrainingCancellation(db, head.id, group.id, single, 3, false);
+    assert.equal((await runScheduledDrafts(db, now, generate)).created, 1);
+    assert.equal((await trainingEventDetails(db, head.id, group.id, single)).versions.length, 2);
   } finally {
     await connection.close();
     await rm(directory, { recursive: true });

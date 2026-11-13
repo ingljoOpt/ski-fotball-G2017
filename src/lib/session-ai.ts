@@ -15,9 +15,9 @@ export const aiRequestSchema = z.object({
 });
 const aiCount = z.number().int().min(0).max(500).nullable();
 const aiPlanSchema = z.object(sessionPlanSchema.shape).omit({ coachIds: true, coachIdsForExercises: true, coachAttendanceConfirmed: true,
-  availableBalls: true, availableSmallGoals: true, availableLargeGoals: true, equipmentConfirmed: true, assumptions: true }).extend({
+  availableBalls: true, availableSmallGoals: true, availableLargeGoals: true, equipmentConfirmed: true, assumptions: true, coachRoles: true }).extend({
   expectedPlayers: aiCount, confirmedCoaches: aiCount,
-  exercises: z.array(exerciseSchema.extend({
+  exercises: z.array(exerciseSchema.safeExtend({
     simultaneousGroups: aiCount, assignedPlayers: aiCount, coaches: aiCount, balls: aiCount,
     reserveBalls: aiCount, smallGoals: aiCount, largeGoals: aiCount,
   })).max(30),
@@ -64,6 +64,10 @@ export function prepareAIProposal(input: unknown, base: AIDraft, sources: {
     if (proposal.plan[key] !== base.plan[key]) throw new Error(`Ikke endre bekreftede rammer eller finn på antall: ${key}. Be treneren endre rammene i skjemaet.`);
   }
   for (const exercise of proposal.plan.exercises) {
+    if (!base.plan.exercises.some((existing) => existing.id === exercise.id)) {
+      exercise.assignedPlayers ??= base.plan.expectedPlayers;
+      exercise.coaches ??= base.plan.confirmedCoaches;
+    }
     if (!exercise.sourceUrl) {
       exercise.sourceAge = "";
       exercise.sourceCheckedOn = "";
@@ -75,7 +79,7 @@ export function prepareAIProposal(input: unknown, base: AIDraft, sources: {
     }
   }
   const plan = sessionPlanSchema.parse({ ...proposal.plan, availableBalls: base.plan.availableBalls, availableSmallGoals: base.plan.availableSmallGoals,
-    availableLargeGoals: base.plan.availableLargeGoals, equipmentConfirmed: base.plan.equipmentConfirmed, assumptions: base.plan.assumptions,
+    availableLargeGoals: base.plan.availableLargeGoals, equipmentConfirmed: base.plan.equipmentConfirmed, assumptions: base.plan.assumptions, coachRoles: base.plan.coachRoles,
     ...(base.plan.coachIds ? { coachIds: base.plan.coachIds } : {}),
     ...(base.plan.coachIdsForExercises ? { coachIdsForExercises: base.plan.coachIdsForExercises } : {}),
     ...(base.plan.coachAttendanceConfirmed !== undefined ? { coachAttendanceConfirmed: base.plan.coachAttendanceConfirmed } : {}) });

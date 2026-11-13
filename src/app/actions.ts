@@ -26,9 +26,8 @@ import { refreshNffCurriculum } from "@/lib/nff-curriculum";
 import { archiveClubDocument, saveClubMarkdown, uploadClubDocuments } from "@/lib/club-documents";
 import { saveSessionReview } from "@/lib/session-review-domain";
 import { getCustomExercise, saveCustomExercise } from "@/lib/custom-exercise-domain";
-import { getNffCurriculum } from "@/lib/nff-curriculum";
-import { groupDetails as exerciseGroupDetails } from "@/lib/domain";
-import { nffAgeSource, osloToday } from "@/lib/planning";
+import { getExerciseTopics } from "@/lib/nff-curriculum";
+import { exerciseThemeSource } from "@/lib/custom-exercises";
 
 const field = (form: FormData, key: string) => {
   const value = form.get(key);
@@ -48,23 +47,18 @@ export async function saveOwnExercise(_state: { message: string; saved: boolean;
   try {
     const db = await getDatabase();
     const groupId = field(form, "groupId");
-    const details = await exerciseGroupDetails(db, user.id, groupId);
-    const curriculum = await getNffCurriculum(nffAgeSource(Number(osloToday().slice(0, 4)), details.group.birthYear).age);
-    const themeKey = field(form, "theme");
     const id = field(form, "id");
     const existing = id ? await getCustomExercise(db, user.id, groupId, id) : null;
-    const topic = curriculum.topics.find((item) => item.id === themeKey);
-    const previousKey = existing ? JSON.stringify([existing.theme, existing.themeSource]) : "";
-    if (themeKey && !topic && themeKey !== previousKey) throw new DomainError("Velg et tema fra lagets NFF-fagplan.");
-    const theme = topic?.theme ?? (themeKey ? existing?.theme ?? "" : "");
-    const themeSource = topic?.sourceUrl ?? (themeKey ? existing?.themeSource ?? "" : "");
+    const theme = field(form, "theme").trim();
+    const topics = theme ? await getExerciseTopics() : [];
+    const themeSource = exerciseThemeSource(theme, existing, topics);
     let animations: unknown;
     try { animations = JSON.parse(field(form, "animations")); }
     catch { throw new DomainError("Animasjonene kunne ikke leses. Prøv igjen."); }
     const result = await saveCustomExercise(db, user.id, groupId, id, Number(field(form, "revision")), {
       title: field(form, "title"), description: field(form, "description"), theme, themeSource,
       objectives: field(form, "objectives"), ageMin: field(form, "ageMin"), ageMax: field(form, "ageMax"),
-      videoUrl: field(form, "videoUrl"), animations,
+      videoUrl: field(form, "videoUrl"), equipment: field(form, "equipment"), animations,
     });
     revalidatePath(await canonicalDestination(db, user.id, `${groupPath(form)}/ovelser`));
     return { message: "Øvelsen er lagret for laget.", saved: true, id: result.id, revision: result.revision };

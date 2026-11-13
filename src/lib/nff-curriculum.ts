@@ -90,6 +90,21 @@ export async function getNffCurriculum(age: number | null, directory = storageDi
   catch (error) { cache.delete(key); throw error; }
 }
 
+export async function getExerciseTopics() {
+  const curricula = await Promise.all(Array.from({ length: 14 }, (_, index) => getNffCurriculum(index + 6)));
+  const topics = new Map<string, { theme: string; sourceUrl: string }>();
+  for (const curriculum of curricula) {
+    for (const topic of curriculum.topics) {
+      for (const item of [{ theme: topic.theme, sourceUrl: topic.sourceUrl },
+        ...topic.skills.map((skill) => ({ theme: skill.title, sourceUrl: skill.sourceUrl ?? topic.sourceUrl }))]) {
+        const key = item.theme.toLocaleLowerCase("nb");
+        if (item.theme.length <= 150 && !topics.has(key)) topics.set(key, item);
+      }
+    }
+  }
+  return [...topics.values()];
+}
+
 export async function refreshNffCurriculum(age: number, reader = crawlNffCurriculum, directory = storageDirectory): Promise<Curriculum> {
   z.number().int().min(6).max(19).parse(age);
   const key = `${directory}:${age}`;

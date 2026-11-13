@@ -3,12 +3,12 @@ import { ZodError } from "zod";
 import { getDatabase } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { DomainError, groupDetails } from "@/lib/domain";
-import { nffAgeSource, osloToday } from "@/lib/planning";
+import { osloToday } from "@/lib/planning";
 import { Account } from "@/app/components";
 import { ClubTheme } from "@/app/club-theme";
 import { PlanningNavigation } from "@/app/planning-components";
 import { teamUrl } from "@/lib/slugs";
-import { getNffCurriculum } from "@/lib/nff-curriculum";
+import { getExerciseTopics } from "@/lib/nff-curriculum";
 import { getCustomExercise, listCustomExercises } from "@/lib/custom-exercise-domain";
 import { CustomExerciseBank, ExerciseForm, ExerciseReader } from "@/app/custom-exercise-bank";
 
@@ -24,7 +24,6 @@ export default async function OwnExercises({ params, exerciseId, edit = false }:
     throw error;
   }
   const basePath = teamUrl(details.club, details.group);
-  const age = nffAgeSource(Number(osloToday().slice(0, 4)), details.group.birthYear).age;
   if (exerciseId) {
     let exercise;
     try { exercise = await getCustomExercise(await getDatabase(), user.id, groupId, exerciseId); }
@@ -34,7 +33,7 @@ export default async function OwnExercises({ params, exerciseId, edit = false }:
     }
     if (!exercise) notFound();
     if (edit && !details.role) notFound();
-    const curriculum = edit ? await getNffCurriculum(age) : null;
+    const topics = edit ? await getExerciseTopics() : null;
     return <ClubTheme club={details.club} header>
       <Account email={user.email} />
       <PlanningNavigation basePath={basePath} year={Number(osloToday().slice(0, 4))} />
@@ -43,20 +42,18 @@ export default async function OwnExercises({ params, exerciseId, edit = false }:
         {!edit && details.role && <a className="button button--md button--secondary"
           href={`${basePath}/ovelser/${exercise.id}/rediger`}>Rediger øvelse</a>}
       </div>
-      {edit && curriculum ? <ExerciseForm groupId={groupId} basePath={basePath} exercise={exercise}
-        topics={curriculum.topics.map(({ id, theme, sourceUrl }) => ({ id, theme, sourceUrl }))} age={age} />
+      {edit && topics ? <ExerciseForm groupId={groupId} basePath={basePath} exercise={exercise} topics={topics} />
         : <ExerciseReader exercise={exercise} basePath={basePath} />}
     </ClubTheme>;
   }
-  const [exercises, curriculum] = await Promise.all([
-    listCustomExercises(await getDatabase(), user.id, groupId), getNffCurriculum(age),
+  const [exercises, topics] = await Promise.all([
+    listCustomExercises(await getDatabase(), user.id, groupId), getExerciseTopics(),
   ]);
   return <ClubTheme club={details.club} header>
     <Account email={user.email} />
     <PlanningNavigation basePath={basePath} year={Number(osloToday().slice(0, 4))} />
     <h1>Egne øvelser · {details.group.name}</h1>
     <p>Lag og del egne øvelser med trenerne på laget.</p>
-    <CustomExerciseBank groupId={groupId} basePath={basePath} exercises={exercises}
-      topics={curriculum.topics.map(({ id, theme, sourceUrl }) => ({ id, theme, sourceUrl }))} age={age} />
+    <CustomExerciseBank groupId={groupId} basePath={basePath} exercises={exercises} topics={topics} />
   </ClubTheme>;
 }

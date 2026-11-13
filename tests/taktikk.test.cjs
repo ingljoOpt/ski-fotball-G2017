@@ -290,4 +290,15 @@ test('avspilling, pause og tilbakestilling fungerer også med redusert bevegelse
   assert.equal(nodes.message.hidden, false);
   assert.equal(nodes.message.textContent, still.frames[0].caption);
   destroyStill();
+
+  still.frames[0].caption = '';
+  const destroyEmpty = mountScene(board, still);
+  assert.equal(nodes.message.hidden, true);
+  destroyEmpty();
+
+  const withoutCaption = copy();
+  withoutCaption.frames[0].caption = '';
+  const destroyAnimation = mountScene(board, withoutCaption);
+  assert.equal(nodes.step.textContent, `Steg 1 av ${withoutCaption.frames.length}`);
+  destroyAnimation();
 });

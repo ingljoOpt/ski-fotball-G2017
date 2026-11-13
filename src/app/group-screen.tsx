@@ -9,8 +9,9 @@ import { DomainError, groupDetails } from "@/lib/domain";
 import { changeHeadCoach, deleteTeamCoach, deleteTrainingTime, newCoachInvitation, newTrainingEvent, saveGroupSettings, saveTeamCoach } from "@/app/actions";
 import { Account, Notices, type SearchParams } from "@/app/components";
 import { ClubTheme } from "@/app/club-theme";
-import { generationDate, osloToday } from "@/lib/planning";
-import { groupSessions } from "@/lib/planning-domain";
+import { generationDate, nffAgeSource, osloToday, periodsOnDate, themeSuggestionOnDate } from "@/lib/planning";
+import { annualPlanning, groupSessions } from "@/lib/planning-domain";
+import { getNffCurriculum } from "@/lib/nff-curriculum";
 import { eventStatusLabels, formatDate, PlanningNavigation } from "@/app/planning-components";
 import { formatTimeRange } from "@/lib/validation";
 import { clubUrl, teamUrl } from "@/lib/slugs";
@@ -39,8 +40,14 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
   const basePath = teamUrl(details.club, group);
   const sessions = section === "oversikt" ? await groupSessions(await getDatabase(), user.id, groupId) : null;
   const upcoming = sessions?.upcoming;
+  const missingPlan = upcoming && (upcoming.virtual || upcoming.status === "no_plan");
+  const planning = missingPlan ? await annualPlanning(await getDatabase(), user.id, groupId, Number(upcoming.date.slice(0, 4))) : null;
+  const lockedPeriod = planning && upcoming ? periodsOnDate(planning.periods, upcoming.date)[0] : undefined;
+  const curriculum = planning && upcoming && !lockedPeriod
+    ? await getNffCurriculum(nffAgeSource(Number(upcoming.date.slice(0, 4)), group.birthYear).age) : null;
+  const suggestion = planning && upcoming && curriculum ? themeSuggestionOnDate(upcoming.date, planning.periods, curriculum.topics) : undefined;
   const automatic = process.env.VERCEL_ENV === "production" && group.autoDraftEnabled;
-  const [failedJob] = automatic && upcoming?.virtual ? await (await getDatabase()).select({ id: generationJobs.id }).from(generationJobs)
+  const [failedJob] = automatic && (upcoming?.virtual || upcoming?.status === "no_plan") ? await (await getDatabase()).select({ id: generationJobs.id }).from(generationJobs)
     .where(and(eq(generationJobs.groupId, groupId), eq(generationJobs.date, upcoming.date),
       eq(generationJobs.startTime, upcoming.startTime), eq(generationJobs.status, "failed"))).limit(1) : [];
   return (
@@ -58,18 +65,25 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
           {automatic && !details.members.some((member) => member.role === "head_coach") && <p className="notice error">Automatisk planlegging krever en aktiv hovedtrener på laget.</p>}
           {upcoming ? <>
             <p><strong>{formatDate(upcoming.date)} kl. {formatTimeRange(upcoming.startTime, upcoming.endTime)}</strong></p>
-            <h3>{upcoming.title}</h3><p>{upcoming.theme || "Tema ikke satt"} · {upcoming.durationMinutes} minutter</p>
-            {upcoming.virtual ? <>
+            <h3>{upcoming.title}</h3><p>{upcoming.theme || lockedPeriod?.theme || "Tema ikke satt"} · {upcoming.durationMinutes} minutter</p>
+            {missingPlan && !lockedPeriod && <div className="annual-proposed-period">
+              {suggestion ? <><strong>Foreslått tema: {suggestion.theme}</strong><p>Ikke låst. Forslaget brukes som utgangspunkt for AI-planlegging og kan endres.</p></>
+                : <p>Ingen temaforslag tilgjengelig for datoen. Kontroller årgang og fagplan i årsplanen.</p>}
+              <AppLink href={`${basePath}/aarsplan?year=${upcoming.date.slice(0, 4)}&month=${Number(upcoming.date.slice(5, 7))}`}>Se årsplanen →</AppLink>
+            </div>}
+            {upcoming.virtual || upcoming.status === "no_plan" ? <>
               <p>Ingen øktplan er opprettet ennå.</p>
-              <p className="notice">{automatic ? "Automatisk planlegging er planlagt fra" : "Ønsket dato for planlegging:"} {formatDate(generationDate(upcoming.date, group.generationDaysBefore))}.</p>
+              <p className="notice">{automatic
+                ? `Automatisk planlegging forsøkes fra ${formatDate(generationDate(upcoming.date, group.generationDaysBefore))}, ved den daglige kjøringen kl. 06 i Oslo, før treningen starter.`
+                : group.autoDraftEnabled ? "Automatisk planlegging kjører ikke i dette miljøet." : "Automatisk planlegging er slått av i laginnstillingene."}</p>
               {failedJob && <p className="notice error">Øktplanen kunne ikke opprettes automatisk. Opprett planen manuelt, eller vent på neste kjøring før treningen.</p>}
-              <form action={newTrainingEvent}>
+              {upcoming.virtual ? <form action={newTrainingEvent}>
                 <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="year" value={upcoming.date.slice(0, 4)} />
                 {Object.entries({ date: upcoming.date, startTime: upcoming.startTime, endTime: upcoming.endTime, title: upcoming.title,
                   theme: upcoming.theme, objectives: upcoming.objectives, recurrenceKey: upcoming.recurrenceKey ?? "" })
                   .map(([key, value]) => <input type="hidden" name={key} value={value} key={key} />)}
-                <SubmitButton name="intent" value="create">Opprett øktplan</SubmitButton>
-              </form>
+                <SubmitButton name="intent" value="create">Opprett plan nå</SubmitButton>
+              </form> : <AppLink className="button button--primary" href={`${basePath}/okter/${upcoming.id}?initialDraft=1`}>Opprett plan nå</AppLink>}
             </> : <><p>{eventStatusLabels[upcoming.status]}</p><AppLink href={`${basePath}/okter/${upcoming.id}`}>Åpne øktplan →</AppLink></>}
           </> : <><p>Ingen kommende treninger er registrert.</p>
             <AppLink href={`${basePath}/innstillinger`}>Legg til faste treningstider →</AppLink></>}
@@ -112,7 +126,7 @@ export async function GroupScreen({ params, searchParams, section = "oversikt" }
                 <div className="row">
                   {!coach.role && coach.email && <form action={newCoachInvitation}>
                     <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="coachId" value={coach.id} />
-                    <SubmitButton size="sm">{details.pending.some((invite) => invite.email === coach.email) ? "Inviter på nytt" : "Inviter til appen"}</SubmitButton>
+                    <SubmitButton>{details.pending.some((invite) => invite.email === coach.email) ? "Inviter på nytt" : "Inviter til appen"}</SubmitButton>
                   </form>}
                   {(details.isAdmin || coach.role !== "head_coach") && <form action={deleteTeamCoach}>
                     <input type="hidden" name="groupId" value={groupId} /><input type="hidden" name="coachId" value={coach.id} />
