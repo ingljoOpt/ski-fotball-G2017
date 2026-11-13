@@ -74,7 +74,6 @@ ul.clean { list-style: none; padding: 0; margin: 0; }
 .training-time-dialog::backdrop { background: #0009; }
 .training-time-dialog h2 { font-size: 1.25rem; margin-bottom: 1rem; }
 .training-time-dialog .row { justify-content: flex-start; }
-.training-time-dialog select { width: 100%; min-height: 40px; padding: .5rem .75rem; border: 1px solid var(--club-border); border-radius: .375rem; background: white; color: var(--ink); }
 small { color: var(--muted); }
 .back { display: flex; width: fit-content; margin-bottom: 1rem; font-size: .9rem; }
 .club-theme a:not(.button):hover { color: var(--club-primary); }
@@ -315,7 +314,6 @@ summary { cursor: pointer; }
   .nff-topic-list { max-height: 320px; }
 }
 .wheel-chart svg { width: 100%; max-height: 360px; }
-.wheel-chart select { width: 100%; min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--line); border-radius: .6rem; background: white; color: var(--ink); }
 .wheel-chart text { fill: var(--ink); font-size: 13px; pointer-events: none; }
 .wheel-chart .wheel-year { font-size: 26px; font-weight: bold; }
 .wheel-empty { fill: var(--club-soft); }
@@ -333,12 +331,15 @@ summary { cursor: pointer; }
 .animation-editor-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(15rem, 1fr); gap: 1.5rem; }
 .animation-editor-layout section { min-width: 0; }
 .animation-editor label:not(.animation-editor-toggle) { display: block; margin: .7rem 0; font-size: .9rem; }
-.animation-editor label:not(.animation-editor-toggle) input, .animation-editor label select, .animation-editor textarea { display: block; width: 100%; padding: .5rem; border: 1px solid var(--club-border); border-radius: .375rem; background: white; }
+.animation-editor label:not(.animation-editor-toggle) input, .animation-editor textarea { display: block; width: 100%; padding: .5rem; border: 1px solid var(--club-border); border-radius: .375rem; background: white; }
 .animation-editor label input[type="range"] { padding: 0; border: 0; }
 .animation-editor-coordinates { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-.animation-editor-pitch { max-height: none; touch-action: none; }
+.animation-editor-pitch { max-height: none; overflow: visible; touch-action: none; }
 .animation-editor-pitch [role="button"] { cursor: grab; }
 .animation-editor-pitch [data-selected="true"] > :first-child { stroke: #ffe15c; stroke-width: 1.4; }
+/* Counter the pitch-size scale without changing object positions. */
+.animation-editor-pitch[data-size="small"] > g > *, .exercise-animation-preview .tactic-pitch[data-size="small"] > g > * { transform: scale(2); }
+.animation-editor-pitch[data-size="medium"] > g > *, .exercise-animation-preview .tactic-pitch[data-size="medium"] > g > * { transform: scale(1.3333333333); }
 .animation-editor-toggle { display: flex; align-items: center; gap: .5rem; margin: .75rem 0; }
 .animation-editor .exercise-form-actions { margin-top: 1rem; }
 .own-exercises-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1.25rem; list-style: none; padding: 0; margin: 1.5rem 0; }
@@ -352,7 +353,6 @@ summary { cursor: pointer; }
 .custom-exercise-form { margin-top: 2rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: .75rem; background: white; }
 .custom-exercise-dialog { width: min(950px, calc(100vw - 2rem)); margin: auto; }
 .custom-exercise-dialog > .row { justify-content: space-between; }
-.custom-exercise-form select { min-height: 40px; padding: .5rem; border: 1px solid var(--club-border); border-radius: .375rem; background: white; }
 .custom-exercise-form fieldset { display: grid; gap: .75rem; border: 1px solid var(--line); padding: 1rem; }
 .custom-exercise-form .exercise-form-fields { border: 0; padding: 0; gap: 1rem; }
 .exercise-form-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
@@ -366,6 +366,10 @@ summary { cursor: pointer; }
 .exercise-equipment-remove { width: 36px; min-width: 36px; height: 36px; padding: 0; color: var(--muted); }
 .exercise-description { white-space: pre-wrap; }
 .exercise-animation-preview { max-width: 720px; margin: .75rem 0; }
+.exercise-animation-preview .tactic-pitch { --pitch-max-width: 40rem; max-width: var(--pitch-max-width); max-height: none; overflow: visible; }
+.exercise-animation-preview .tactic-pitch[viewBox="0 0 70 100"] { --pitch-max-width: 19.6rem; }
+.exercise-animation-preview .tactic-pitch[data-size="medium"] { max-width: calc(var(--pitch-max-width) * .75); }
+.exercise-animation-preview .tactic-pitch[data-size="small"] { max-width: calc(var(--pitch-max-width) * .5); }
 .exercise-animation-controls { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
 .exercise-animation-controls[hidden] { display: none; }
 .exercise-animation-controls .exercise-animation-icon { width: 36px; min-width: 36px; height: 36px; padding: 0; }

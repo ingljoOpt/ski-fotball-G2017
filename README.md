@@ -45,7 +45,7 @@ Under **Lag → Egne øvelser** vises øvelsene som kort. **Legg til øvelse** �
 
 Bare øvelsesnavn er obligatorisk. Bruk plussknappene for å legge til tema, øvingsmål, alder, videolenke, animasjoner eller utstyrskrav. Utstyr legges til med antall **per gruppe**, inkludert selvvalgte utstyrstyper. Tidligere utstyrstekst bevares separat uten å tolkes som antall per gruppe. Valgfrie felt kan fjernes med søppelkurven; endringen lagres når du lagrer øvelsen. Temafeltet foreslår hovedtemaer og delferdigheter fra tilgjengelige lagrede NFF-fagplaner, uavhengig av lagets alder; egne temaer kan også skrives inn. Listen er ikke en fullstendig NFF-katalog. YouTube- og Vimeo-videoer lastes først når forhåndsvisning eller video åpnes. Velg **Lagre** under animasjonsbyggeren og deretter **Lagre øvelse** for å beholde endringene; opptil ti animasjoner støttes. Øvelsene lagres i lagets database og deles ikke offentlig eller automatisk i øktplaner. Kjør `npm run db:migrate` mens appen er stoppet for migrering `0021_blushing_korg.sql`.
 
-Animasjonsbyggeren er integrert i øvelsesskjemaet og bruker samme dataformat som eksisterende tavler. Beskrivelse av hvert steg er valgfri. Den frittstående tavleredigereren for JSON-filer er uendret.
+Animasjonsbyggeren er integrert i øvelsesskjemaet og bruker samme dataformat som eksisterende tavler. Banestørrelsen endrer ikke størrelsen på figurene. Beskrivelse av hvert steg er valgfri. Den frittstående tavleredigereren for JSON-filer er uendret.
 
 YouTube- og Vimeo-lenker kan legges til og vises i en innebygd spiller når treneren velger **Vis video**. Videoleverandøren mottar da en forespørsel fra nettleseren. Andre videokilder støttes ikke foreløpig, og enkelte videoer kan være sperret for innebygging av eieren.
 

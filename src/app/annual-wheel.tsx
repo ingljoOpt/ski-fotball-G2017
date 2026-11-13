@@ -8,7 +8,7 @@ import { themePeriodContent } from "@/lib/planning";
 import type { CurriculumTopic } from "@/lib/nff-curriculum";
 import { selectCurriculumTopic, PlanningFocusContext, SkillSuggestions } from "@/app/nff-curriculum-list";
 import { PlanningMonthTarget, PlanningWheelTarget } from "@/app/planning-dnd";
-import { Chip, SubmitButton, TextAreaInput } from "@/app/ui";
+import { Chip, OptionSelect, SubmitButton, TextAreaInput } from "@/app/ui";
 import { saveThemePeriod } from "@/app/actions";
 import { formatDate } from "@/app/planning-components";
 
@@ -99,11 +99,8 @@ export function AnnualWheel({ year, months, periods, initialMonth, monthContent,
         <text x="160" y="152" textAnchor="middle" className="wheel-year">{year}</text>
         <text x="160" y="180" textAnchor="middle">{months[selected]}</text>
       </svg>
-      <label className="app-field">Vis måned
-        <select value={selected} onChange={(event) => showMonth(Number(event.target.value))}>
-          {months.map((month, index) => <option value={index} key={month}>{month}</option>)}
-        </select>
-      </label>
+      <OptionSelect label="Vis måned" value={String(selected)} options={months.map((month, index) => ({ id: String(index), label: month }))}
+        onChange={(value) => { if (typeof value === "string") showMonth(Number(value)); }} />
     </div>
     <div className="wheel-months" ref={list} tabIndex={0} role="region" aria-label="Rullbar årsoversikt"
       onScroll={() => {
@@ -149,11 +146,9 @@ export function AnnualWheel({ year, months, periods, initialMonth, monthContent,
               </form> : suggestionActions[proposal.id]}
             </div></div>
             <small>{formatDate(proposal.startDate)}–{formatDate(proposal.endDate)}</small>
-            {curriculumTopics.length > 0 && <label className="app-field">Hovedtema for perioden
-              <select value={proposal.topicId} onChange={(event) => assignTheme(event.target.value, index)}>
-                {curriculumTopics.filter((item) => item.kind === "main").map((item) => <option key={item.id} value={item.id}>{item.theme}</option>)}
-              </select>
-            </label>}
+            {curriculumTopics.length > 0 && <OptionSelect label="Hovedtema for perioden" value={proposal.topicId}
+              options={curriculumTopics.filter((item) => item.kind === "main").map((item) => ({ id: item.id, label: item.theme }))}
+              onChange={(value) => { if (typeof value === "string") assignTheme(value, index); }} />}
             <p className="preserve-lines">{proposal.objectives}</p>
             {topic && <SkillSuggestions skills={topic.skills} />}
           </article> : <p className="muted">Ingen temaer eller øvingsmål er lagt inn for denne måneden.</p>}

@@ -5,7 +5,7 @@ import {
   addAnimationFrame, addAnimationObject, animationPosition, newAnimation, readAnimation, removeAnimationObject,
   type AnimationObject, type AnimationObjectType, type AnimationScene, type Point,
 } from "@/lib/animation-editor";
-import { ActionButton } from "./ui";
+import { ActionButton, OptionSelect } from "./ui";
 
 const objectNames: Record<AnimationObjectType, string> = {
   player: "Spiller", cone: "Kjegle", markerCone: "Markeringskjegle", ball: "Ball", smallGoal: "Småmål", goal: "Stort mål",
@@ -167,16 +167,20 @@ export function AnimationEditor({ initialScene, onSave, onCancel }: {
         <section aria-label="Bane">
           <h4>Bane</h4>
           <div className="animation-editor-coordinates">
-            <label>Retning<select value={scene.pitch?.orientation ?? "horizontal"} onChange={(event) => {
-              const orientation = event.target.value === "vertical" ? "vertical" : "horizontal";
+            <OptionSelect label="Retning" value={scene.pitch?.orientation ?? "horizontal"} options={[
+              { id: "horizontal", label: "Horisontal" }, { id: "vertical", label: "Vertikal" },
+            ]} onChange={(value) => {
+              const orientation = value === "vertical" ? "vertical" : "horizontal";
               change((draft) => { draft.pitch = { orientation, size: draft.pitch?.size ?? "large" }; });
-            }}><option value="horizontal">Horisontal</option><option value="vertical">Vertikal</option></select></label>
-            <label>Størrelse<select value={scene.pitch?.size ?? "large"} onChange={(event) => {
-              const size = event.target.value === "small" ? "small" : event.target.value === "medium" ? "medium" : "large";
+            }} />
+            <OptionSelect label="Størrelse" value={scene.pitch?.size ?? "large"} options={[
+              { id: "small", label: "Liten" }, { id: "medium", label: "Medium" }, { id: "large", label: "Stor" },
+            ]} onChange={(value) => {
+              const size = value === "small" ? "small" : value === "medium" ? "medium" : "large";
               change((draft) => { draft.pitch = { orientation: draft.pitch?.orientation ?? "horizontal", size }; });
-            }}><option value="small">Liten</option><option value="medium">Medium</option><option value="large">Stor</option></select></label>
+            }} />
           </div>
-          <p>Velg en figur og dra den. Du kan også bruke piltastene eller skrive inn koordinatene.</p>
+          <p>Velg en figur og dra den. Du kan også bruke piltastene.</p>
           <svg ref={svg} className="tactic-pitch animation-editor-pitch" data-size={scene.pitch?.size ?? "large"}
             viewBox={`0 0 ${width} ${height}`} role="group" aria-label="Taktikktavle. Velg en figur for å flytte den.">
             <rect x="1" y="1" width={width - 2} height={height - 2} rx="2" className="pitch-background" />
@@ -235,19 +239,12 @@ export function AnimationEditor({ initialScene, onSave, onCancel }: {
         </section>
         <section aria-label="Figurer">
           <h4>Figurer</h4>
-          <label>Valgt figur<select value={selectedId} onChange={(event) => { stopPreview(); setSelectedId(event.target.value); }}>
-            {scene.objects.map((item) => <option key={item.id} value={item.id}>{describeObject(item)}</option>)}
-          </select></label>
+          <OptionSelect label="Valgt figur" value={selectedId} options={scene.objects.map((item) => ({ id: item.id, label: describeObject(item) }))}
+            onChange={(value) => { if (typeof value === "string") { stopPreview(); setSelectedId(value); } }} />
           <label>Merke på figuren, maks 3 tegn<input maxLength={3} value={object.label ?? ""} onChange={(event) => {
             const value = event.target.value;
             change((draft) => { const item = draft.objects.find((entry) => entry.id === selectedId); if (item) { if (value) item.label = value; else delete item.label; } });
           }} /></label>
-          <div className="animation-editor-coordinates">
-            {(["X", "Y"] as const).map((axis, index) => <NumberField key={`${selectedId}-${frameIndex}-${axis}-${point[index]}`}
-              label={`${axis} (0–100)`} value={point[index]} max={100} onError={(message) => { invalidNumber.current = true; setError(message); }} onCommit={(value) => {
-                const next: Point = [...point]; next[index] = value; move(selectedId, next);
-              }} />)}
-          </div>
           {(object.type === "smallGoal" || object.type === "goal") && <NumberField key={`${selectedId}-${object.rotation ?? 0}`}
             label="Rotasjon (0–359)" value={object.rotation ?? 0} max={359} integer onError={(message) => { invalidNumber.current = true; setError(message); }} onCommit={(value) => {
               change((draft) => { const item = draft.objects.find((entry) => entry.id === selectedId); if (item) item.rotation = value; });

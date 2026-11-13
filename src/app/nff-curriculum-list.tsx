@@ -8,7 +8,7 @@ import { GripVertical, Info, Plus, RefreshCw } from "lucide-react";
 import type { Curriculum, CurriculumSkill, CurriculumTopic } from "@/lib/nff-curriculum";
 import { objectivesForSkill, parseSkillObjectives, selectedMomentIndices, skillForSession, skillProgression, themePeriodContent, type Period } from "@/lib/planning";
 import { saveThemePeriod, updateNffCurriculum } from "@/app/actions";
-import { ActionButton, AppLink, NativeInput, SubmitButton, TextAreaInput, TextInput } from "@/app/ui";
+import { ActionButton, AppLink, NativeInput, OptionSelect, SubmitButton, TextAreaInput, TextInput } from "@/app/ui";
 import { months } from "@/app/planning-components";
 
 export const PlanningFocusContext = createContext<{ theme: string; objectives: string; progression?: string; skills: CurriculumSkill[] } | null>(null);
@@ -124,9 +124,8 @@ export function NffCurriculumList({ curriculum, groupId, year, revision, initial
     {curriculum.fetchedAt && <small>Hentet {new Date(curriculum.fetchedAt).toLocaleDateString("nb-NO", { timeZone: "Europe/Oslo" })}</small>}
     <AppLink href="https://tiim.no/tema/fagplaner-og-spillmodeller">Kilde: NFF / Tiim</AppLink>
     {refreshError && <p className="notice error" role="alert">{refreshError}</p>}
-    <label className="app-field">Måned<select value={month} onChange={(event) => setMonth(Number(event.target.value))}>
-      {months.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
-    </select></label>
+    <OptionSelect label="Måned" value={String(month)} options={months.map((name, index) => ({ id: String(index + 1), label: name }))}
+      onChange={(value) => { if (typeof value === "string") setMonth(Number(value)); }} />
     <div className="nff-topic-list">
       {topics.map((topic) => <article key={topic.id} className="nff-topic-item">
         <DraggableTheme topic={topic} month={month} />
@@ -205,12 +204,16 @@ export function ThemePeriodFields({ year, month = 1, period, topics, initialTopi
       <NativeInput label="Fra dato" name="startDate" type="date" required min={`${year}-01-01`} max={`${year}-12-31`} defaultValue={period?.startDate ?? `${prefix}-01`} />
       <NativeInput label="Til dato" name="endDate" type="date" required min={`${year}-01-01`} max={`${year}-12-31`} defaultValue={period?.endDate ?? `${prefix}-${new Date(Date.UTC(year, month, 0)).getUTCDate()}`} />
     </div>
-    <label className="app-field">Hovedtema<select value={topicId} onChange={(event) => {
-      const next = topics.find((item) => item.id === event.target.value);
-      setTopicId(event.target.value);
+    <OptionSelect label="Hovedtema" value={topicId} options={[
+      { id: "", label: "Eget hovedtema" },
+      ...topics.filter((item) => item.kind === "main").map((item) => ({ id: item.id, label: item.theme })),
+    ]} onChange={(value) => {
+      if (typeof value !== "string") return;
+      const next = topics.find((item) => item.id === value);
+      setTopicId(value);
       if (next) { const content = themePeriodContent(next); setTheme(content.theme); setObjectives(content.objectives); setSourceUrl(content.sourceUrl); setProgression(content.progression); setChanged(true); }
       else { setTheme(""); setObjectives(""); setSourceUrl(""); setProgression(""); setChanged(true); }
-    }}><option value="">Eget hovedtema</option>{topics.filter((item) => item.kind === "main").map((item) => <option key={item.id} value={item.id}>{item.theme}</option>)}</select></label>
+    }} />
     {topic ? <input type="hidden" name="theme" value={theme} /> : <TextInput label="Tittel" name="theme" isRequired maxLength={150} value={theme} onChange={setTheme} />}
     <TextAreaInput label="Øvingsmål" name="objectives" required rows={4} maxLength={8000} value={objectives} onChange={(event) => setObjectives(event.target.value)} />
     {topic ? <>
@@ -240,9 +243,9 @@ function SkillProgressionFields({ skills }: { skills: CurriculumSkill[] }) {
         return <div className="row" key={skill.id}>
           <label><input type="checkbox" checked={index >= 0} onChange={(event) => setBlocks(event.target.checked
             ? [...blocks, { id: skill.id, title: skill.title, sessions: 3 }] : blocks.filter((block) => block.id !== skill.id))} /> {index >= 0 ? `${index + 1}. ` : ""}{skill.title}</label>
-          {index >= 0 && <label>Antall økter · {skill.title}<select value={blocks[index].sessions} onChange={(event) => setBlocks(blocks.map((block) => block.id === skill.id ? { ...block, sessions: Number(event.target.value) } : block))}>
-            <option value={2}>2 økter</option><option value={3}>3 økter</option>
-          </select></label>}
+          {index >= 0 && <OptionSelect label={`Antall økter · ${skill.title}`} value={String(blocks[index].sessions)}
+            options={[{ id: "2", label: "2 økter" }, { id: "3", label: "3 økter" }]}
+            onChange={(value) => { if (typeof value === "string") setBlocks(blocks.map((block) => block.id === skill.id ? { ...block, sessions: Number(value) } : block)); }} />}
         </div>;
       })}
     </fieldset>}
@@ -272,9 +275,9 @@ export function SessionSkillFields({ theme, objectives, skills, sessionIndex = 0
   return <>
     {currentSkills.length > 0 && <div className="session-skill-focus">
       <div className="row"><strong>{currentTheme}</strong><small>{locked && !edited ? "Låst øktfokus" : "Forslag til øktfokus"}</small></div>
-      <div className="row"><label className="app-field">Delferdighet for denne økten<select value={skill?.id ?? ""} onChange={(event) => { setSelected(event.target.value); setEdited(true); }}>
-        {currentSkills.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
-      </select></label>{skill && <PlanningInfo title={skill.title}>
+      <div className="row"><OptionSelect label="Delferdighet for denne økten" value={skill?.id ?? ""}
+        options={currentSkills.map((item) => ({ id: item.id, label: item.title }))}
+        onChange={(value) => { if (typeof value === "string") { setSelected(value); setEdited(true); } }} />{skill && <PlanningInfo title={skill.title}>
         <ul>{(locked && !edited && stored ? stored.moments : skill.moments).map((moment, index) => <li key={index}>{moment}</li>)}</ul>
       </PlanningInfo>}</div>
     </div>}

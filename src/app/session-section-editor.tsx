@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { coachSelectionChanged, eventSchema, sessionPlanSchema, stageLabels, type EventInput, type Exercise, type SessionPlan } from "@/lib/planning";
 import { minutesBetween, timeRangeSchema } from "@/lib/validation";
 import { ActionButton, NativeInput, OptionSelect, TextAreaInput, TextInput } from "./ui";
@@ -27,7 +27,6 @@ export function SessionSectionEditor({ section, exerciseId, isNew = false, event
   const [draftPlan, setPlan] = useState(plan);
   const [error, setError] = useState("");
   const form = useRef<HTMLFormElement>(null);
-  const stageId = useId();
   useEffect(() => { form.current?.querySelector<HTMLElement>("input:not([type=hidden]):not(:disabled), textarea:not(:disabled), button:not(:disabled)")?.focus({ preventScroll: !isNew }); }, [isNew]);
   const index = draftPlan.exercises.findIndex((exercise) => exercise.id === exerciseId);
   const exercise = draftPlan.exercises[index];
@@ -98,16 +97,10 @@ export function SessionSectionEditor({ section, exerciseId, isNew = false, event
         <ActionButton type="button" variant="secondary" isDisabled={index === 0} onPress={() => moveExercise(-1)}>Flytt opp</ActionButton>
         <ActionButton type="button" variant="secondary" isDisabled={index === draftPlan.exercises.length - 1} onPress={() => moveExercise(1)}>Flytt ned</ActionButton>
       </div>}
-      {isNew ? <div className="app-field"><label htmlFor={stageId}>Øktdel</label>
-        <select id={stageId} value={exercise.stage} onChange={(event) => {
-          const value = event.target.value;
-          if (value === "warmup" || value === "theme" || value === "game" || value === "closing") changeExercise({ stage: value });
-        }}>
-          {Object.entries(stageLabels).filter(([id]) => id === initialStage || (initialStage === "theme" && id === "game"))
-            .map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-        </select>
-      </div> : <OptionSelect label="Øktdel" value={exercise.stage} options={Object.entries(stageLabels).map(([id, label]) => ({ id, label }))}
-        onChange={(value) => { if (value === "warmup" || value === "theme" || value === "game" || value === "closing") changeExercise({ stage: value }); }} />}
+      <OptionSelect label="Øktdel" value={exercise.stage}
+        options={Object.entries(stageLabels).filter(([id]) => !isNew || id === initialStage || (initialStage === "theme" && id === "game"))
+          .map(([id, label]) => ({ id, label }))}
+        onChange={(value) => { if (value === "warmup" || value === "theme" || value === "game" || value === "closing") changeExercise({ stage: value }); }} />
       <TextInput label="Øvelsesnavn" isRequired maxLength={150} value={exercise.title} onChange={(title) => changeExercise({ title })} />
       <NativeInput label="Øvelsens minutter" type="number" required min={1} max={240} value={exercise.durationMinutes} onChange={(e) => changeExercise({ durationMinutes: Number(e.target.value) })} />
       {exerciseTexts.map(([key, label]) => <TextAreaInput key={key} label={label} rows={3} maxLength={8000} value={exercise[key]}

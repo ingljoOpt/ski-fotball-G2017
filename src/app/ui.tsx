@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type ComponentProps, type ReactNode } from "react";
+import { useCallback, useId, useState, type ComponentProps, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Button, Card, Chip, FieldError, Input, Label, Link, ListBox, Select, TextArea, TextField } from "@heroui/react";
 
@@ -39,38 +39,27 @@ export function TextAreaInput({ label, ...props }: ComponentProps<typeof TextAre
 export function OptionSelect({ label, options, ...props }: ComponentProps<typeof Select> & {
   label: string; options: { id: string; label: string }[];
 }) {
+  const [dialog, setDialog] = useState<HTMLDialogElement | undefined>();
+  // A native modal makes popovers outside the dialog inert.
+  const triggerRef = useCallback((element: HTMLButtonElement | null) => {
+    setDialog(element?.closest("dialog") ?? undefined);
+  }, []);
   return <Select {...props} className="app-field">
     <Label>{label}</Label>
-    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-    <Select.Popover><ListBox>{options.map((option) =>
+    <Select.Trigger ref={triggerRef}><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Popover UNSTABLE_portalContainer={dialog}><ListBox>{options.map((option) =>
       <ListBox.Item id={option.id} key={option.id} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>,
     )}</ListBox></Select.Popover>
   </Select>;
 }
 export const weekdays = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"];
 
-export function WeekdaySelect({ defaultValue = "1", native = false }: { defaultValue?: string; native?: boolean }) {
-  const id = useId();
-  if (native) return <div className="app-field"><Label htmlFor={id}>Ukedag</Label>
-    <select id={id} name="weekday" defaultValue={defaultValue} required>{weekdays.map((day, index) =>
-      <option value={String(index + 1)} key={day}>{day}</option>,
-    )}</select>
-  </div>;
-  return <Select name="weekday" defaultValue={defaultValue} isRequired className="app-field">
-    <Label>Ukedag</Label>
-    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-    <Select.Popover><ListBox>{weekdays.map((day, index) =>
-      <ListBox.Item id={String(index + 1)} key={day} textValue={day}>{day}<ListBox.ItemIndicator /></ListBox.Item>,
-    )}</ListBox></Select.Popover>
-  </Select>;
+export function WeekdaySelect({ defaultValue = "1" }: { defaultValue?: string }) {
+  return <OptionSelect label="Ukedag" name="weekday" defaultValue={defaultValue} isRequired
+    options={weekdays.map((day, index) => ({ id: String(index + 1), label: day }))} />;
 }
 
 export function MemberSelect({ members }: { members: { userId: string; email: string }[] }) {
-  return <Select name="userId" isRequired className="app-field" placeholder="Velg lagmedlem">
-    <Label>Ny hovedtrener</Label>
-    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-    <Select.Popover><ListBox>{members.map((member) =>
-      <ListBox.Item id={member.userId} key={member.userId} textValue={member.email}>{member.email}<ListBox.ItemIndicator /></ListBox.Item>,
-    )}</ListBox></Select.Popover>
-  </Select>;
+  return <OptionSelect label="Ny hovedtrener" name="userId" isRequired placeholder="Velg lagmedlem"
+    options={members.map((member) => ({ id: member.userId, label: member.email }))} />;
 }

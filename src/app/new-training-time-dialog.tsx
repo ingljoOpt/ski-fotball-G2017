@@ -20,7 +20,7 @@ export function NewTrainingTimeDialog({ groupId, time, playerCount, coachCount }
       <form action={time ? saveTrainingTime : newTrainingTime} onSubmit={() => dialog.current?.close()}>
         <input type="hidden" name="groupId" value={groupId} />
         {time && <input type="hidden" name="timeId" value={time.id} />}
-        <WeekdaySelect native defaultValue={String(time?.weekday ?? 1)} />
+        <WeekdaySelect defaultValue={String(time?.weekday ?? 1)} />
         <div className="form-grid">
           <NativeInput label="Fra" type="time" name="startTime" required defaultValue={time?.startTime} />
           <NativeInput label="Til" type="time" name="endTime" required defaultValue={time?.endTime} />
