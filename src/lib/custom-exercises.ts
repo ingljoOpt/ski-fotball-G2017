@@ -1,5 +1,5 @@
 import { z } from "zod";
-import board from "../../publiserte/assets/taktikk.js";
+import board from "./taktikk.cjs";
 import { videoEmbedUrl } from "./video-embed.ts";
 import { readEquipment } from "./exercise-equipment.ts";
 

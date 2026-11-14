@@ -7,7 +7,7 @@ import type { customExercises } from "@/db/schema";
 import { customExerciseSchema, exerciseThemeSource, type CustomExerciseInput } from "@/lib/custom-exercises";
 import { videoEmbedUrl, videoWatchUrl } from "@/lib/video-embed";
 import { equipmentTypes, readEquipment, writeEquipment, type EquipmentItem } from "@/lib/exercise-equipment";
-import tacticBoard from "../../publiserte/assets/taktikk.js";
+import tacticBoard from "@/lib/taktikk.cjs";
 import { saveOwnExercise } from "./actions";
 import { ActionButton, Card, NativeInput, SubmitButton, TextAreaInput } from "./ui";
 import { AnimationEditor } from "./animation-editor";

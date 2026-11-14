@@ -4,9 +4,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { validateScene, positionAt, pitchDimensions, objectTransform, renderPitch, mount, mountScene } = require('../publiserte/assets/taktikk.js');
+const { validateScene, positionAt, pitchDimensions, objectTransform, renderPitch, mount, mountScene } = require('../src/lib/taktikk.cjs');
 
-const example = JSON.parse(fs.readFileSync(path.join(__dirname, '../publiserte/media/taktikk/firkant-pasning.json'), 'utf8'));
+const example = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/firkant-pasning.json'), 'utf8'));
 const copy = () => structuredClone(example);
 
 test('eksempelet har gyldige objekter og steg', () => {

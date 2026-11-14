@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
-@import "../../publiserte/assets/taktikk-bane.css";
+@import "./taktikk-bane.css";
 
 :root { color-scheme: light; --ink: #2e2e2e; --muted: #626262; --green: #0056f5; --line: #dce2eb; --paper: #fafafa; --club-primary: #0056f5; --club-accent: #ecf0ea; --club-soft: #ebf2ff; --club-border: #c2d7ff; }
 :root, .light { --accent: #0056f5; --accent-foreground: #fff; --focus: #0056f5; --background: #fafafa; --foreground: #2e2e2e; --surface: #fff; --muted: #626262; }

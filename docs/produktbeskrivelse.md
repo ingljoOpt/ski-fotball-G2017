@@ -4,7 +4,7 @@
 
 Trenergruppen skal kunne bestille en økt og få en plan som passer dagens oppmøte, utstyr og baneforhold. Spillerne skal møte varierte aktiviteter med mye deltakelse, mestring og spill. Gode øvelser skal kunne gjenbrukes med progresjon uten at hele økter gjentas uendret hver gang.
 
-Prosjektet er et arbeidsgrunnlag for trenere og en assistent som planlegger økter i webappen, med Tiim som øvelseskilde. Det eldre Pages-nettstedet er bevart.
+Prosjektet er et arbeidsgrunnlag for trenere og en assistent som planlegger økter i webappen, med Tiim som øvelseskilde.
 
 ## Behov som skal dekkes
 

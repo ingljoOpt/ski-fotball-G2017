@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
+import { newAnimation } from "../../src/lib/animation-editor.ts";
 import { z } from "zod";
 import { createAgentUIStreamResponse } from "ai";
 import { createSessionAgent } from "../../src/lib/session-agent.ts";
@@ -8,8 +8,6 @@ import { aiConfiguration, aiProposalInputSchema, aiRequestSchema, chatTextMessag
 import { aiDraft, aiProposal, mockSessionModel } from "./session-ai-fixtures.ts";
 import type { sessionAIContext } from "../../src/lib/session-ai-context.ts";
 import { defaultPlanningPriorities } from "../../src/lib/planning-priorities.ts";
-
-const animationModel = createRequire(import.meta.url)("../../publiserte/assets/taktikk-rediger-modell.js");
 
 test("AI setup requires server credentials and a Gateway model address", () => {
   assert.throws(() => aiConfiguration({}), /AI_GATEWAY_API_KEY/);
@@ -81,7 +79,7 @@ test("AI preserves saved exercise details for retained IDs without accepting gen
   const proposal = aiProposal();
   const customExercise = { title: "Lagret", description: "Beskrivelse", objectives: "Mål", theme: "Pasning",
     themeSource: "", ageMin: 8, ageMax: 9, videoUrl: "https://vimeo.com/12345", equipment: "Kjegler",
-    animations: [animationModel.newScene()] };
+    animations: [newAnimation()] };
   const base = { ...aiDraft(), plan: structuredClone(proposal.plan) };
   base.plan.exercises[0].customExercise = customExercise;
   const originalId = base.plan.exercises[0].id;

@@ -1,4 +1,4 @@
-import board from "../../publiserte/assets/taktikk.js";
+import board from "./taktikk.cjs";
 
 export type Point = [number, number];
 export type AnimationObjectType = "player" | "cone" | "markerCone" | "ball" | "smallGoal" | "goal";

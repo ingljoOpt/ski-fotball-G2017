@@ -210,10 +210,6 @@ npm run build
 
 Produksjonsavhengighetene er kontrollert med `npm audit --omit=dev`. Det finnes foreløpig moderate varsler i utviklingsverktøyenes transitive avhengigheter (Drizzle Kit/ESLint); disse må følges opp før produksjonssetting. Ikke bruk `npm audit fix --force` uten å kontrollere verktøyenes kompatibilitet.
 
-## Tidligere publisert økt
-
-[Planlagt økt 4. november 2026](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html) og den tilhørende Pages-løsningen er bevart. Animasjonsbyggeren for nye øvelser finnes i appen. Pages-filene inneholder også kode som appen fortsatt bruker.
-
 ## Start her
 
 1. Les [prosjektbeskrivelsen](docs/produktbeskrivelse.md) og [lagets rammer](docs/rammer.md).
@@ -238,7 +234,5 @@ Agentferdigheten [Øktplanlegger](.claude/skills/oktplanlegger/SKILL.md) følger
 | `docs/arkiv/` | Tidligere plan, historikk og kontrollerte Tiim-kilder |
 | `AGENTS.md` | Instruksjoner til framtidig arbeid i prosjektet |
 | `.claude/skills/oktplanlegger/SKILL.md` | Felles agentferdighet for temabasert øktplanlegging |
-| `publiserte/` | Eksisterende Pages-side og animasjonskode som appen bruker |
-| `.github/workflows/pages.yml` | Bygging og publisering av nettstedet |
 
 Repositoriet er offentlig: også filer utenfor nettstedet kan leses på GitHub. Ikke lagre opplysninger om enkeltbarn eller annet ikke-offentlig innhold her.

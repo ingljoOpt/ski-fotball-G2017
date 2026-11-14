@@ -1,14 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
+import { newAnimation } from "../../src/lib/animation-editor.ts";
 import { videoEmbedUrl, videoWatchUrl } from "../../src/lib/video-embed.ts";
 import { customExerciseSchema, exerciseThemeSource } from "../../src/lib/custom-exercises.ts";
 import { readEquipment, writeEquipment } from "../../src/lib/exercise-equipment.ts";
 
-const require = createRequire(import.meta.url);
-const model = require("../../publiserte/assets/taktikk-rediger-modell.js");
 const input = { title: "Pasning", description: "", theme: "", themeSource: "", objectives: "",
-  ageMin: 8, ageMax: 9, videoUrl: "", animations: [model.newScene()] };
+  ageMin: 8, ageMax: 9, videoUrl: "", animations: [newAnimation()] };
 
 test("video embedding accepts only supported HTTPS video URLs", () => {
   assert.equal(videoEmbedUrl("https://youtu.be/dQw4w9WgXcQ?t=10"), "https://www.youtube.com/embed/dQw4w9WgXcQ");
@@ -31,7 +29,7 @@ test("exercise validation checks ages and animation contents", () => {
   assert.equal(customExerciseSchema.safeParse(input).success, true);
   assert.equal(customExerciseSchema.safeParse({ ...input, ageMin: 10, ageMax: 9 }).success, false);
   assert.equal(customExerciseSchema.safeParse({ ...input, animations: [{ frames: [] }] }).success, false);
-  assert.equal(customExerciseSchema.safeParse({ ...input, animations: Array(11).fill(model.newScene()) }).success, false);
+  assert.equal(customExerciseSchema.safeParse({ ...input, animations: Array(11).fill(newAnimation()) }).success, false);
   assert.equal(customExerciseSchema.safeParse({ ...input, videoUrl: "https://evil.example/video" }).success, false);
 });
 

@@ -16,6 +16,9 @@ Avklar dato, varighet, forventet antall spillere, bekreftet treneroppmøte, tilg
 
 Animasjoner opprettes i øvelsesskjemaet. Lagre både animasjonen og øvelsen. Tidligere planer og evalueringer skal bevares ved gjenbruk.
 
+## Deling med GitHub Pages
+
+Den tidligere Pages-kilden og publiseringsjobben er fjernet. Deling via Pages krever derfor et nytt oppsett før en økt kan publiseres. Ikke publiser økten i Tiim. Kontroller den faktiske lenken uten innlogging før status settes til offentlig kontrollert, og oppgi hva som gjenstår dersom publisering ikke er mulig. Offentlige øktbeskrivelser skal bare inneholde treningsinnhold, ikke opplysninger om enkeltbarn.
 
 ## Etter trening
 

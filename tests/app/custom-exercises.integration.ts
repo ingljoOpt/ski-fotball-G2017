@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createRequire } from "node:module";
+import { newAnimation } from "../../src/lib/animation-editor.ts";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { connectLocalDatabase } from "../../src/db/local.ts";
 import { users } from "../../src/db/schema.ts";
@@ -14,8 +14,6 @@ import { readEquipment, writeEquipment } from "../../src/lib/exercise-equipment.
 import { customExerciseSchema } from "../../src/lib/custom-exercises.ts";
 import { createTrainingEvent, saveSessionPlan, trainingEventDetails } from "../../src/lib/planning-domain.ts";
 import { completePlan } from "./planning-fixtures.ts";
-
-const model = createRequire(import.meta.url)("../../publiserte/assets/taktikk-rediger-modell.js");
 
 test("migration preserves existing exercises and permits optional ages", async () => {
   const directory = await mkdtemp(join(tmpdir(), "custom-exercise-migration-"));
@@ -69,7 +67,7 @@ test("custom exercises persist and remain isolated by team and revision", async 
     const otherClub = await createClub(connection.db, outsider.id, "Other exercise club");
     const { group: other } = await createGroup(connection.db, outsider.id, otherClub.id, "Other team", outsider.email);
     const input = { title: "Pasning", description: "Spill sammen", theme: "", themeSource: "", objectives: "",
-      ageMin: 8, ageMax: 10, videoUrl: "https://vimeo.com/12345", animations: [model.newScene(), model.newScene()] };
+      ageMin: 8, ageMax: 10, videoUrl: "https://vimeo.com/12345", animations: [newAnimation(), newAnimation()] };
     const created = await saveCustomExercise(connection.db, admin.id, group.id, "", 0, input);
     const optional = await saveCustomExercise(connection.db, head.id, group.id, "", 0, {
       ...input, title: "Bare navn", description: "", ageMin: "", ageMax: "", videoUrl: "", animations: [], equipment: "4 kjegler og 2 småmål",
