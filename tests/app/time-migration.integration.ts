@@ -29,6 +29,7 @@ test("end-time migration preserves legacy durations, overnight slots and histori
     const user = await connection.client.query<{ id: string }>("insert into users (email) values ('migration@example.invalid') returning id");
     const club = await connection.client.query<{ id: string }>("insert into clubs (name) values ('Migration test') returning id");
     await connection.client.query("insert into clubs (name, primary_color, accent_color) values ('Custom profile', '#123456', '#abcdef')");
+    await connection.client.query("insert into clubs (name, primary_color, accent_color) values ('Former blue', '#0056f5', '#ecf0ea')");
     for (const [startTime, groupDuration, eventDuration] of [["18:00", 75, 45], ["23:30", 90, 120]] as const) {
       const group = await connection.client.query<{ id: string }>(
         "insert into groups (club_id, name, duration_minutes) values ($1, 'Test', $2) returning id", [club.rows[0].id, groupDuration],
@@ -66,7 +67,8 @@ test("end-time migration preserves legacy durations, overnight slots and histori
     connection = await connectLocalDatabase(database);
     const profiles = await connection.client.query<{ primary_color: string; accent_color: string }>("select primary_color, accent_color from clubs order by name");
     assert.deepEqual(profiles.rows, [
-      { primary_color: "#123456", accent_color: "#abcdef" }, { primary_color: "#176345", accent_color: "#e7d995" },
+      { primary_color: "#123456", accent_color: "#abcdef" }, { primary_color: "#0056f5", accent_color: "#ecf0ea" },
+      { primary_color: "#176345", accent_color: "#e7d995" },
     ], "default migration never overwrites stored club colors, including the former defaults");
     const fresh = await connection.client.query<{ primary_color: string; accent_color: string }>("insert into clubs (name, slug) values ('New defaults', 'new-defaults') returning primary_color, accent_color");
     assert.deepEqual(fresh.rows[0], { primary_color: DEFAULT_PRIMARY, accent_color: DEFAULT_ACCENT });

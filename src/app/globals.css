@@ -2,8 +2,8 @@
 @import "@heroui/styles";
 @import "./taktikk-bane.css";
 
-:root { color-scheme: light; --ink: #2e2e2e; --muted: #626262; --green: #0056f5; --line: #dce2eb; --paper: #fafafa; --club-primary: #0056f5; --club-accent: #ecf0ea; --club-soft: #ebf2ff; --club-border: #c2d7ff; }
-:root, .light { --accent: #0056f5; --accent-foreground: #fff; --focus: #0056f5; --background: #fafafa; --foreground: #2e2e2e; --surface: #fff; --muted: #626262; }
+:root { color-scheme: light; --ink: #2e2e2e; --muted: #626262; --green: #0e4286; --line: #dce2eb; --paper: #fafafa; --club-primary: var(--green); --club-accent: #ecf0ea; --club-soft: #ebf2ff; --club-border: #c2d7ff; }
+:root, .light { --accent: var(--green); --accent-foreground: #fff; --focus: var(--green); --background: #fafafa; --foreground: #2e2e2e; --surface: #fff; --muted: #626262; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Montserrat", Arial, sans-serif; font-weight: 500; line-height: 1.5; }
 a { color: var(--green); text-underline-offset: .2em; }
@@ -55,7 +55,7 @@ form { display: grid; gap: 1rem; }
 .differentiation-slider .slider__track { background-origin: border-box; background-repeat: no-repeat; }
 .differentiation-scale { display: flex; justify-content: space-between; color: var(--muted); font-size: .8rem; }
 .differentiation-summary { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-bottom: 1rem; }
-.differentiation-summary span::before { content: ""; display: inline-block; width: .6rem; height: .6rem; margin-right: .4rem; border-radius: 50%; background: #0056f5; }
+.differentiation-summary span::before { content: ""; display: inline-block; width: .6rem; height: .6rem; margin-right: .4rem; border-radius: 50%; background: var(--green); }
 .differentiation-summary span:nth-child(2)::before { background: #35a179; }
 .differentiation-summary span:nth-child(3)::before { background: #f0ad4e; }
 .automatic-plan-days .input { display: inline-block; width: 5rem; margin: 0 .25rem; }

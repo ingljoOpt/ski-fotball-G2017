@@ -1,0 +1,1 @@
+ALTER TABLE "clubs" ALTER COLUMN "primary_color" SET DEFAULT '#0e4286';

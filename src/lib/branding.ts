@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-export const DEFAULT_PRIMARY = "#0056f5";
+export const DEFAULT_PRIMARY = "#0e4286";
 export const DEFAULT_ACCENT = "#ecf0ea";
 export const PAGE_BACKGROUND = "#fafafa";
 export const MAX_LOGO_BYTES = 512 * 1024;
 export const MAX_LOGO_DIMENSION = 2048;
 export const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
-const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Bruk en farge med seks heksadesimale tegn, for eksempel #0056f5.")
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Bruk en farge med seks heksadesimale tegn, for eksempel #0e4286.")
   .transform((value) => value.toLowerCase());
 
 function luminance(color: string) {

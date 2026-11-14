@@ -24,7 +24,7 @@ export function DifferentiationSettings({ settings, playerCount, coachCount }: {
     <div hidden={!enabled}>
       <Slider className="differentiation-slider" minValue={0} maxValue={Math.max(total, 1)} step={1} value={[first, second]} onChange={(value) => setPoints(value as number[])} isDisabled={total === 0}>
         <Label>Fordeling av {total} spillere</Label>
-        <Slider.Track style={{ backgroundImage: `linear-gradient(to right, #0056f5 ${total ? first / total * 100 : 0}%, #35a179 ${total ? first / total * 100 : 0}% ${total ? second / total * 100 : 0}%, #f0ad4e ${total ? second / total * 100 : 0}%)` }}>
+        <Slider.Track style={{ backgroundImage: `linear-gradient(to right, var(--green) ${total ? first / total * 100 : 0}%, #35a179 ${total ? first / total * 100 : 0}% ${total ? second / total * 100 : 0}%, #f0ad4e ${total ? second / total * 100 : 0}%)` }}>
           <Slider.Thumb index={0} aria-label="Grense mellom nivå 1 og 2" />
           <Slider.Thumb index={1} aria-label="Grense mellom nivå 2 og 3" />
         </Slider.Track>

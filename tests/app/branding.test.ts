@@ -11,7 +11,7 @@ test("club colors validate exact format and WCAG contrast threshold", () => {
   assert.equal(contrastRatio("#000000", "#ffffff"), 21);
   assert.equal(contrastRatio("#ffffff", "#ffffff"), 1);
   assert.ok(contrastRatio(DEFAULT_PRIMARY, "#ffffff") >= 4.5);
-  assert.equal(DEFAULT_PRIMARY, "#0056f5");
+  assert.equal(DEFAULT_PRIMARY, "#0e4286");
   assert.equal(DEFAULT_ACCENT, "#ecf0ea");
   assert.ok(contrastRatio(DEFAULT_PRIMARY, PAGE_BACKGROUND) >= 4.5);
   assert.deepEqual(brandingSchema.parse({ primaryColor: "#176345", accentColor: "#AABBCC" }), {
