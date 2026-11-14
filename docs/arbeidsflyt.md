@@ -16,13 +16,6 @@ Avklar dato, varighet, forventet antall spillere, bekreftet treneroppmøte, tilg
 
 Animasjoner opprettes i øvelsesskjemaet. Lagre både animasjonen og øvelsen. Tidligere planer og evalueringer skal bevares ved gjenbruk.
 
-## Deling med GitHub Pages
-
-Appens offentlige deling er ikke implementert. Den tidligere [offentlige økten](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html) og Pages-kildene i `publiserte/` er bevart. Økter publiseres ikke i Tiim.
-
-Når en økt skal deles via GitHub Pages, opprett en offentlig beskrivelse under `publiserte/okter/` med treningsinnhold, kilder og nødvendige medier. Bruk den eksisterende Pages-siden som eksempel på formatet, men ikke endre tidligere beskrivelser ved gjenbruk. Ikke inkluder opplysninger om enkeltbarn, evalueringer eller annet ikke-offentlig innhold. Hele GitHub-repositoriet er offentlig.
-
-Etter endring på `main` bygger arbeidsflyten **Publiser økter** nettstedet. Kontroller at jobben lykkes, finn den faktiske lenken og åpne økten uten innlogging. Registrer lenke og kontrolldato først når de finnes og tilgangen er kontrollert. Hvis publisering ikke lykkes, oppgi konkret hva som gjenstår.
 
 ## Etter trening
 
