@@ -4,7 +4,7 @@
 
 Trenergruppen skal kunne bestille en økt og få en plan som passer dagens oppmøte, utstyr og baneforhold. Spillerne skal møte varierte aktiviteter med mye deltakelse, mestring og spill. Gode øvelser skal kunne gjenbrukes med progresjon uten at hele økter gjentas uendret hver gang.
 
-Prosjektet er et arbeidsgrunnlag for trenere og en assistent som planlegger økter. Det består av dokumentasjon, maler og et øktarkiv i GitHub, med Tiim som øvelseskilde og GitHub Pages som delingsflate.
+Prosjektet er et arbeidsgrunnlag for trenere og en assistent som planlegger økter i webappen, med Tiim som øvelseskilde. Det eldre Pages-nettstedet er bevart.
 
 ## Behov som skal dekkes
 
@@ -17,7 +17,7 @@ Prosjektet er et arbeidsgrunnlag for trenere og en assistent som planlegger økt
 | Alderstilpasset innhold | Bruk Tiim og aldersfilter som følger årskullet |
 | Deling av ferdige økter | Lag en offentlig Markdown-beskrivelse for GitHub Pages med mulighet for bilder, animasjon og video; lagre kontrollert lenke |
 | Gjenbruk og variasjon | Les historikken, registrer øvelses-ID og noter hva som endres fra forrige bruk |
-| Erfaring fra gjennomføring | Behold plan og registrer faktisk gjennomføring separat i samme øktfil |
+| Erfaring fra gjennomføring | Behold planen og registrer faktisk gjennomføring separat |
 
 ## Omfang
 

@@ -1,4 +1,6 @@
-# Øvelsesbank for G2017
+# Tidligere øvelsesbank for G2017
+
+Dette er et arkiv fra den filbaserte løsningen; nye øvelser lagres i appen.
 
 Bruk [Tiims bibliotek](https://tiim.no/okter-og-ovelser) med filter 8–9 år i 2026. Øvelsene under er kontrollert mot kildesidene 4. november 2026. Beskrivelsene er korte sammendrag; les kilden ved detaljplanlegging. Ingen av øvelsene er ennå registrert som gjennomført av laget.
 

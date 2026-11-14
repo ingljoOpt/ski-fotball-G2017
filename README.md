@@ -1,10 +1,10 @@
 # Øktplanlegging for G2017
 
-Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkter for gutter født i 2017. Tiim brukes som øvelseskilde; øktene lagres i GitHub og kan deles via GitHub Pages. Denne prosjektmappen samler rammer, lokale tilpasninger og historikk.
+Prosjektet skal gjøre det enkelt å lage varierte, gjennomførbare fotballøkter. Tiim brukes som øvelseskilde, og nye planer og evalueringer lagres i appens database.
 
-## Ny webapp: lokal utvikling
+## Webapp: lokal utvikling
 
-Den nye Next.js-appen bygges ved siden av dagens øktarkiv og Pages-nettsted. Se [spesifikasjonen](docs/nettsted-spesifikasjon.md) og [implementasjonsplanen](docs/implementasjonsplan.md).
+Next.js-appen erstatter den tidligere filbaserte planleggingen. Se [spesifikasjonen](docs/nettsted-spesifikasjon.md) og [implementasjonsplanen](docs/implementasjonsplan.md).
 
 Den lokale appen har magic-link-innlogging, klubber og lag, rolleadministrasjon, klubbprofil med logo/farger, faste treningstider, årsplan, øktplanlegging, private evalueringer og AI-øktassistent med Tiim-kontroll. Faktisk oppmøte, offentlig deling og Neon Auth er ikke implementert. Automatiske øktplaner krever et produksjonsoppsett som ennå ikke er verifisert. Appen er ikke klar for produksjonsdeploy.
 
@@ -45,7 +45,7 @@ Under **Lag → Egne øvelser** vises øvelsene som kort. **Legg til øvelse** �
 
 Bare øvelsesnavn er obligatorisk. Bruk plussknappene for å legge til tema, øvingsmål, alder, videolenke, animasjoner eller utstyrskrav. Utstyr legges til med antall **per gruppe**, inkludert selvvalgte utstyrstyper. Tidligere utstyrstekst bevares separat uten å tolkes som antall per gruppe. Valgfrie felt kan fjernes med søppelkurven; endringen lagres når du lagrer øvelsen. Temafeltet foreslår hovedtemaer og delferdigheter fra tilgjengelige lagrede NFF-fagplaner, uavhengig av lagets alder; egne temaer kan også skrives inn. Listen er ikke en fullstendig NFF-katalog. YouTube- og Vimeo-videoer lastes først når forhåndsvisning eller video åpnes. Velg **Lagre** under animasjonsbyggeren og deretter **Lagre øvelse** for å beholde endringene; opptil ti animasjoner støttes. Øvelsene lagres i lagets database og kopieres bare til øktplaner når treneren velger dem. Kjør `npm run db:migrate` mens appen er stoppet for migrering `0021_blushing_korg.sql`.
 
-Animasjonsbyggeren er integrert i øvelsesskjemaet og bruker samme dataformat som eksisterende tavler. Banestørrelsen endrer ikke størrelsen på figurene. Beskrivelse av hvert steg er valgfri. Den frittstående tavleredigereren for JSON-filer er uendret.
+Animasjonsbyggeren er integrert i øvelsesskjemaet og bruker samme dataformat som eksisterende tavler. Banestørrelsen endrer ikke størrelsen på figurene. Beskrivelse av hvert steg er valgfri.
 
 YouTube- og Vimeo-lenker kan legges til og vises i en innebygd spiller når treneren velger **Vis video**. Videoleverandøren mottar da en forespørsel fra nettleseren; YouTube bruker sin vanlige innbyggingsspiller. Hvis spilleren ikke fungerer, kan videoen åpnes i en ny fane. Andre videokilder støttes ikke foreløpig, og enkelte videoer kan være sperret for innebygging av eieren.
 
@@ -95,7 +95,7 @@ Du kan fjerne bare logoen ved neste lagring. **Tilbakestill farger og fjern logo
 
 Klubber og lag har stabile slugs som genereres fra navnet ved oppretting, for eksempel `/ski-il-fotball/g2017/okter/[økt-id]` og `/ski-il-fotball/g2017/aarsplan?year=2026`. Klubbens slug er unik globalt; lagets slug er unik innen klubben. Æ, ø og å normaliseres, og kollisjoner eller reserverte menynavn får et unikt suffiks. Nettadressen vises i innstillingene og endres ikke ved senere navneendringer. Slugs gir ikke tilgang: medlemskap og klubbtilhørighet kontrolleres fortsatt.
 
-Eksisterende ID-baserte klubb-/lagadresser videresendes etter tilgangskontroll, med valgt planår og meldinger bevart. Gamle kalenderlenker videresendes til årsplanen med år og måned bevart. Brukere, innstillinger, oppretting og animasjonseditor bruker også slugadresser. Migreringen fyller inn slugs på eksisterende klubber og lag uten å endre ID-er, medlemskap eller øktversjoner. Kjør `npm run db:migrate` manuelt mens appen er stoppet.
+Eksisterende ID-baserte klubb-/lagadresser videresendes etter tilgangskontroll, med valgt planår og meldinger bevart. Gamle kalenderlenker videresendes til årsplanen med år og måned bevart. Brukere, innstillinger og oppretting bruker også slugadresser. Migreringen fyller inn slugs på eksisterende klubber og lag uten å endre ID-er, medlemskap eller øktversjoner. Kjør `npm run db:migrate` manuelt mens appen er stoppet.
 
 Åpne et lag og velg **Årsplan**. Alle lagets trenere og klubbadministratorer kan planlegge; faste treningstider og lagets standardrammer administreres fortsatt av hovedtrener eller klubbadministrator.
 
@@ -210,23 +210,16 @@ npm run build
 
 Produksjonsavhengighetene er kontrollert med `npm audit --omit=dev`. Det finnes foreløpig moderate varsler i utviklingsverktøyenes transitive avhengigheter (Drizzle Kit/ESLint); disse må følges opp før produksjonssetting. Ikke bruk `npm audit fix --force` uten å kontrollere verktøyenes kompatibilitet.
 
-## Publiserte økter og verktøy
+## Tidligere publisert økt
 
-- [Alle publiserte økter](https://ingljoopt.github.io/ski-fotball-G2017/)
-- [Planlagt økt: onsdag 4. november 2026](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html)
-- [Rediger taktikktavler](https://ingljoopt.github.io/ski-fotball-G2017/rediger-taktikk.html) – opprett en tavle eller åpne en JSON-fil.
-- [Rediger firkantanimasjonen fra økten](https://ingljoopt.github.io/ski-fotball-G2017/rediger-taktikk.html?src=%2Fski-fotball-G2017%2Fmedia%2Ftaktikk%2Ffirkant-pasning.json%3Fv%3D4) – åpner den eksisterende tavlen.
-
-Endringer i redigereren må lastes ned og legges i prosjektet før de kan publiseres. Se [arbeidsflyten for taktikktavler](docs/arbeidsflyt.md#taktikktavler).
+[Planlagt økt 4. november 2026](https://ingljoopt.github.io/ski-fotball-G2017/okter/udatert-uke-45-46-47.html) og den tilhørende Pages-løsningen er bevart. Animasjonsbyggeren for nye øvelser finnes i appen. Pages-filene inneholder også kode som appen fortsatt bruker.
 
 ## Start her
 
 1. Les [prosjektbeskrivelsen](docs/produktbeskrivelse.md) og [lagets rammer](docs/rammer.md).
-2. Følg [arbeidsflyten](docs/arbeidsflyt.md), og sjekk [økthistorikken](historikk/README.md) før en ny økt.
-3. Finn øvelser i [øvelsesbanken](ovelsesbank/README.md). Bruk Tiim-filteret **8–9 år i 2026**, og vurder **10–12 år fra 2027**.
-4. Kopier [øktmalen](maler/okt.md) til `okter/AAAA/AAAA-MM-DD-onsdag-tema.md` eller tilsvarende for søndag.
-5. Lag en offentlig øktbeskrivelse fra [publiseringsmalen](maler/offentlig-okt.md), og følg [publiseringsrutinen](docs/arbeidsflyt.md#publiser-med-github-pages). Kontroller den faktiske lenken uten innlogging når økten er publisert.
-6. Etter gjennomføring: før faktisk oppmøte, endringer og evaluering, og oppdater historikken.
+2. Følg [arbeidsflyten](docs/arbeidsflyt.md), og sjekk tidligere økter og evalueringer før en ny økt.
+3. Bruk Tiim-filteret **8–9 år i 2026**, og vurder **10–12 år fra 2027**.
+4. Opprett og rediger planen i appen. Etter gjennomføring registreres evalueringen der.
 
 Agentferdigheten [Øktplanlegger](.claude/skills/oktplanlegger/SKILL.md) følger denne arbeidsflyten og kan brukes i både VS Code og Claude Code, for eksempel med `/oktplanlegger`.
 
@@ -241,19 +234,11 @@ Agentferdigheten [Øktplanlegger](.claude/skills/oktplanlegger/SKILL.md) følger
 | `scripts/` | Lokal oppstart og migrering |
 | `drizzle/` | Versjonerte databasemigreringer |
 | `docs/rammer.md` | Spillergruppe, utstyr, årstid og organisering |
-| `docs/arbeidsflyt.md` | Planlegging, kilder, GitHub-publisering og gjenbruk |
-| `ovelsesbank/README.md` | Verifiserte Tiim-lenker og lokale vurderinger |
-| `maler/okt.md` | Plan, utstyrsregnskap og evaluering i én fil |
-| `maler/offentlig-okt.md` | Mal for offentlig øktbeskrivelse |
-| `publiserte/media/taktikk/` | Datafiler for taktikktavler og animasjoner |
-| `maler/periodeplan.md` | Tema og progresjon over flere uker |
-| `okter/README.md` | Navngiving og lagring av økter |
-| `historikk/README.md` | Register over planlagte og gjennomførte økter |
+| `docs/arbeidsflyt.md` | Planlegging, kilder, publisering og gjenbruk |
+| `docs/arkiv/` | Tidligere plan, historikk og kontrollerte Tiim-kilder |
 | `AGENTS.md` | Instruksjoner til framtidig arbeid i prosjektet |
 | `.claude/skills/oktplanlegger/SKILL.md` | Felles agentferdighet for temabasert øktplanlegging |
-| `publiserte/` | Markdown og medier for GitHub Pages |
+| `publiserte/` | Eksisterende Pages-side og animasjonskode som appen bruker |
 | `.github/workflows/pages.yml` | Bygging og publisering av nettstedet |
 
-Se [arbeidsflyten](docs/arbeidsflyt.md#taktikktavler) for å redigere og publisere egne taktikktavler med spillere, kjegler og ball. Fra en offentlig tavle kan du åpne den visuelle redigereren, laste ned JSON og legge filen i prosjektet.
-
-Repositoriet er offentlig: også filer utenfor nettstedet kan leses på GitHub. Ikke lagre opplysninger om enkeltbarn eller annet ikke-offentlig innhold her. Ingen tidligere treninger er registrert per 4. november 2026.
+Repositoriet er offentlig: også filer utenfor nettstedet kan leses på GitHub. Ikke lagre opplysninger om enkeltbarn eller annet ikke-offentlig innhold her.

@@ -59,4 +59,4 @@ Tell spillbare baller før valg av organisering. En ball kan deles av par, trio 
 
 Eksempel for 30 spillere: ti trioer krever ti baller samtidig, mens fem 3 mot 3-baner krever fem. Med bare fem baller kan oppvarmingen organiseres som fem grupper à seks med en lokal pasnings- og bevegelsesvariant; dette er en annen organisering enn Tiims øvelse med én ball per trio. Ved færre enn fem baller må hele organiseringen vurderes på nytt, med større spillgrupper eller aktiviteter uten ball for deler av gruppen og hyppige bytter.
 
-På kalde dager prioriteres aktivitet, korte stopp og få omrigginger. Ansvarlig trener vurderer underlag, lys og vær på stedet og tilpasser, forkorter eller avlyser ved uegnede forhold. Registrer endringen i øktfilen.
+På kalde dager prioriteres aktivitet, korte stopp og få omrigginger. Ansvarlig trener vurderer underlag, lys og vær på stedet og tilpasser, forkorter eller avlyser ved uegnede forhold. Registrer endringen i øktens evaluering.
