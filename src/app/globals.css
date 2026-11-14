@@ -408,6 +408,7 @@ body:has(.mobile-drawer[open]) { overflow: hidden; }
 .context-navigation { display: none; }
 .section-navigation a { display: flex; align-items: center; min-height: 44px; padding: .55rem .85rem; border-radius: .5rem; text-decoration: none; white-space: nowrap; font-size: .95rem; }
 .section-navigation a[aria-current="page"] { color: white; background: var(--green); font-weight: bold; }
+.club-theme .section-navigation a[aria-current="page"]:hover { color: white; }
 .section-navigation a:not([aria-current]):hover { background: var(--club-soft); }
 .page-content { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
 .settings-content { max-width: 760px; margin-top: 1.5rem; }
